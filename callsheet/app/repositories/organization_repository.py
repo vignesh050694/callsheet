@@ -10,6 +10,7 @@ import structlog
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.membership import Membership
 from app.models.organization import Organization
 
 _logger = structlog.get_logger(__name__)
@@ -28,18 +29,28 @@ class OrganizationRepository:
         result = await self._session.execute(select(Organization).where(Organization.slug == slug))
         return result.scalar_one_or_none()
 
-    async def list_paginated(self, *, limit: int, offset: int) -> list[Organization]:
-        _logger.debug("organization.query.list", limit=limit, offset=offset)
+    async def list_for_user(
+        self, user_id: uuid.UUID, *, limit: int, offset: int
+    ) -> list[Organization]:
+        """Joined through memberships: a caller never sees an organization they do not belong to."""
+        _logger.debug("organization.query.list_for_user", user_id=str(user_id))
         result = await self._session.execute(
             select(Organization)
+            .join(Membership, Membership.organization_id == Organization.id)
+            .where(Membership.user_id == user_id)
             .order_by(Organization.created_at.desc())
             .limit(limit)
             .offset(offset)
         )
         return list(result.scalars().all())
 
-    async def count_all(self) -> int:
-        result = await self._session.execute(select(func.count()).select_from(Organization))
+    async def count_for_user(self, user_id: uuid.UUID) -> int:
+        result = await self._session.execute(
+            select(func.count())
+            .select_from(Organization)
+            .join(Membership, Membership.organization_id == Organization.id)
+            .where(Membership.user_id == user_id)
+        )
         return int(result.scalar_one())
 
     async def add(self, organization: Organization) -> Organization:

@@ -4,7 +4,9 @@ import { SegmentSelector } from '@/components/layout/segment-selector'
 import { useHealth } from '@/hooks/use-health'
 
 const NAV_ITEMS = [
-  { to: '/', label: 'Overview', end: true },
+  { to: '/', label: 'Workspace', end: true },
+  { to: '/overview', label: 'Overview', end: false },
+  { to: '/members', label: 'Members', end: false },
   { to: '/organizations', label: 'Organizations', end: false },
 ]
 

@@ -2,8 +2,8 @@
 
 ## Commit — one per story
 
-Everything a story produced goes in a single commit: implementation, tests, docs, and the `EPIC.md`
-status update. No separate "add tests" or "update docs" commits — the story is the unit.
+Everything a story produced goes in a single commit: implementation, tests, and the `EPIC.md` status
+update. No separate "add tests" commit — the story is the unit.
 
 ```
 <type>(<STORY_ID>): <story summary, lowercase, imperative>
@@ -15,9 +15,8 @@ Epic:  <EPIC_ID> — <epic title>
 
 Tests:  <n> added — <the scenarios they cover>
 Verify: <exact command> — passing
-Docs:   <files updated, or "no changes needed">
 
-Pipeline: implement=opus tests=sonnet review=sonnet docs=haiku
+Pipeline: implement=opus tests=sonnet review=sonnet
 
 Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
 ```
@@ -42,9 +41,8 @@ Epic:  E02 — Title Setup & Identity Discovery
 Tests:  7 added — happy path, sub-four-character name without anchor, empty alias set,
         duplicate hashtag normalisation
 Verify: cd callsheet && make check — passing
-Docs:   callsheet/README.md (POST /titles payload)
 
-Pipeline: implement=opus tests=sonnet review=sonnet docs=haiku
+Pipeline: implement=opus tests=sonnet review=sonnet
 
 Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
 ```
@@ -91,7 +89,7 @@ Append at the bottom of `EPIC.md`, newest last. Create the section on first run:
 
 **Branch:** `epic/E02-title-setup-identity-discovery`
 
-- **E02-S01** — done · `a3f9c21` · 7 tests · `make check` green · README updated
+- **E02-S01** — done · `a3f9c21` · 7 tests · `make check` green
 - **E02-S02** — in-progress · Stage 1
 - **E02-S04** — blocked · reviewer rejected twice: alias suggestions need the corpus store from
   E03-S04, which is still `todo`

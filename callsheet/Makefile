@@ -1,4 +1,4 @@
-.PHONY: install dev db-up db-down migrate revision test lint format typecheck check
+.PHONY: install dev db-up db-down migrate revision seed-user test lint format typecheck check
 
 install:
 	uv sync
@@ -18,6 +18,10 @@ migrate:
 # usage: make revision m="add titles table"
 revision:
 	uv run alembic revision --autogenerate -m "$(m)"
+
+# usage: make seed-user email=head@sunpictures.com name="Priya R"
+seed-user:
+	uv run python -m scripts.seed_pilot_user --email "$(email)" --name "$(name)"
 
 test:
 	uv run pytest -q

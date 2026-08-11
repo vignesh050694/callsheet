@@ -41,7 +41,10 @@ bleed), which is why exclusion terms are a first-class setup control, not a supp
 
 ## Dependencies
 
-- **Blocked by:** E01 (a title belongs to an org).
+- **Blocked by:** E01 (a title belongs to an org) — **satisfied**. Organizations and memberships
+  landed in E01-S01 (`a708c43`) and E01-S02 (`331ba42`), which is all a title needs to hang off.
+  E01's remaining stories (S03–S06) are themselves blocked on titles from this epic, so they run
+  after it rather than before.
 - **Blocks:** E03 (nothing to collect without an identity set), E05 (pre/post release split needs §E02-S02).
 
 ## Gate this epic is measured against

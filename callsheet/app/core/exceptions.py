@@ -26,5 +26,9 @@ class ValidationFailedError(DomainError):
     """Input is well-formed but violates a business rule. -> 422"""
 
 
+class AuthenticationRequiredError(DomainError):
+    """The caller did not identify themselves, or the identity does not resolve. -> 401"""
+
+
 class PermissionDeniedError(DomainError):
     """The caller is authenticated but not allowed to do this. -> 403"""

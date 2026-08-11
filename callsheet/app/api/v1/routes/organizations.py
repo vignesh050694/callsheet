@@ -9,7 +9,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Query, status
 
-from app.api.deps import OrganizationServiceDep
+from app.api.deps import CurrentUser, OrganizationServiceDep
 from app.schemas.common import Page, PageParams
 from app.schemas.organization import (
     OrganizationCreate,
@@ -24,22 +24,29 @@ router = APIRouter(prefix="/organizations", tags=["organizations"])
     "",
     response_model=OrganizationRead,
     status_code=status.HTTP_201_CREATED,
-    summary="Create an organization",
+    summary="Create an organization owned by the caller",
 )
 async def create_organization(
     payload: OrganizationCreate,
     organization_service: OrganizationServiceDep,
+    current_user: CurrentUser,
 ) -> OrganizationRead:
-    organization = await organization_service.create_organization(payload)
+    organization = await organization_service.create_organization(payload, current_user)
     return OrganizationRead.model_validate(organization)
 
 
-@router.get("", response_model=Page[OrganizationRead], summary="List organizations")
+@router.get(
+    "",
+    response_model=Page[OrganizationRead],
+    summary="List the organizations the caller belongs to",
+)
 async def list_organizations(
     organization_service: OrganizationServiceDep,
+    current_user: CurrentUser,
     page_params: Annotated[PageParams, Query()],
 ) -> Page[OrganizationRead]:
     organizations, total_count = await organization_service.list_organizations(
+        current_user,
         limit=page_params.limit,
         offset=page_params.offset,
     )
@@ -59,8 +66,9 @@ async def list_organizations(
 async def read_organization(
     organization_id: uuid.UUID,
     organization_service: OrganizationServiceDep,
+    current_user: CurrentUser,
 ) -> OrganizationRead:
-    organization = await organization_service.get_organization(organization_id)
+    organization = await organization_service.get_organization(organization_id, current_user)
     return OrganizationRead.model_validate(organization)
 
 
@@ -73,8 +81,11 @@ async def update_organization(
     organization_id: uuid.UUID,
     payload: OrganizationUpdate,
     organization_service: OrganizationServiceDep,
+    current_user: CurrentUser,
 ) -> OrganizationRead:
-    organization = await organization_service.update_organization(organization_id, payload)
+    organization = await organization_service.update_organization(
+        organization_id, payload, current_user
+    )
     return OrganizationRead.model_validate(organization)
 
 
@@ -86,5 +97,6 @@ async def update_organization(
 async def delete_organization(
     organization_id: uuid.UUID,
     organization_service: OrganizationServiceDep,
+    current_user: CurrentUser,
 ) -> None:
-    await organization_service.delete_organization(organization_id)
+    await organization_service.delete_organization(organization_id, current_user)
