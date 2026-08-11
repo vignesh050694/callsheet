@@ -66,6 +66,36 @@ export interface InvitationCreate {
   role: MembershipRole
 }
 
+export type TitleTermType = 'alias' | 'hashtag' | 'cast' | 'director' | 'music_director'
+
+export interface TitleTerm {
+  term_type: TitleTermType
+  value: string
+}
+
+export interface Title {
+  id: string
+  organization_id: string
+  name: string
+  poster_url: string | null
+  terms: TitleTerm[]
+  /** The normalised identity set collection queries against — never the bare name. */
+  collection_terms: string[]
+  has_anchor_term: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface TitleCreate {
+  name: string
+  aliases: string[]
+  hashtags: string[]
+  lead_cast: string[]
+  directors: string[]
+  music_directors: string[]
+  poster_url?: string | null
+}
+
 export interface User {
   id: string
   email: string

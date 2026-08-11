@@ -45,7 +45,8 @@ src/
     onboarding-page.tsx       new user sets studio name + org type (E01-S01)
     members-page.tsx          members table + invite form, resend/cancel (E01-S02)
     accept-invitation-page.tsx user accepts invite via token query param (E01-S02)
-    titles-page.tsx           empty state for title list (E02 upcoming)
+    titles-page.tsx           list the organization's titles with identity-set preview (E02-S01)
+    title-setup-page.tsx      form to create a title with its identity set (E02-S01)
   components/
     layout/app-layout.tsx     shell: nav + backend status
     layout/workspace-gate.tsx onboarding or titles, by membership state
@@ -53,12 +54,14 @@ src/
     ui/invitation-link.tsx    displays acceptance URL once (E01-S02)
   hooks/                      one file per resource, wrapping TanStack Query
     use-members.ts            useMembers, useInviteMember, useResendInvitation, useCancelInvitation, useAcceptInvitation (E01-S02)
+    use-titles.ts             useTitles, useCreateTitle (E02-S01)
   stores/                     one file per Zustand store (client state)
   lib/
     api-client.ts             fetch wrapper, ApiError, base URL
     query-client.ts           cache defaults and retry policy
     session.ts                reads pilot user id from env or localStorage
     invitations.ts            builds the acceptance URL (E01-S02)
+    title-identity.ts         anchor rule, normalisation, term parsing (E02-S01)
   types/api.ts                types mirroring the backend Pydantic schemas
   index.css                   Tailwind import + theme tokens
 ```
@@ -104,9 +107,10 @@ The index route (`/`) renders `WorkspaceGate`, which queries `GET /api/v1/me` to
 
 Routes:
 
-- `/` — workspace gate; redirects to onboarding (empty memberships) or titles (has at least one membership)
+- `/` — workspace gate; redirects to onboarding (empty memberships) or titles list (has at least one membership)
 - `/members` — members table, invite form (E01-S02). Owner-only controls (invite, resend, cancel) are hidden for viewers.
 - `/invitations/accept?token=...` — acceptance screen for invited users. Caller clicks a button to accept; no auto-acceptance.
+- `/titles/new` — title setup form (E02-S01). Owner-only; the server enforces ownership.
 - `/overview` — dashboard (E02 upcoming)
 - `/organizations` — org list/create
 

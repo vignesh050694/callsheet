@@ -15,6 +15,7 @@ from app.models.user import User
 from app.services.invitation_notifier import InvitationNotifier
 from app.services.invitation_service import InvitationService
 from app.services.organization_service import OrganizationService
+from app.services.title_service import TitleService
 from app.services.user_service import UserService
 
 DbSession = Annotated[AsyncSession, Depends(get_db_session)]
@@ -49,6 +50,13 @@ def get_invitation_service(
 
 
 InvitationServiceDep = Annotated[InvitationService, Depends(get_invitation_service)]
+
+
+def get_title_service(session: DbSession) -> TitleService:
+    return TitleService(session)
+
+
+TitleServiceDep = Annotated[TitleService, Depends(get_title_service)]
 
 
 async def get_current_user(

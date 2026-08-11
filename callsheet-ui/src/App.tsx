@@ -7,6 +7,7 @@ import { MembersPage } from '@/routes/members-page'
 import { NotFoundPage } from '@/routes/not-found-page'
 import { OrganizationsPage } from '@/routes/organizations-page'
 import { OverviewPage } from '@/routes/overview-page'
+import { TitleSetupPage } from '@/routes/title-setup-page'
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
         <Route index element={<WorkspaceGate />} />
         <Route path="overview" element={<OverviewPage />} />
         <Route path="members" element={<MembersPage />} />
+        <Route path="titles/new" element={<TitleSetupPage />} />
         <Route path="invitations/accept" element={<AcceptInvitationPage />} />
         <Route path="organizations" element={<OrganizationsPage />} />
         <Route path="home" element={<Navigate to="/" replace />} />

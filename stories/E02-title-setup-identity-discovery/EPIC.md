@@ -31,13 +31,15 @@ bleed), which is why exclusion terms are a first-class setup control, not a supp
 
 ## Stories
 
-| ID | Summary | Phase |
-|---|---|---|
-| E02-S01 | Create a title with a rich identity set | 1 |
-| E02-S02 | Anchor the title to a release date and campaign milestones | 1 |
-| E02-S03 | Preview live sample results before committing setup | 1 |
-| E02-S04 | Review and approve discovered alias suggestions | 1 |
-| E02-S05 | Exclude a contaminating term from a title's results | 1 |
+| ID | Summary | Phase | Status | Commit |
+|---|---|---|---|---|
+| E02-S01 | Create a title with a rich identity set | 1 | done | PENDING |
+| E02-S02 | Anchor the title to a release date and campaign milestones | 1 | todo | — |
+| E02-S03 | Preview live sample results before committing setup | 1 | todo | — |
+| E02-S04 | Review and approve discovered alias suggestions | 1 | todo | — |
+| E02-S05 | Exclude a contaminating term from a title's results | 1 | todo | — |
+| E02-S06 | Reject invisible characters as anchor terms | 1 | todo | — |
+| E02-S07 | Measure title length by grapheme, not code point | 1 | todo | — |
 
 ## Dependencies
 
@@ -55,3 +57,22 @@ bleed), which is why exclusion terms are a first-class setup control, not a supp
 
 - Automatic title creation from a trade announcement feed.
 - Comparable-title benchmarking (Phase 4).
+
+## Delivery log
+
+**Branch:** `epic/E02-title-setup-identity-discovery` (branched from
+`epic/E01-organizations-access-membership`, which is not yet merged to `main` — a title needs
+the organizations and memberships that epic delivered)
+
+- **E02-S01** — done · `PENDING` · 97 tests · `make check` + `npm run check` green · both READMEs
+  updated. Four review rounds; seven real bypasses of the anchor rule found and fixed:
+  zero-width characters counting as anchor terms; single-hash stripping breaking hashtag dedupe;
+  blank-rendering Hangul/Braille characters classified as letters or symbols; `len()` counting
+  code points so combining marks or a ZWJ emoji padded one glyph past the threshold; unbounded
+  term strings returning 500 instead of 422; and `Mc` spacing vowel signs excluded from the
+  visible count. Shipped by decision with two known holes in the anchor rule, both filed:
+  **E02-S06** (variation selectors U+FE00–FE0F are category `Mn`, so they pass as invisible
+  anchor terms) and **E02-S07** (length is counted per code point, so `सीता` and `काका` are
+  accepted bare while `राधे` — the same two aksharas — is refused). Neither affects the identity
+  set itself, only the rule guarding short names. The reviewer ruled that refusing `राधे` is
+  correct; the defect is that equally short titles are not refused.

@@ -105,5 +105,17 @@ For a new resource — say titles (E02) — add one file per layer and register 
   - Status codes: non-member acting on an org gets 404; viewer attempting owner-only action gets 403; unauthenticated gets 401; duplicate or racing writes get 409.
   - Limitations: no mail transport (acceptance link is shown in the owner's UI); invitations do not expire.
   - New dependency: `email-validator` (for Pydantic EmailStr).
-- Titles and the collection layer (E02, E03) are not yet built.
+- **E02-S01 (title setup with rich identity)** is built. A title's identity set is stored as rows in `title_terms`, one per term, with a `term_type` of `alias`, `hashtag`, `cast`, `director`, or `music_director`. Bare title queries are the known failure case (collection against the name alone returns its namesakes, not the film); the anchored form — name plus aliases, hashtags, and cast/crew — is what finds the film.
+  - New tables: `titles` (and auto-generated migration `alembic/versions/4e0b7c9a2d15_create_titles_and_title_terms_tables.py`); `title_terms` with a unique constraint on `(title_id, term_type, normalized_value)` to dedupe within each term kind.
+  - Identity terms are normalised for comparison: NFKC, leading hashes stripped, whitespace collapsed, casefolded. The value the studio typed is preserved for display.
+  - New endpoints (all require `X-User-Id` header):
+    - `POST /api/v1/organizations/{organization_id}/titles` — owner only. Body: `{name, aliases[], hashtags[], lead_cast[], directors[], music_directors[], poster_url}`. Returns the title with `terms`, `collection_terms`, and `has_anchor_term`.
+    - `GET /api/v1/organizations/{organization_id}/titles` — any member. Paginated. Returns `{items: [titles], total, limit, offset}`.
+    - `GET /api/v1/titles/{title_id}` — any member of the owning organization.
+  - The anchor rule: a title name under 4 characters must include at least one cast or crew term ("anchor term"), otherwise creation is refused with 422. A hashtag or alias does not count. Enforced server-side in `TitleService`; the setup form also blocks submission and explains why.
+  - Status codes: viewer attempting to create a title gets 403; non-member gets 404 on all title routes (title existence is deliberately not leaked); unauthenticated gets 401; a term longer than 300 characters gets 422. Duplicate terms within a type are deduped on the way in rather than rejected; the unique constraint is a backstop that would surface as 409.
+  - Limitations:
+    - Variation selectors (U+FE00–U+FE0F) are Unicode category Mn, so they are not recognised as invisible and can be supplied as a cast term to satisfy the anchor rule. Tracked as E02-S06.
+    - The anchor rule counts characters rather than grapheme clusters, so it is inconsistent for Devanagari: "सीता" and "काका" (two aksharas) are accepted without an anchor term while "राधे" (also two aksharas) is refused. Tracked as E02-S07.
+- The collection layer (E03) is not yet built. `collection_terms` describes the set collection is intended to query.
 - `MONID_API_KEY` is reserved for the E03 collection layer and is unused so far.
