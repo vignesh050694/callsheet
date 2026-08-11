@@ -14,9 +14,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
+import { MilestoneEditor } from '@/components/ui/milestone-editor'
 import { ErrorState, LoadingState } from '@/components/ui/status-message'
 import { useCurrentUser } from '@/hooks/use-current-user'
 import { useCreateTitle } from '@/hooks/use-titles'
+import { completedMilestones, type MilestoneDraft } from '@/lib/milestones'
 import { MIN_UNANCHORED_NAME_LENGTH, isNameCollectable, parseTermList } from '@/lib/title-identity'
 
 interface TermFieldProps {
@@ -63,6 +65,8 @@ export function TitleSetupPage() {
   const createTitle = useCreateTitle(organizationId)
 
   const [name, setName] = useState('')
+  const [releaseDate, setReleaseDate] = useState('')
+  const [milestones, setMilestones] = useState<MilestoneDraft[]>([])
   const [aliases, setAliases] = useState('')
   const [hashtags, setHashtags] = useState('')
   const [leadCast, setLeadCast] = useState('')
@@ -80,7 +84,8 @@ export function TitleSetupPage() {
   }
   const isCollectable = isNameCollectable(name, anchors)
   const needsAnchor = name.trim().length > 0 && !isCollectable
-  const isSubmittable = isCollectable && !createTitle.isPending && Boolean(organizationId)
+  const isSubmittable =
+    isCollectable && Boolean(releaseDate) && !createTitle.isPending && Boolean(organizationId)
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
@@ -89,6 +94,8 @@ export function TitleSetupPage() {
     createTitle.mutate(
       {
         name: name.trim(),
+        release_date: releaseDate,
+        milestones: completedMilestones(milestones),
         aliases: parseTermList(aliases),
         hashtags: parseTermList(hashtags),
         lead_cast: anchors.leadCast,
@@ -136,6 +143,24 @@ export function TitleSetupPage() {
           be as generic as the name.
           {needsAnchor && ' Add a cast, director, or music director name to continue.'}
         </p>
+
+        <label className="block">
+          <span className="text-ink-600 block text-xs font-medium">Release date</span>
+          <input
+            type="date"
+            value={releaseDate}
+            onChange={(event) => setReleaseDate(event.target.value)}
+            required
+            className="border-ink-200 focus:border-brand-500 mt-1 rounded-md border px-3 py-2 text-sm outline-none"
+          />
+          <span className="text-ink-400 mt-1 block text-xs">
+            Required. Every chart splits before and after this date, so it is what lets you tell a
+            spike you caused from one the audience did. You can move it later without losing
+            anything already collected.
+          </span>
+        </label>
+
+        <MilestoneEditor drafts={milestones} onChange={setMilestones} />
 
         <TermField
           label="Alternate names"

@@ -17,10 +17,17 @@ class TitleRepository:
         self._session = session
 
     async def get_by_id(self, title_id: uuid.UUID) -> Title | None:
-        """Eager-loads terms: a title without its identity set is not usable by any caller."""
+        """Eager-loads terms and milestones.
+
+        Both relationships are `lazy="raise"`, so this is not just an N+1 guard — the
+        schedule update assigns to `title.milestones`, and assigning to an unloaded
+        collection is what would raise.
+        """
         _logger.debug("title.query.get_by_id", title_id=str(title_id))
         result = await self._session.execute(
-            select(Title).options(selectinload(Title.terms)).where(Title.id == title_id)
+            select(Title)
+            .options(selectinload(Title.terms), selectinload(Title.milestones))
+            .where(Title.id == title_id)
         )
         return result.scalar_one_or_none()
 
@@ -30,7 +37,7 @@ class TitleRepository:
         _logger.debug("title.query.list_for_organization", organization_id=str(organization_id))
         result = await self._session.execute(
             select(Title)
-            .options(selectinload(Title.terms))
+            .options(selectinload(Title.terms), selectinload(Title.milestones))
             .where(Title.organization_id == organization_id)
             .order_by(Title.created_at.desc())
             .limit(limit)

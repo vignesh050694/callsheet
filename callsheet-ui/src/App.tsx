@@ -7,6 +7,7 @@ import { MembersPage } from '@/routes/members-page'
 import { NotFoundPage } from '@/routes/not-found-page'
 import { OrganizationsPage } from '@/routes/organizations-page'
 import { OverviewPage } from '@/routes/overview-page'
+import { TitleSchedulePage } from '@/routes/title-schedule-page'
 import { TitleSetupPage } from '@/routes/title-setup-page'
 
 export default function App() {
@@ -18,6 +19,7 @@ export default function App() {
         <Route path="overview" element={<OverviewPage />} />
         <Route path="members" element={<MembersPage />} />
         <Route path="titles/new" element={<TitleSetupPage />} />
+        <Route path="titles/:titleId/schedule" element={<TitleSchedulePage />} />
         <Route path="invitations/accept" element={<AcceptInvitationPage />} />
         <Route path="organizations" element={<OrganizationsPage />} />
         <Route path="home" element={<Navigate to="/" replace />} />

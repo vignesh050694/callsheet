@@ -140,9 +140,7 @@ async def _create_organization(client: AsyncClient, payload: dict = SUN_PICTURES
 async def _invite(
     client: AsyncClient, organization_id: str, email: str, role: str = "viewer"
 ) -> dict:
-    response = await client.post(
-        _invite_url(organization_id), json={"email": email, "role": role}
-    )
+    response = await client.post(_invite_url(organization_id), json={"email": email, "role": role})
     assert response.status_code == 201, response.text
     return response.json()
 
@@ -166,6 +164,9 @@ async def _make_viewer(
 def _create_payload(**overrides: object) -> dict:
     payload: dict = {
         "name": "Vaaranam",
+        # Required since E02-S02. These tests are about the identity set, so the date is
+        # just a value that has to be present — E02-S02's own tests exercise the boundary.
+        "release_date": "2026-09-11",
         "aliases": [],
         "hashtags": [],
         "lead_cast": [],
@@ -428,7 +429,7 @@ async def test_stored_title_row_has_the_bare_name_and_terms_are_a_separate_table
 
 
 async def test_hashtag_variants_collapse_to_a_single_stored_term(api_client: AsyncClient) -> None:
-    """"#96Movie", "96movie", and "  #96MOVIE  " are the same hashtag under
+    """ "#96Movie", "96movie", and "  #96MOVIE  " are the same hashtag under
     normalisation (NFKC, strip, drop leading '#', collapse whitespace, casefold) and
     must dedupe to exactly one stored term."""
     organization_id = await _create_organization(api_client)
@@ -694,9 +695,7 @@ async def test_non_member_get_title_response_matches_a_genuinely_missing_title(
     )
 
     assert not_your_title_response.status_code == genuinely_missing_response.status_code == 404
-    assert (
-        not_your_title_response.json()["code"] == genuinely_missing_response.json()["code"]
-    )
+    assert not_your_title_response.json()["code"] == genuinely_missing_response.json()["code"]
 
 
 async def test_viewer_can_read_a_title(
@@ -755,9 +754,7 @@ async def test_whitespace_only_name_is_refused(api_client: AsyncClient) -> None:
     refused once the service cleans it down to nothing."""
     organization_id = await _create_organization(api_client)
 
-    response = await api_client.post(
-        _titles_url(organization_id), json=_create_payload(name="   ")
-    )
+    response = await api_client.post(_titles_url(organization_id), json=_create_payload(name="   "))
 
     assert response.status_code == 422
     assert response.json()["code"] == "ValidationFailedError"
@@ -942,7 +939,7 @@ async def test_inner_zero_width_non_joiner_is_preserved_not_stripped(
 async def test_hash_variants_of_varying_length_all_dedupe_to_one_stored_hashtag_term(
     api_client: AsyncClient,
 ) -> None:
-    """"#DC", "##DC", "###dc", and "DC" must all collapse into a single stored
+    """ "#DC", "##DC", "###dc", and "DC" must all collapse into a single stored
     hashtag term. Before the fix, `normalize_term` used `removeprefix("#")`, which
     strips only one leading hash, so "##DC" normalised to "#dc" — a value that still
     carries a hash and does not match "dc" from "DC" or "#DC". `lstrip("#")` strips
@@ -963,7 +960,7 @@ async def test_hash_variants_of_varying_length_all_dedupe_to_one_stored_hashtag_
 
 
 async def test_hashtag_that_is_only_hash_characters_is_dropped(api_client: AsyncClient) -> None:
-    """"#", "##", and "###" all normalise (via `lstrip("#")` reducing them to the
+    """ "#", "##", and "###" all normalise (via `lstrip("#")` reducing them to the
     empty string) to nothing with meaningful content — none of them may be stored as a
     term, and none may appear in the collection set."""
     organization_id = await _create_organization(api_client)
@@ -1165,7 +1162,7 @@ def test_telugu_majili_contains_no_mc_characters() -> None:
 async def test_name_padded_with_combining_marks_to_four_code_points_is_still_blocked(
     api_client: AsyncClient,
 ) -> None:
-    """"D" plus three combining accents is 4 code points (`len() == 4`) but exactly one
+    """ "D" plus three combining accents is 4 code points (`len() == 4`) but exactly one
     visible glyph (`visible_length() == 1`) — the old `len()`-based check would have
     let this through unanchored; `visible_length()` must not."""
     organization_id = await _create_organization(api_client)
@@ -1369,9 +1366,7 @@ async def test_term_of_exactly_the_max_length_is_accepted(api_client: AsyncClien
     )
 
     assert response.status_code == 201, response.text
-    alias_term = next(
-        term for term in response.json()["terms"] if term["term_type"] == "alias"
-    )
+    alias_term = next(term for term in response.json()["terms"] if term["term_type"] == "alias")
     assert alias_term["value"] == boundary_term
 
 
@@ -1407,8 +1402,7 @@ async def test_more_than_max_terms_per_field_is_still_rejected(api_client: Async
     assert response.status_code == 422, response.text
     errors = response.json()["detail"]
     assert any(
-        error["type"] == "too_long" and error["loc"][:2] == ["body", "aliases"]
-        for error in errors
+        error["type"] == "too_long" and error["loc"][:2] == ["body", "aliases"] for error in errors
     )
 
 
@@ -1418,7 +1412,7 @@ async def test_more_than_max_terms_per_field_is_still_rejected(api_client: Async
 
 
 async def test_hindi_radhe_still_requires_an_anchor_term_bare(api_client: AsyncClient) -> None:
-    """"राधे" (Radhe) has `visible_length` 3 — by akshara, what a reader actually
+    """ "राधे" (Radhe) has `visible_length` 3 — by akshara, what a reader actually
     perceives, it is a genuinely short name, on the same footing as bare "DC". Fix B
     made Mc-category vowel signs count, but a title that is still short after they are
     counted must still be treated as short: refusing it without an anchor is the
@@ -1449,7 +1443,7 @@ async def test_hindi_radhe_succeeds_with_a_real_anchor_term(api_client: AsyncCli
 
 
 async def test_telugu_majili_still_requires_an_anchor_term_bare(api_client: AsyncClient) -> None:
-    """"మజిలీ" (Majili) has `visible_length` 3 — same reasoning as "राधे" above: a
+    """ "మజిలీ" (Majili) has `visible_length` 3 — same reasoning as "राधे" above: a
     genuinely short regional title, correctly refused bare. Its count did not move
     between the pre- and post-Fix-B implementations (see
     `test_telugu_majili_contains_no_mc_characters`), so this specifically proves the

@@ -47,11 +47,14 @@ src/
     accept-invitation-page.tsx user accepts invite via token query param (E01-S02)
     titles-page.tsx           list the organization's titles with identity-set preview (E02-S01)
     title-setup-page.tsx      form to create a title with its identity set (E02-S01)
+    title-schedule-page.tsx   form to edit release date and campaign milestones (E02-S02)
   components/
     layout/app-layout.tsx     shell: nav + backend status
     layout/workspace-gate.tsx onboarding or titles, by membership state
     ui/                       small shared presentational pieces
     ui/invitation-link.tsx    displays acceptance URL once (E01-S02)
+    ui/release-timeline.tsx   the release divider and campaign markers on a date axis (E02-S02)
+    ui/milestone-editor.tsx   repeatable campaign-milestone list (E02-S02)
   hooks/                      one file per resource, wrapping TanStack Query
     use-members.ts            useMembers, useInviteMember, useResendInvitation, useCancelInvitation, useAcceptInvitation (E01-S02)
     use-titles.ts             useTitles, useCreateTitle (E02-S01)
@@ -62,6 +65,8 @@ src/
     session.ts                reads pilot user id from env or localStorage
     invitations.ts            builds the acceptance URL (E01-S02)
     title-identity.ts         anchor rule, normalisation, term parsing (E02-S01)
+    release-phase.ts          pre/post-release boundary rule, mirrors backend (E02-S02)
+    milestones.ts             draft state for the milestone editor (E02-S02)
   types/api.ts                types mirroring the backend Pydantic schemas
   index.css                   Tailwind import + theme tokens
 ```
@@ -111,8 +116,18 @@ Routes:
 - `/members` — members table, invite form (E01-S02). Owner-only controls (invite, resend, cancel) are hidden for viewers.
 - `/invitations/accept?token=...` — acceptance screen for invited users. Caller clicks a button to accept; no auto-acceptance.
 - `/titles/new` — title setup form (E02-S01). Owner-only; the server enforces ownership.
+- `/titles/:titleId/schedule` — edit release date and campaign milestones (E02-S02). Owner-only; the server enforces ownership.
 - `/overview` — dashboard (E02 upcoming)
 - `/organizations` — org list/create
+
+The client mirrors the backend's pre-release / post-release boundary rule in `src/lib/release-phase.ts`: release day itself counts as post-release. The two must move together, or a date pushed by a week splits the server's numbers and not the chart drawn beside them.
+
+Dates are handled as ISO `YYYY-MM-DD` strings end to end and never parsed into a `Date`. A release date is a calendar day, not an instant — `new Date('2026-09-11')` west of UTC yields the 10th, which would move the divider by a day for half the world. Where arithmetic is unavoidable (`dayDifference`), the string is pinned with `T00:00:00Z` first.
+
+## Known gaps
+
+- **There is no test runner.** `npm run check` is lint, typecheck and format only — there is no `test` script and no component tests. Every screen is verified by typecheck, build, and manual exercise. This is the largest standing gap in this project.
+- **Schedule edits have no concurrency control.** `title-schedule-page.tsx` seeds its form from the loaded title and holds that draft for as long as the page stays open. If another owner saves in the meantime, submitting silently overwrites their change. Fixing it properly needs a version or ETag on the resource; deferred.
 
 ## Adding a page
 

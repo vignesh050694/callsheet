@@ -10,9 +10,10 @@ of consumers.
 
 import enum
 import uuid
+from datetime import date
 
+from sqlalchemy import Date, ForeignKey, String, UniqueConstraint, Uuid
 from sqlalchemy import Enum as SqlEnum
-from sqlalchemy import ForeignKey, String, UniqueConstraint, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin, UuidPrimaryKeyMixin
@@ -21,6 +22,7 @@ from app.models.organization import Organization
 TITLE_NAME_MAX_LENGTH = 300
 TITLE_TERM_MAX_LENGTH = 300
 POSTER_URL_MAX_LENGTH = 2048
+MILESTONE_NAME_MAX_LENGTH = 120
 
 # A name this short is not collectable on its own — it needs a person to anchor it.
 MIN_UNANCHORED_NAME_LENGTH = 4
@@ -54,6 +56,10 @@ class Title(Base, UuidPrimaryKeyMixin, TimestampMixin):
         index=True,
     )
     name: Mapped[str] = mapped_column(String(TITLE_NAME_MAX_LENGTH), nullable=False)
+    # Required, because it is the boundary every chart splits on (E02-S02). A title with
+    # no release date produces time-series nobody can read as before-vs-after, which is
+    # the one comparison the product is built around.
+    release_date: Mapped[date] = mapped_column(Date, nullable=False)
     poster_url: Mapped[str | None] = mapped_column(
         String(POSTER_URL_MAX_LENGTH),
         nullable=True,
@@ -64,6 +70,16 @@ class Title(Base, UuidPrimaryKeyMixin, TimestampMixin):
         back_populates="title",
         lazy="raise",
         cascade="all, delete-orphan",
+    )
+    milestones: Mapped[list["TitleMilestone"]] = relationship(
+        back_populates="title",
+        lazy="raise",
+        cascade="all, delete-orphan",
+        # `uq_title_milestone_name_date` makes (occurs_on, normalized_name) unique, so this
+        # is a total order — two markers on the same day can never tie and swap places
+        # between reads. Ordering on the normalised name rather than the display one means
+        # retyping "trailer" as "Trailer" does not reshuffle the timeline.
+        order_by="TitleMilestone.occurs_on, TitleMilestone.normalized_name",
     )
 
     def __repr__(self) -> str:
@@ -105,3 +121,49 @@ class TitleTerm(Base, UuidPrimaryKeyMixin, TimestampMixin):
 
     def __repr__(self) -> str:
         return f"<TitleTerm {self.term_type}={self.value!r}>"
+
+
+class TitleMilestone(Base, UuidPrimaryKeyMixin, TimestampMixin):
+    """One campaign beat — teaser, trailer, audio launch, bookings open (E02-S02).
+
+    Free-text rather than a fixed enum: campaign beats differ by film and by language
+    industry, and a studio that cannot record "single 2 drop" will record it in the name
+    of something else instead. These are the reference points spike detection explains
+    itself against later (E04-S05), so what matters is that the date is right, not that
+    the label came from a list we wrote.
+
+    `normalized_name` exists only to back the uniqueness constraint — unlike a title term
+    it is never queried against, because a milestone is a marker on an axis, not something
+    collection matches on.
+    """
+
+    __tablename__ = "title_milestones"
+    __table_args__ = (
+        # The same beat on the same day twice is a double-submit, not two markers.
+        # Two beats sharing a name on *different* days are legitimate, so the date is
+        # part of the key.
+        UniqueConstraint(
+            "title_id",
+            "normalized_name",
+            "occurs_on",
+            name="uq_title_milestone_name_date",
+        ),
+    )
+
+    title_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("titles.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    name: Mapped[str] = mapped_column(String(MILESTONE_NAME_MAX_LENGTH), nullable=False)
+    normalized_name: Mapped[str] = mapped_column(
+        String(MILESTONE_NAME_MAX_LENGTH),
+        nullable=False,
+    )
+    occurs_on: Mapped[date] = mapped_column(Date, nullable=False)
+
+    title: Mapped[Title] = relationship(back_populates="milestones", lazy="raise")
+
+    def __repr__(self) -> str:
+        return f"<TitleMilestone {self.name!r} on {self.occurs_on}>"

@@ -33,8 +33,18 @@
   in both places. Fix them together.
 - Six earlier bypasses of this rule were each a different Unicode neighbour. Prefer a fix that
   asks "does this render anything" rather than one that adds `Mn` to a category list.
+- **Second surface, found in the E02-S02 review:** campaign milestone names go through the same
+  `has_meaningful_content` guard (`TitleService._desired_milestones`), so a milestone named with
+  a single variation selector is accepted with a 201 and stored. It then paints an unlabelled
+  marker on the campaign timeline. Reproduced: `POST .../titles` with
+  `{"milestones": [{"name": "️", "occurs_on": "2026-08-01"}]}` returns 201.
+  Fixing `has_meaningful_content` closes both surfaces at once — this is one rule wrong in one
+  place, used from three (title names, identity terms, milestone names), which is the argument
+  for fixing the predicate rather than each caller.
 
 #### Out of scope
 - The grapheme-counting inconsistency in the same rule (E02-S07).
+- The NFKC length-expansion defect found alongside this in the E02-S02 review — that one was
+  fixed in E02-S02 (`TitleService._ensure_fits`) and is not deferred.
 - Judging whether a visible term is a plausible human name — punctuation such as `...` is
   accepted as an anchor by design.

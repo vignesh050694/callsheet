@@ -47,6 +47,7 @@ app/
     config.py                all settings, read once from env
     logging_config.py        structlog setup, secret redaction
     exceptions.py            domain errors (services raise these, not HTTP errors)
+    release_phase.py         pre/post-release boundary rule; must mirror callsheet-ui/src/lib/release-phase.ts (E02-S02)
   middleware/
     request_logging.py       request id, start/end logs, duration
   api/
@@ -117,5 +118,21 @@ For a new resource — say titles (E02) — add one file per layer and register 
   - Limitations:
     - Variation selectors (U+FE00–U+FE0F) are Unicode category Mn, so they are not recognised as invisible and can be supplied as a cast term to satisfy the anchor rule. Tracked as E02-S06.
     - The anchor rule counts characters rather than grapheme clusters, so it is inconsistent for Devanagari: "सीता" and "काका" (two aksharas) are accepted without an anchor term while "राधे" (also two aksharas) is refused. Tracked as E02-S07.
+- **E02-S02 (anchor the title to a release date and campaign milestones)** is built. A title's release date is the pre/post-release boundary every time-series splits on, and campaign milestones are markers on that axis.
+  - `release_date` is NOT NULL in the `titles` table. It is required at title creation and can be changed later without re-collecting or re-analysing anything — the boundary is derived at read time, not stamped on rows at collection time, so moving the release date re-splits every existing chart on the next read.
+  - New table: `title_milestones` with a unique constraint `uq_title_milestone_name_date` on `(title_id, normalized_name, occurs_on)` to prevent duplicate beats on the same day.
+  - New endpoint (requires `X-User-Id` header):
+    - `PUT /api/v1/titles/{title_id}/schedule` — owner only. Body: `{release_date, milestones: [{name, occurs_on}]}`. Returns the title. The milestone list replaces wholesale (not append) because an editable form has to be able to shrink.
+  - The release phase is derived at read time from the title's current release date and the milestone's date using `phase_for_date()`: release day itself counts as post-release, because first-day-first-show reaction is a response to the film, not anticipation of it.
+  - The schedule endpoint carries no identity terms — it is a sub-resource for the one part of a title that changes on its own. Saving a corrected release date or adding a milestone cannot disturb the identity set collection is already running against, which is the story's requirement that milestones can be added later without touching collected data.
+  - Status codes: unauthenticated gets 401; non-member gets 404 (title existence is not leaked); viewer attempting to edit gets 403; owner succeeds with 200. Submitting the same beat twice — same name, same day — is deduped to one marker rather than refused, and names are compared casefolded and whitespace-collapsed, so `Audio launch` and `  audio   LAUNCH ` are one beat. The unique constraint is a backstop that would surface as 409 if that dedupe ever broke.
+  - Milestones are returned in `(occurs_on, normalized_name)` order. The date alone is not a total order — two beats can share a day — and without a tiebreaker an UPDATE that relocates a row can silently swap two markers between reads. Ordering on the normalised name means retyping a label's capitalisation does not reshuffle the timeline.
+  - **Length is bounded AFTER NFKC normalisation**, and this applies to the title name, every identity term, and every milestone name. NFKC *expands*: 120 copies of the ligature `ﬁ` are 120 characters as submitted and 240 once normalised. Bounding the raw input alone let an oversized value be written and then fail when the response schema re-checked it — a 500, not a 422, and on SQLite the row committed first so every later read of that title also failed. `TitleService._ensure_fits` is the guard; a name that looks short enough can still be refused with 422.
+  - Migration backfill: existing titles (before this migration) are backfilled with `release_date = (created_at AT TIME ZONE 'UTC')::date`, pinned to UTC to avoid timezone-dependent reinterpretation. This is a placeholder, not a fact — any title that survives this migration should have its release date confirmed by its owner.
+  - Limitations:
+    - There is no time-series chart or dashboard yet (collection lands in E03, dashboards in E04/E05). The story's criteria mention a release-date divider on every time-series view and a pre/post toggle on the dashboard; what exists today is the shared boundary helper and a standalone `ReleaseTimeline`. Nothing is split by this yet — the anchor is in place, the charts it anchors are not.
+    - A milestone name of nothing but a variation selector (U+FE00–U+FE0F) is accepted, because those are Unicode category `Mn` and `has_meaningful_content` does not treat them as invisible. It stores an unlabelled marker. Same defect as identity terms, tracked as E02-S06, whose scope now covers both surfaces.
+    - Concurrent schedule edits have no optimistic concurrency: two owners saving at once means the last write wins and silently discards the other. There is no version or ETag on the resource. Deliberately deferred.
+    - The pre/post boundary is compared in UTC. A post made late on release eve in IST lands pre-release while its UTC date is still the previous day. Territory-specific release dates are out of scope for this epic.
 - The collection layer (E03) is not yet built. `collection_terms` describes the set collection is intended to query.
 - `MONID_API_KEY` is reserved for the E03 collection layer and is unused so far.

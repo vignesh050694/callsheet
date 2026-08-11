@@ -73,10 +73,29 @@ export interface TitleTerm {
   value: string
 }
 
+/** Campaign beat. `phase` is derived server-side from the title's current release date. */
+export interface TitleMilestone {
+  id: string
+  name: string
+  /** ISO `YYYY-MM-DD`. Never parse this into a `Date` — see `lib/release-phase.ts`. */
+  occurs_on: string
+  phase: ReleasePhaseValue
+}
+
+export type ReleasePhaseValue = 'pre_release' | 'post_release'
+
+export interface TitleMilestoneInput {
+  name: string
+  occurs_on: string
+}
+
 export interface Title {
   id: string
   organization_id: string
   name: string
+  /** ISO `YYYY-MM-DD`. The boundary every time-series splits on. */
+  release_date: string
+  milestones: TitleMilestone[]
   poster_url: string | null
   terms: TitleTerm[]
   /** The normalised identity set collection queries against — never the bare name. */
@@ -88,12 +107,20 @@ export interface Title {
 
 export interface TitleCreate {
   name: string
+  release_date: string
+  milestones: TitleMilestoneInput[]
   aliases: string[]
   hashtags: string[]
   lead_cast: string[]
   directors: string[]
   music_directors: string[]
   poster_url?: string | null
+}
+
+/** PUT body: replaces the schedule wholesale, and touches no identity terms. */
+export interface TitleScheduleUpdate {
+  release_date: string
+  milestones: TitleMilestoneInput[]
 }
 
 export interface User {

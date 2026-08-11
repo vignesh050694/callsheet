@@ -14,6 +14,7 @@ import { Link } from 'react-router-dom'
 import { ErrorState, LoadingState } from '@/components/ui/status-message'
 import { useCurrentUser } from '@/hooks/use-current-user'
 import { useTitles } from '@/hooks/use-titles'
+import { formatDay } from '@/lib/release-phase'
 import type { Title } from '@/types/api'
 
 const MAX_PREVIEW_TERMS = 6
@@ -112,6 +113,21 @@ export function TitlesPage() {
                     {title.collection_terms.length} identity terms
                     {!title.has_anchor_term && ' · no anchor term'}
                   </span>
+                </div>
+                <div className="text-ink-600 mt-1 flex flex-wrap items-baseline gap-x-2 text-xs">
+                  <span>Releasing {formatDay(title.release_date)}</span>
+                  {title.milestones.length > 0 && (
+                    <span className="text-ink-400">
+                      · {title.milestones.length}{' '}
+                      {title.milestones.length === 1 ? 'milestone' : 'milestones'}
+                    </span>
+                  )}
+                  <Link
+                    to={`/titles/${title.id}/schedule`}
+                    className="text-ink-400 hover:text-ink-900 underline underline-offset-2"
+                  >
+                    {isOwner ? 'Edit schedule' : 'View schedule'}
+                  </Link>
                 </div>
                 <IdentityPreview title={title} />
               </li>

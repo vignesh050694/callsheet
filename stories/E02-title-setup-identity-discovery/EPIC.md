@@ -34,7 +34,7 @@ bleed), which is why exclusion terms are a first-class setup control, not a supp
 | ID | Summary | Phase | Status | Commit |
 |---|---|---|---|---|
 | E02-S01 | Create a title with a rich identity set | 1 | done | 7c4777c |
-| E02-S02 | Anchor the title to a release date and campaign milestones | 1 | todo | — |
+| E02-S02 | Anchor the title to a release date and campaign milestones | 1 | done | — |
 | E02-S03 | Preview live sample results before committing setup | 1 | todo | — |
 | E02-S04 | Review and approve discovered alias suggestions | 1 | todo | — |
 | E02-S05 | Exclude a contaminating term from a title's results | 1 | todo | — |
@@ -76,3 +76,30 @@ the organizations and memberships that epic delivered)
   accepted bare while `राधे` — the same two aksharas — is refused). Neither affects the identity
   set itself, only the rule guarding short names. The reviewer ruled that refusing `राधे` is
   correct; the defect is that equally short titles are not refused.
+
+- **E02-S02** — done · 75 tests · 245 backend tests · `make check` + `npm run check` + build green ·
+  both READMEs updated. Two review rounds.
+  Round 1 found an **unhandled 500 from NFKC length expansion**: `max_length` was checked on the
+  raw request string, but stored values are NFKC-normalised first and NFKC expands — 120 copies of
+  `ﬁ` clear a 120-character bound and become 240. The oversized value was written, then the
+  response schema re-checked the same limit and raised. On SQLite the row committed before the
+  crash, so every later read of that title also failed: the title became permanently unreadable.
+  The reviewer found it on milestone names; the same path is used by the title name and every
+  identity term, so **E02-S01 had shipped the same defect** and it was fixed on all four surfaces
+  via `TitleService._ensure_fits`, which bounds the value after normalisation.
+  Round 2 found that same-day milestones had **no deterministic order** — date alone is not a
+  total order, and retyping a label issues an UPDATE that can relocate the row, swapping two
+  markers between reads. Fixed with `(occurs_on, normalized_name)`, which the unique constraint
+  guarantees never ties.
+  Also fixed before review: milestone replacement tripped its own unique constraint, because
+  SQLAlchemy emits INSERTs before orphan DELETEs in one flush, so every kept beat collided with
+  its outgoing row (now diffed rather than replaced, which also keeps milestone ids stable); and
+  the relationship's `order_by` does not apply when the collection is already loaded in the
+  session, so POST and PUT returned milestones in insertion order.
+  The story's rendering criteria — a divider on every time-series view and a pre/post toggle on
+  the dashboard — were **not built and could not be**: there is no collection layer (E03) and no
+  dashboard (E04/E05). What landed is the anchor, the read-time boundary shared by both projects,
+  and a standalone `ReleaseTimeline`. Both reviewers were asked to judge that call and both
+  endorsed it. Known holes shipped by decision: variation selectors pass as milestone names
+  (**E02-S06**, scope widened to cover this second surface) and schedule edits have no optimistic
+  concurrency, so simultaneous owners silently overwrite each other.

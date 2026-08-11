@@ -92,6 +92,8 @@ export const apiClient = {
     request<TResponse>(path, { method: 'GET', signal }),
   post: <TResponse>(path: string, body: unknown) =>
     request<TResponse>(path, { method: 'POST', body }),
+  put: <TResponse>(path: string, body: unknown) =>
+    request<TResponse>(path, { method: 'PUT', body }),
   patch: <TResponse>(path: string, body: unknown) =>
     request<TResponse>(path, { method: 'PATCH', body }),
   delete: (path: string) => request<void>(path, { method: 'DELETE' }),
