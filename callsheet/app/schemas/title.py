@@ -53,6 +53,14 @@ class TitleCreate(BaseModel):
     lead_cast: TermList = Field(default_factory=list, max_length=MAX_TERMS_PER_FIELD)
     directors: TermList = Field(default_factory=list, max_length=MAX_TERMS_PER_FIELD)
     music_directors: TermList = Field(default_factory=list, max_length=MAX_TERMS_PER_FIELD)
+    exclusions: TermList = Field(
+        default_factory=list,
+        max_length=MAX_TERMS_PER_FIELD,
+        description=(
+            "Terms that disqualify a post from this title. Seeded at setup from posts the "
+            "owner marked 'not my title' in the preview (E02-S03)."
+        ),
+    )
     poster_url: str | None = Field(default=None, max_length=POSTER_URL_MAX_LENGTH)
 
 
@@ -104,8 +112,11 @@ class TitleRead(BaseModel):
     collection_terms: list[str] = Field(
         description=(
             "The normalised identity set collection queries against — the whole set, "
-            "never the bare name."
+            "never the bare name, and never an exclusion."
         )
+    )
+    excluded_terms: list[str] = Field(
+        description="The normalised terms that disqualify a post from this title."
     )
     has_anchor_term: bool
     created_at: datetime

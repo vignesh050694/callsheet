@@ -101,6 +101,30 @@ def normalize_term(raw_value: str) -> str:
     return normalized.casefold()
 
 
+# ZWJ and ZWNJ control whether adjacent consonants form a conjunct. They are kept in the
+# stored forms — removing them would fragment words — but two renderings of the *same*
+# word that differ only by one are the same word, and a hashtag copied between apps
+# routinely picks one up or loses one.
+_ZERO_WIDTH_JOINERS = ("‌", "‍")
+
+
+def joiner_folded(value: str) -> str:
+    """A comparison-only view of a term, with the zero-width joiners dropped.
+
+    Never store or display this. `normalize_term` keeps joiners because they carry
+    meaning inside a word; this answers the narrower question of whether two terms *are*
+    the same word, which is what matching, deduping, and the exclusion guard all ask.
+
+    Without it those three disagree with each other in a way nobody can see on screen:
+    `#தமிழ்சினிமா` typed by the studio and `#தமிழ்<ZWNJ>சினிமா` in a post render alike,
+    so the preview would report the studio's own hashtag as contamination and then let
+    them exclude it.
+    """
+    for joiner in _ZERO_WIDTH_JOINERS:
+        value = value.replace(joiner, "")
+    return value
+
+
 def clean_display_value(raw_value: str) -> str:
     """What the studio typed, tidied but not transformed — this is shown back to them.
 

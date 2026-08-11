@@ -66,7 +66,14 @@ export interface InvitationCreate {
   role: MembershipRole
 }
 
-export type TitleTermType = 'alias' | 'hashtag' | 'cast' | 'director' | 'music_director'
+export type TitleTermType =
+  | 'alias'
+  | 'hashtag'
+  | 'cast'
+  | 'director'
+  | 'music_director'
+  /** A term that disqualifies a post rather than collecting one. */
+  | 'exclusion'
 
 export interface TitleTerm {
   term_type: TitleTermType
@@ -100,6 +107,8 @@ export interface Title {
   terms: TitleTerm[]
   /** The normalised identity set collection queries against — never the bare name. */
   collection_terms: string[]
+  /** Normalised terms that disqualify a post from this title. */
+  excluded_terms: string[]
   has_anchor_term: boolean
   created_at: string
   updated_at: string
@@ -114,7 +123,46 @@ export interface TitleCreate {
   lead_cast: string[]
   directors: string[]
   music_directors: string[]
+  /** Seeded at setup from preview posts marked "not my title" (E02-S03). */
+  exclusions: string[]
   poster_url?: string | null
+}
+
+/** The unsaved identity set a preview runs against. No title id — nothing exists yet. */
+export interface TitlePreviewRequest {
+  name: string
+  aliases: string[]
+  hashtags: string[]
+  lead_cast: string[]
+  directors: string[]
+  music_directors: string[]
+}
+
+/**
+ * One sampled post. Nothing here has been through the analysis pipeline (E04), so there
+ * is no sentiment, no account type, and no detected language — only what the platform
+ * claimed and what the identity set explains.
+ */
+export interface PreviewPost {
+  id: string
+  author_handle: string
+  author_display_name: string
+  text: string
+  posted_at: string
+  permalink: string | null
+  /** The platform's own tag, unverified — wrong on roughly half the non-English sample. */
+  platform_reported_language: string | null
+  /** Identity terms found in the post — why it is in the sample. */
+  matched_terms: string[]
+  /** Hashtags the identity set does not claim — exclusion candidates. */
+  candidate_exclusion_terms: string[]
+}
+
+export interface TitlePreview {
+  platform: string
+  query: string
+  post_limit: number
+  posts: PreviewPost[]
 }
 
 /** PUT body: replaces the schedule wholesale, and touches no identity terms. */

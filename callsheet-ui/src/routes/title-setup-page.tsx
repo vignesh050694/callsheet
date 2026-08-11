@@ -6,14 +6,16 @@
  * requirement is stated up front, not raised as an error after submission, and the
  * submit button stays disabled until the name is collectable.
  *
- * UI invariants: no aggregate, no mention text, no outbound action, nothing encoded by
- * colour, so none of the four platform invariants apply. The identity-set preview uses
- * neutral chips for the same reason — saturated colour belongs to sentiment.
+ * UI invariants: the form itself shows no aggregate and no outbound action. It does now
+ * show mention text, via the match preview (E02-S03) — that component carries the
+ * language-provenance and unsegmented-sample obligations, and documents them. Everything
+ * on this screen stays neutral in colour; saturated colour belongs to sentiment.
  */
 
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
+import { MatchPreview } from '@/components/ui/match-preview'
 import { MilestoneEditor } from '@/components/ui/milestone-editor'
 import { ErrorState, LoadingState } from '@/components/ui/status-message'
 import { useCurrentUser } from '@/hooks/use-current-user'
@@ -73,6 +75,7 @@ export function TitleSetupPage() {
   const [directors, setDirectors] = useState('')
   const [musicDirectors, setMusicDirectors] = useState('')
   const [posterUrl, setPosterUrl] = useState('')
+  const [exclusions, setExclusions] = useState<string[]>([])
 
   if (currentUser.isPending) return <LoadingState label="Loading your workspace…" />
   if (currentUser.isError) return <ErrorState error={currentUser.error} />
@@ -83,6 +86,14 @@ export function TitleSetupPage() {
     musicDirectors: parseTermList(musicDirectors),
   }
   const isCollectable = isNameCollectable(name, anchors)
+  const previewDraft = {
+    name: name.trim(),
+    aliases: parseTermList(aliases),
+    hashtags: parseTermList(hashtags),
+    lead_cast: anchors.leadCast,
+    directors: anchors.directors,
+    music_directors: anchors.musicDirectors,
+  }
   const needsAnchor = name.trim().length > 0 && !isCollectable
   const isSubmittable =
     isCollectable && Boolean(releaseDate) && !createTitle.isPending && Boolean(organizationId)
@@ -101,6 +112,7 @@ export function TitleSetupPage() {
         lead_cast: anchors.leadCast,
         directors: anchors.directors,
         music_directors: anchors.musicDirectors,
+        exclusions,
         poster_url: posterUrl.trim() || null,
       },
       { onSuccess: () => void navigate('/', { replace: true }) },
@@ -200,6 +212,19 @@ export function TitleSetupPage() {
           value={musicDirectors}
           onChange={setMusicDirectors}
           placeholder="Govind Vasantha"
+        />
+
+        {/*
+          Gated on the same rule as the save button, not on a longer list of required
+          fields: anything savable is worth previewing, and an identity set that cannot be
+          saved would only ever sample the namesakes the anchor rule exists to refuse.
+        */}
+        <MatchPreview
+          draft={previewDraft}
+          organizationId={organizationId}
+          isPreviewable={isCollectable && Boolean(organizationId)}
+          exclusions={exclusions}
+          onExclusionsChange={setExclusions}
         />
 
         <label className="block">

@@ -32,3 +32,11 @@ class AuthenticationRequiredError(DomainError):
 
 class PermissionDeniedError(DomainError):
     """The caller is authenticated but not allowed to do this. -> 403"""
+
+
+class ServiceUnavailableError(DomainError):
+    """A dependency this request needs is not configured or not reachable. -> 503
+
+    Distinct from a 500: the request was fine and the caller can retry once the
+    dependency is back, so the message says what is missing rather than apologising.
+    """

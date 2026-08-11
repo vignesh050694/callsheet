@@ -47,6 +47,7 @@ def _to_title_read(title: Title) -> TitleRead:
         poster_url=title.poster_url,
         terms=[TitleTermRead.model_validate(term) for term in title.terms],
         collection_terms=TitleService.collection_terms_for(title),
+        excluded_terms=TitleService.excluded_terms_for(title),
         has_anchor_term=TitleService.has_anchor_term(title),
         created_at=title.created_at,
         updated_at=title.updated_at,

@@ -24,13 +24,12 @@ from app.core.exceptions import (
 from app.core.identity_terms import (
     clean_display_value,
     has_meaningful_content,
+    joiner_folded,
     normalize_term,
-    visible_length,
 )
 from app.models.membership import Membership
 from app.models.title import (
     MILESTONE_NAME_MAX_LENGTH,
-    MIN_UNANCHORED_NAME_LENGTH,
     TITLE_NAME_MAX_LENGTH,
     TITLE_TERM_MAX_LENGTH,
     Title,
@@ -42,6 +41,7 @@ from app.models.user import User
 from app.repositories.membership_repository import MembershipRepository
 from app.repositories.title_repository import TitleRepository
 from app.schemas.title import TitleCreate, TitleMilestoneCreate, TitleScheduleUpdate
+from app.services.identity_rules import ensure_fits, ensure_name_is_collectable
 
 _logger = structlog.get_logger(__name__)
 
@@ -50,14 +50,10 @@ TITLE_NOT_FOUND_MESSAGE = "Title {id} was not found"
 NOT_AN_OWNER_MESSAGE = "Only an owner can add a title to this organization"
 NOT_AN_OWNER_SCHEDULE_MESSAGE = "Only an owner can change this title's release date or milestones"
 EMPTY_MILESTONE_NAME_MESSAGE = "A campaign milestone needs a name"
-UNANCHORED_NAME_MESSAGE = (
-    "A title name shorter than {minimum} characters needs at least one cast or crew name "
-    "to anchor it, otherwise collection cannot tell it apart from anything else with that name"
-)
 EMPTY_NAME_MESSAGE = "A title needs a name"
-TOO_LONG_MESSAGE = (
-    "{subject} is longer than {limit} characters once ligatures and compatibility "
-    "characters are expanded to their standard form"
+SELF_EXCLUDING_TERM_MESSAGE = (
+    "'{term}' is already part of this title's identity, so excluding it would disqualify "
+    "the title's own posts"
 )
 DUPLICATE_ENTRY_MESSAGE = "This title already contains that identity term or campaign milestone"
 
@@ -77,10 +73,14 @@ class TitleService:
         name = clean_display_value(payload.name)
         if not has_meaningful_content(name):
             raise ValidationFailedError(EMPTY_NAME_MESSAGE)
-        self._ensure_fits(name, TITLE_NAME_MAX_LENGTH, "This title name")
+        ensure_fits(name, TITLE_NAME_MAX_LENGTH, "This title name")
 
         terms = self._build_identity_terms(payload)
-        self._ensure_name_is_collectable(name, terms)
+        ensure_name_is_collectable(
+            name,
+            has_anchor_term=any(term.term_type.is_anchor for term in terms),
+        )
+        self._ensure_exclusions_are_not_self_defeating(name, terms)
         milestones = self._build_milestones(payload.milestones)
 
         title = Title(
@@ -203,10 +203,23 @@ class TitleService:
 
         Deduped on the normalised form and ordered, so the same title always produces
         the same query regardless of the order the studio typed things in.
+
+        Exclusions are left out. They are the opposite instruction — they disqualify a
+        post rather than fetching one — and folding them in here would make the query
+        collect precisely the contamination the studio asked to be rid of.
         """
         terms = {normalize_term(title.name)}
-        terms.update(term.normalized_value for term in title.terms)
+        terms.update(
+            term.normalized_value for term in title.terms if not term.term_type.is_exclusion
+        )
         return sorted(term for term in terms if has_meaningful_content(term))
+
+    @staticmethod
+    def excluded_terms_for(title: Title) -> list[str]:
+        """The normalised terms that disqualify a post from this title (E02-S03/E02-S05)."""
+        return sorted(
+            {term.normalized_value for term in title.terms if term.term_type.is_exclusion}
+        )
 
     @staticmethod
     def has_anchor_term(title: Title) -> bool:
@@ -245,6 +258,9 @@ class TitleService:
             (TitleTermType.CAST, payload.lead_cast),
             (TitleTermType.DIRECTOR, payload.directors),
             (TitleTermType.MUSIC_DIRECTOR, payload.music_directors),
+            # Last on purpose: an exclusion is checked against the positive terms, and
+            # ordering them behind the rest means the check sees a complete set.
+            (TitleTermType.EXCLUSION, payload.exclusions),
         ]
 
         terms: list[TitleTerm] = []
@@ -257,13 +273,17 @@ class TitleService:
                 # anchor rule, which is exactly what the rule exists to prevent.
                 if not has_meaningful_content(normalized_value):
                     continue
-                if (term_type, normalized_value) in seen:
+                # Deduped on the joiner-folded form — the same equivalence matching and
+                # the exclusion guard use. Two spellings of one word are one term, and
+                # the first spelling typed is the one kept.
+                dedupe_key = (term_type, joiner_folded(normalized_value))
+                if dedupe_key in seen:
                     continue
-                seen.add((term_type, normalized_value))
+                seen.add(dedupe_key)
                 display_value = clean_display_value(raw_value)
-                # Same NFKC-expansion trap as the title name — see `_ensure_fits`.
-                self._ensure_fits(display_value, TITLE_TERM_MAX_LENGTH, "An identity term")
-                self._ensure_fits(normalized_value, TITLE_TERM_MAX_LENGTH, "An identity term")
+                # Same NFKC-expansion trap as the title name — see `ensure_fits`.
+                ensure_fits(display_value, TITLE_TERM_MAX_LENGTH, "An identity term")
+                ensure_fits(normalized_value, TITLE_TERM_MAX_LENGTH, "An identity term")
                 terms.append(
                     TitleTerm(
                         term_type=term_type,
@@ -272,23 +292,6 @@ class TitleService:
                     )
                 )
         return terms
-
-    @staticmethod
-    def _ensure_fits(value: str, limit: int, subject: str) -> None:
-        """Bounds a value *after* normalisation, which is the only length that matters.
-
-        Pydantic checks `max_length` on what the client sent. Everything stored here is
-        NFKC-normalised first, and NFKC **expands**: 120 copies of the ligature "ﬁ" are
-        120 characters on the way in and 240 after normalisation. Without this the value
-        clears validation, gets written, and then fails on the way back out — the read
-        schema re-checks the same limit — which is a 500, not a 422. On Postgres the
-        oversized INSERT raises `DataError`, a *sibling* of `IntegrityError` rather than
-        a subclass, so the conflict handlers here do not catch it either.
-
-        Checking the normalised length is what makes the limit mean what it says.
-        """
-        if len(value) > limit:
-            raise ValidationFailedError(TOO_LONG_MESSAGE.format(subject=subject, limit=limit))
 
     @classmethod
     def _desired_milestones(
@@ -312,8 +315,8 @@ class TitleService:
                 raise ValidationFailedError(EMPTY_MILESTONE_NAME_MESSAGE)
             display_name = clean_display_value(entry.name)
             # Both forms are stored, and both are bounded by the same column width.
-            cls._ensure_fits(display_name, MILESTONE_NAME_MAX_LENGTH, "A milestone name")
-            cls._ensure_fits(normalized_name, MILESTONE_NAME_MAX_LENGTH, "A milestone name")
+            ensure_fits(display_name, MILESTONE_NAME_MAX_LENGTH, "A milestone name")
+            ensure_fits(normalized_name, MILESTONE_NAME_MAX_LENGTH, "A milestone name")
             desired[(normalized_name, entry.occurs_on)] = display_name
         return desired
 
@@ -370,21 +373,33 @@ class TitleService:
                 kept.name = display_name
 
     @staticmethod
-    def _ensure_name_is_collectable(name: str, terms: list[TitleTerm]) -> None:
-        """The live run's failure case: a bare short name returns its namesakes, not the film.
+    def _ensure_exclusions_are_not_self_defeating(name: str, terms: list[TitleTerm]) -> None:
+        """An exclusion may not name the title itself, or anything in its identity set.
 
-        Length is counted in visible characters, not code points: padding one glyph with
-        combining marks or zero-width joiners must not buy a name its way past the rule.
+        The preview seeds these from posts the studio marked "not my title" (E02-S03), so
+        a mis-click can propose the film's own hashtag. Stored, that rule would disqualify
+        every post the title ever collects — a title that silently gathers nothing, for a
+        reason invisible on any screen. It is refused at the door instead.
+
+        Compared on the joiner-folded form, which is the same equivalence matching uses.
+        Literal equality would miss the case this guard exists for: the candidate came out
+        of a post, so it carries that post's joiners, while the declared term carries the
+        studio's — two spellings of one word, and the guard has to see them as one.
         """
-        if visible_length(name) >= MIN_UNANCHORED_NAME_LENGTH:
-            return
-        if any(term.term_type.is_anchor for term in terms):
-            return
-
-        _logger.warning("title.create.unanchored_name", name_length=len(name))
-        raise ValidationFailedError(
-            UNANCHORED_NAME_MESSAGE.format(minimum=MIN_UNANCHORED_NAME_LENGTH)
+        positive_terms = {joiner_folded(normalize_term(name))}
+        positive_terms.update(
+            joiner_folded(term.normalized_value)
+            for term in terms
+            if not term.term_type.is_exclusion
         )
+
+        for term in terms:
+            if not term.term_type.is_exclusion:
+                continue
+            if joiner_folded(term.normalized_value) not in positive_terms:
+                continue
+            _logger.warning("title.create.self_excluding_term", term=term.value)
+            raise ValidationFailedError(SELF_EXCLUDING_TERM_MESSAGE.format(term=term.value))
 
     async def _require_membership(self, organization_id: uuid.UUID, caller: User) -> Membership:
         membership = await self._membership_repository.get_for_user_and_organization(

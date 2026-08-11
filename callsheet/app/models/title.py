@@ -34,11 +34,21 @@ class TitleTermType(enum.StrEnum):
     CAST = "cast"
     DIRECTOR = "director"
     MUSIC_DIRECTOR = "music_director"
+    # A term that disqualifies a post rather than qualifying it (E02-S03 seeds these from
+    # the preview; E02-S05 is where they are managed against collected mentions). It sits
+    # in the same table because it is part of the same decision — what counts as this
+    # title — and keeping it here means one read answers that question in full.
+    EXCLUSION = "exclusion"
 
     @property
     def is_anchor(self) -> bool:
         """People anchor a query. A hashtag can be as generic as the name it accompanies."""
         return self in _ANCHOR_TERM_TYPES
+
+    @property
+    def is_exclusion(self) -> bool:
+        """Negative terms never widen a query — they narrow what the results may contain."""
+        return self is TitleTermType.EXCLUSION
 
 
 _ANCHOR_TERM_TYPES = frozenset(

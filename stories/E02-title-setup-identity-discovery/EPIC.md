@@ -35,7 +35,7 @@ bleed), which is why exclusion terms are a first-class setup control, not a supp
 |---|---|---|---|---|
 | E02-S01 | Create a title with a rich identity set | 1 | done | 7c4777c |
 | E02-S02 | Anchor the title to a release date and campaign milestones | 1 | done | 1b91add |
-| E02-S03 | Preview live sample results before committing setup | 1 | todo | — |
+| E02-S03 | Preview live sample results before committing setup | 1 | done | — |
 | E02-S04 | Review and approve discovered alias suggestions | 1 | todo | — |
 | E02-S05 | Exclude a contaminating term from a title's results | 1 | todo | — |
 | E02-S06 | Reject invisible characters as anchor terms | 1 | todo | — |
@@ -103,3 +103,38 @@ the organizations and memberships that epic delivered)
   endorsed it. Known holes shipped by decision: variation selectors pass as milestone names
   (**E02-S06**, scope widened to cover this second surface) and schedule edits have no optimistic
   concurrency, so simultaneous owners silently overwrite each other.
+
+- **E02-S03** — done · 65 tests · 310 backend tests · `make check` + `npm run check` + build green.
+  **Shipped by decision over a `changes-requested` verdict**, with the open finding named below.
+  Three review rounds, each finding a real defect, all in the same place: **what makes two identity
+  terms "the same word" in this corpus.**
+  What landed: a `PreviewSearch` port carrying the cost rule in its shape — one call, one page, a
+  hard cap of 20 (concept note §7 rule 2) — whose default binding is unconfigured and answers 503
+  rather than inventing a sample; the anchored query in the form the live run measured
+  (`"Lokesh Kanagaraj DC"`); per-post match evidence; `TitleTermType.EXCLUSION` seeded by marking a
+  post "not my title", kept out of `collection_terms` because it is the opposite instruction; and
+  the setup panel. The **Monid-backed adapter is deliberately not here** — it plugs into the port
+  with E03, so no environment returns real posts yet. No migration was needed for the new enum
+  member: `native_enum=False` with SQLAlchemy 2.0's `create_constraint=False` compiles to a plain
+  `VARCHAR(14)`, verified against the generated Postgres DDL.
+  Round 1: `\w`-based hashtag extraction truncated `#தமிழ்சினிமா` to `#தம` — `\w` excludes
+  categories Mn and Mc, which is every Indic vowel sign and virama. Fixed by deciding word
+  boundaries in Python.
+  Round 2: that fix was half-done. Joiners counted as part of a word but still counted for
+  *equality*, so a hashtag declared without a ZWNJ and the same visual word carrying one were
+  unrelated strings — the preview offered the studio's own hashtag back as contamination and the
+  self-exclusion guard let it through. Fixed with `joiner_folded`, a comparison-only fold.
+  Round 3, **shipped open**: that fold is over-broad. ZWJ is not only a rendering hint, it is also
+  what fuses emoji into one grapheme, so `joiner_folded` collapses `👨‍👩‍👧` and `👨👩👧` (verified).
+  A declared identity term containing an emoji ZWJ sequence can therefore be silently dropped at
+  dedupe, fabricate a match against a post that never contained it, or have a legitimate exclusion
+  refused. Judged low impact and shipped: emoji are vanishingly rare as film identity terms, and
+  nothing consumes exclusions or collection terms until E03 — whereas reverting the fold would
+  restore the round-2 defect, which is common on this corpus. The likely fix is to scope the fold
+  to joiners between letters or marks and leave joiners between symbols alone, but "when has a
+  studio already declared that term?" is a rule about meaning and wants a human ruling.
+  Also shipped open, both cheaper: the setup panel keeps chosen exclusion terms in page state
+  across an identity-set edit or a second preview run, so a term can reach `TitleCreate.exclusions`
+  with no visible origin (listed and removable, but unattributed); and
+  `TitlePreviewService._build_draft` dedupes on the bare normalised form while the save path folds,
+  a drift between the two paths that downstream folding currently masks.

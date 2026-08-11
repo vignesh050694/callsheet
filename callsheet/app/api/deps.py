@@ -15,6 +15,8 @@ from app.models.user import User
 from app.services.invitation_notifier import InvitationNotifier
 from app.services.invitation_service import InvitationService
 from app.services.organization_service import OrganizationService
+from app.services.preview_search import PreviewSearch, UnconfiguredPreviewSearch
+from app.services.title_preview_service import TitlePreviewService
 from app.services.title_service import TitleService
 from app.services.user_service import UserService
 
@@ -57,6 +59,28 @@ def get_title_service(session: DbSession) -> TitleService:
 
 
 TitleServiceDep = Annotated[TitleService, Depends(get_title_service)]
+
+
+def get_preview_search() -> PreviewSearch:
+    """The seam the collection layer plugs into.
+
+    Unconfigured by default: until E03 supplies an adapter there is no platform to
+    search, and the preview says so instead of inventing a sample. A test binds a fake
+    here the same way it binds the invitation notifier.
+    """
+    return UnconfiguredPreviewSearch()
+
+
+PreviewSearchDep = Annotated[PreviewSearch, Depends(get_preview_search)]
+
+
+def get_title_preview_service(
+    session: DbSession, search: PreviewSearchDep
+) -> TitlePreviewService:
+    return TitlePreviewService(session, search)
+
+
+TitlePreviewServiceDep = Annotated[TitlePreviewService, Depends(get_title_preview_service)]
 
 
 async def get_current_user(
