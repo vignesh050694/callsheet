@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: callsheet-postgres
+    environment:
+      POSTGRES_USER: callsheet
+      POSTGRES_PASSWORD: callsheet
+      POSTGRES_DB: callsheet
+    ports:
+      - "5432:5432"
+    volumes:
+      - callsheet_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U callsheet -d callsheet"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  callsheet_postgres_data:

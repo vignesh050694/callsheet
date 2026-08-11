@@ -1,0 +1,22 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-ink-50: #f5f6f8;
+  --color-ink-200: #d9dee6;
+  --color-ink-400: #8b94a5;
+  --color-ink-600: #4a5468;
+  --color-ink-900: #151a24;
+
+  --color-brand-500: #e0512f;
+  --color-brand-600: #c33f20;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-ink-50 text-ink-900 antialiased;
+}

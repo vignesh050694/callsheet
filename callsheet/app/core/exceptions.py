@@ -1,0 +1,30 @@
+"""Domain errors raised by the service layer.
+
+Services know nothing about HTTP. They raise these; a single exception handler in
+`app.main` maps each one to a status code, so controllers stay free of error plumbing.
+"""
+
+
+class DomainError(Exception):
+    """Base class for every expected, business-level failure."""
+
+    def __init__(self, message: str, *, code: str | None = None) -> None:
+        super().__init__(message)
+        self.message = message
+        self.code = code or self.__class__.__name__
+
+
+class ResourceNotFoundError(DomainError):
+    """A record the caller referenced does not exist. -> 404"""
+
+
+class ResourceConflictError(DomainError):
+    """The request collides with existing state, e.g. a duplicate slug. -> 409"""
+
+
+class ValidationFailedError(DomainError):
+    """Input is well-formed but violates a business rule. -> 422"""
+
+
+class PermissionDeniedError(DomainError):
+    """The caller is authenticated but not allowed to do this. -> 403"""
