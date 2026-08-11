@@ -31,7 +31,7 @@ raw corpus** — because analysis (E04) is the real budget risk and it must neve
 
 | ID | Summary | Phase | Status | Commit |
 |---|---|---|---|---|
-| E03-S07 | Keep the collection agent's tool interface provider-agnostic | 1 | done | PENDING |
+| E03-S07 | Keep the collection agent's tool interface provider-agnostic | 1 | done | 8d36606 |
 | E03-S04 | Store raw payloads verbatim and reprocess without re-paying | 1 | todo | — |
 | E03-S01 | Start collecting automatically the moment a title is created | 1 | todo | — |
 | E03-S02 | Shift polling cadence with the campaign phase | 1 | todo | — |
@@ -71,7 +71,7 @@ follows, then S01.
 `epic/E02-title-setup-identity-discovery`, which is not yet merged to `main` — collection
 needs the title identity set that epic delivered)
 
-- **E03-S07** — done · `PENDING` · 54 tests · 364 backend tests · `make check` green.
+- **E03-S07** — done · `8d36606` · 54 tests · 364 backend tests · `make check` green.
   Two review rounds. Nothing in `callsheet-ui/` was touched, so no frontend gate applies.
 
   **Started this epic out of listed order, and E02 is not finished.** E02-S04 (approve
