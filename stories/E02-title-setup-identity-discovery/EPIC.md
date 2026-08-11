@@ -34,7 +34,7 @@ bleed), which is why exclusion terms are a first-class setup control, not a supp
 | ID | Summary | Phase | Status | Commit |
 |---|---|---|---|---|
 | E02-S01 | Create a title with a rich identity set | 1 | done | 7c4777c |
-| E02-S02 | Anchor the title to a release date and campaign milestones | 1 | done | — |
+| E02-S02 | Anchor the title to a release date and campaign milestones | 1 | done | 1b91add |
 | E02-S03 | Preview live sample results before committing setup | 1 | todo | — |
 | E02-S04 | Review and approve discovered alias suggestions | 1 | todo | — |
 | E02-S05 | Exclude a contaminating term from a title's results | 1 | todo | — |
@@ -77,7 +77,7 @@ the organizations and memberships that epic delivered)
   set itself, only the rule guarding short names. The reviewer ruled that refusing `राधे` is
   correct; the defect is that equally short titles are not refused.
 
-- **E02-S02** — done · 75 tests · 245 backend tests · `make check` + `npm run check` + build green ·
+- **E02-S02** — done · `1b91add` · 75 tests · 245 backend tests · `make check` + `npm run check` + build green ·
   both READMEs updated. Two review rounds.
   Round 1 found an **unhandled 500 from NFKC length expansion**: `max_length` was checked on the
   raw request string, but stored values are NFKC-normalised first and NFKC expands — 120 copies of
