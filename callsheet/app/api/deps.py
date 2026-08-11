@@ -12,6 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db_session
 from app.models.user import User
+from app.services.invitation_notifier import InvitationNotifier
+from app.services.invitation_service import InvitationService
 from app.services.organization_service import OrganizationService
 from app.services.user_service import UserService
 
@@ -30,6 +32,23 @@ def get_user_service(session: DbSession) -> UserService:
 
 
 UserServiceDep = Annotated[UserService, Depends(get_user_service)]
+
+
+def get_invitation_notifier() -> InvitationNotifier:
+    """Overridable seam: a test asserts against it, a real mailer replaces it."""
+    return InvitationNotifier()
+
+
+InvitationNotifierDep = Annotated[InvitationNotifier, Depends(get_invitation_notifier)]
+
+
+def get_invitation_service(
+    session: DbSession, notifier: InvitationNotifierDep
+) -> InvitationService:
+    return InvitationService(session, notifier)
+
+
+InvitationServiceDep = Annotated[InvitationService, Depends(get_invitation_service)]
 
 
 async def get_current_user(

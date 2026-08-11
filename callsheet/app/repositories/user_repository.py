@@ -3,6 +3,7 @@
 import uuid
 
 import structlog
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
@@ -17,3 +18,8 @@ class UserRepository:
     async def get_by_id(self, user_id: uuid.UUID) -> User | None:
         _logger.debug("user.query.get_by_id", user_id=str(user_id))
         return await self._session.get(User, user_id)
+
+    async def get_by_email(self, email: str) -> User | None:
+        _logger.debug("user.query.get_by_email")
+        result = await self._session.execute(select(User).where(User.email == email))
+        return result.scalar_one_or_none()

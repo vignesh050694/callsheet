@@ -93,7 +93,17 @@ For a new resource — say titles (E02) — add one file per layer and register 
 
 ## Notes
 
-- E01-S01 (organizations and memberships) is built. Routes require caller identity via `X-User-Id` header (temporary seam for session layer). Ownership is a membership row with role `owner`, not a column on organizations.
-- `GET /api/v1/me` returns the signed-in user and their memberships; empty list routes first-time users to onboarding. `POST /api/v1/organizations` creates org and owner membership in one transaction and requires verified email (403 if not verified).
+- **E01-S01 (organizations and memberships)** is built. Routes require caller identity via `X-User-Id` header (temporary seam for session layer). Ownership is a membership row with role `owner`, not a column on organizations. `GET /api/v1/me` returns the signed-in user and their memberships; empty list routes first-time users to onboarding. `POST /api/v1/organizations` creates org and owner membership in one transaction and requires verified email (403 if not verified).
+- **E01-S02 (invite teammate with role)** is built. Membership roles are `owner` and `viewer`. Viewers have read-only access to an organization; owners can manage members and change settings. All role checks are enforced server-side.
+  - New endpoints (all require `X-User-Id` header):
+    - `GET /api/v1/organizations/{organization_id}/members` — members plus pending invitations. Any member may read it. Returns `{members: [{user_id, email, display_name, role, joined_at}], pending_invitations: [{id, email, role, status, last_sent_at, created_at}]}`. Pending invitations never carry the token.
+    - `POST /api/v1/organizations/{organization_id}/invitations` — owner only. Body: `{email, role}`. Returns invitation and a raw `token`, returned exactly once.
+    - `POST /api/v1/invitations/{invitation_id}/resend` — owner only. Issues a new token; the previous link stops working.
+    - `DELETE /api/v1/invitations/{invitation_id}` — owner only. Cancels a pending invitation.
+    - `POST /api/v1/invitations/accept` — body `{token}`. Creates membership with the invited role. Caller's email must match the invitation's, and email must be verified.
+  - Invitation tokens: only SHA-256 hash is stored in the database; the plaintext token is returned once when created or resent.
+  - Status codes: non-member acting on an org gets 404; viewer attempting owner-only action gets 403; unauthenticated gets 401; duplicate or racing writes get 409.
+  - Limitations: no mail transport (acceptance link is shown in the owner's UI); invitations do not expire.
+  - New dependency: `email-validator` (for Pydantic EmailStr).
 - Titles and the collection layer (E02, E03) are not yet built.
 - `MONID_API_KEY` is reserved for the E03 collection layer and is unused so far.

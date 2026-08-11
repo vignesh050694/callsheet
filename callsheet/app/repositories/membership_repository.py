@@ -27,6 +27,19 @@ class MembershipRepository:
         )
         return list(result.scalars().all())
 
+    async def list_for_organization(self, organization_id: uuid.UUID) -> list[Membership]:
+        """Eager-loads the user: the Members screen renders the person, not the row."""
+        _logger.debug(
+            "membership.query.list_for_organization", organization_id=str(organization_id)
+        )
+        result = await self._session.execute(
+            select(Membership)
+            .options(selectinload(Membership.user))
+            .where(Membership.organization_id == organization_id)
+            .order_by(Membership.created_at.asc())
+        )
+        return list(result.scalars().all())
+
     async def get_for_user_and_organization(
         self, user_id: uuid.UUID, organization_id: uuid.UUID
     ) -> Membership | None:

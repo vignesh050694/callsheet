@@ -27,6 +27,7 @@ _logger = structlog.get_logger(__name__)
 UNVERIFIED_EMAIL_MESSAGE = "Verify your email address before creating an organization"
 SLUG_TAKEN_MESSAGE = "An organization with slug {slug!r} already exists"
 ORGANIZATION_NOT_FOUND_MESSAGE = "Organization {id} was not found"
+NOT_AN_OWNER_MESSAGE = "Only an owner can change this organization"
 
 
 class OrganizationService:
@@ -117,6 +118,7 @@ class OrganizationService:
         self, organization_id: uuid.UUID, payload: OrganizationUpdate, caller: User
     ) -> Organization:
         organization = await self.get_organization(organization_id, caller)
+        await self._ensure_caller_can_administer(organization_id, caller)
 
         updated_fields = payload.model_dump(exclude_unset=True)
         for field_name, field_value in updated_fields.items():
@@ -134,6 +136,7 @@ class OrganizationService:
 
     async def delete_organization(self, organization_id: uuid.UUID, caller: User) -> None:
         organization = await self.get_organization(organization_id, caller)
+        await self._ensure_caller_can_administer(organization_id, caller)
         await self._organization_repository.delete(organization)
         await self._session.commit()
         _logger.info(
@@ -141,6 +144,25 @@ class OrganizationService:
             organization_id=str(organization_id),
             user_id=str(caller.id),
         )
+
+    async def _ensure_caller_can_administer(
+        self, organization_id: uuid.UUID, caller: User
+    ) -> None:
+        """A viewer reads; only an owner changes. Enforced here, not by hiding UI controls.
+
+        The caller has already passed the membership check, so a refusal here is a genuine
+        403: they can see this organization, they just may not administer it.
+        """
+        membership = await self._membership_repository.get_for_user_and_organization(
+            caller.id, organization_id
+        )
+        if membership is None or not membership.role.can_administer_organization:
+            _logger.warning(
+                "organization.permission_denied",
+                organization_id=str(organization_id),
+                user_id=str(caller.id),
+            )
+            raise PermissionDeniedError(NOT_AN_OWNER_MESSAGE)
 
     @staticmethod
     def _ensure_email_is_verified(owner: User) -> None:

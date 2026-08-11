@@ -34,7 +34,7 @@ is unmeasurable without it.
 | ID | Summary | Phase | Status | Commit |
 |---|---|---|---|---|
 | E01-S01 | Create a production house organization and workspace | 1 | done | a708c43 |
-| E01-S02 | Invite a teammate into the organization with a role | 1 | todo | — |
+| E01-S02 | Invite a teammate into the organization with a role | 1 | done | PENDING |
 | E01-S03 | Tag an artist on a title and invite them | 2 | todo | — |
 | E01-S04 | Artist accepts an invite and links their profile | 2 | todo | — |
 | E01-S05 | Grant an agency scoped access to a single title | 3 | todo | — |
@@ -59,3 +59,14 @@ is unmeasurable without it.
   authentication at all; slug uniqueness was check-then-insert and returned 500 instead of 409).
   Both fixed and re-reviewed. Frontend has no test runner, so the onboarding and titles screens
   have no automated coverage — verified by typecheck, build, and manual exercise only.
+- **E01-S02** — done · `PENDING` · 38 tests · `make check` + `npm run check` green · both READMEs
+  updated. Two review rounds. Round 1: accept had the same unguarded check-then-insert race as
+  S01 (500 instead of 409), and the accept flow had no frontend at all. Round 2: the race guard
+  itself crashed — `rollback()` expires ORM objects and the log line then read one. Fixed by
+  reading identifiers into locals first. A vacuous test (wrong-recipient case tripped the
+  verified-email check first, so it passed even with the security check removed) was found and
+  rewritten; the replacement was mutation-tested to confirm it fails when the check is deleted.
+  Carried limitations: no mail transport (acceptance link surfaced in the owner's UI, not
+  emailed); invitations never expire; frontend has no test runner, so all screens are unverified
+  by automation. The story's "sees my organization's titles" clause is verified against
+  organization PATCH/DELETE as a proxy — titles arrive in E02.

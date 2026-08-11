@@ -19,6 +19,12 @@ from app.models.user import User
 
 class MembershipRole(enum.StrEnum):
     OWNER = "owner"
+    VIEWER = "viewer"
+
+    @property
+    def can_administer_organization(self) -> bool:
+        """Owners administer; viewers read. Enforced in the service layer, never in the UI alone."""
+        return self is MembershipRole.OWNER
 
 
 class Membership(Base, UuidPrimaryKeyMixin, TimestampMixin):
