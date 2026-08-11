@@ -35,7 +35,7 @@ bleed), which is why exclusion terms are a first-class setup control, not a supp
 |---|---|---|---|---|
 | E02-S01 | Create a title with a rich identity set | 1 | done | 7c4777c |
 | E02-S02 | Anchor the title to a release date and campaign milestones | 1 | done | 1b91add |
-| E02-S03 | Preview live sample results before committing setup | 1 | done | — |
+| E02-S03 | Preview live sample results before committing setup | 1 | done | dcca668 |
 | E02-S04 | Review and approve discovered alias suggestions | 1 | todo | — |
 | E02-S05 | Exclude a contaminating term from a title's results | 1 | todo | — |
 | E02-S06 | Reject invisible characters as anchor terms | 1 | todo | — |
@@ -104,7 +104,8 @@ the organizations and memberships that epic delivered)
   (**E02-S06**, scope widened to cover this second surface) and schedule edits have no optimistic
   concurrency, so simultaneous owners silently overwrite each other.
 
-- **E02-S03** — done · 65 tests · 310 backend tests · `make check` + `npm run check` + build green.
+- **E02-S03** — done · `dcca668` · 65 tests · 310 backend tests · `make check` + `npm run check` +
+  build green.
   **Shipped by decision over a `changes-requested` verdict**, with the open finding named below.
   Three review rounds, each finding a real defect, all in the same place: **what makes two identity
   terms "the same word" in this corpus.**
