@@ -33,7 +33,7 @@ is unmeasurable without it.
 
 | ID | Summary | Phase | Status | Commit |
 |---|---|---|---|---|
-| E01-S01 | Create a production house organization and workspace | 1 | done | beb42e2 |
+| E01-S01 | Create a production house organization and workspace | 1 | done | a708c43 |
 | E01-S02 | Invite a teammate into the organization with a role | 1 | todo | — |
 | E01-S03 | Tag an artist on a title and invite them | 2 | todo | — |
 | E01-S04 | Artist accepts an invite and links their profile | 2 | todo | — |
@@ -54,7 +54,7 @@ is unmeasurable without it.
 
 **Branch:** `epic/E01-organizations-access-membership`
 
-- **E01-S01** — done · `beb42e2` · 26 tests · `make check` + `npm run check` green · both READMEs
+- **E01-S01** — done · `a708c43` · 26 tests · `make check` + `npm run check` green · both READMEs
   updated. Review round 1 found two real bugs (organization routes other than POST had no
   authentication at all; slug uniqueness was check-then-insert and returned 500 instead of 409).
   Both fixed and re-reviewed. Frontend has no test runner, so the onboarding and titles screens
