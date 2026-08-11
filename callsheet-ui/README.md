@@ -21,6 +21,8 @@ npm run dev          # http://localhost:5173
 
 Start the backend too (`cd ../callsheet && make dev`). Requests to `/api` are proxied to `http://localhost:8000`, so the browser sees one origin and there is no CORS preflight in development.
 
+Set `VITE_PILOT_USER_ID` in `.env.local` to the output of `make seed-user email=... name="..."` from the backend, or leave it blank and set it in localStorage at runtime for quick testing.
+
 ## Commands
 
 | Command             | What it does                               |
@@ -40,14 +42,18 @@ src/
   main.tsx                    providers: QueryClient, Router
   App.tsx                     route table
   routes/                     one file per page
+    onboarding-page.tsx       new user sets studio name + org type (E01-S01)
+    titles-page.tsx           empty state for title list (E02 upcoming)
   components/
     layout/app-layout.tsx     shell: nav + backend status
+    layout/workspace-gate.tsx onboarding or titles, by membership state
     ui/                       small shared presentational pieces
   hooks/                      one file per resource, wrapping TanStack Query
   stores/                     one file per Zustand store (client state)
   lib/
     api-client.ts             fetch wrapper, ApiError, base URL
     query-client.ts           cache defaults and retry policy
+    session.ts                reads pilot user id from env or localStorage
   types/api.ts                types mirroring the backend Pydantic schemas
   index.css                   Tailwind import + theme tokens
 ```
@@ -86,6 +92,10 @@ Never mirror fetched data into a Zustand store. If it came from the API, it belo
 ### The segment store specifically
 
 Account-type segmentation is a product invariant, not a UI preference — see the `social-intel-ui-standards` skill in `.claude/skills/`. The selector is global chrome in the app shell, persists across navigation and reloads, and defaults to **organic-only**, because that is the number people believe they are reading. Every aggregate must display which segments it covers; use `describeSegments()` for that label.
+
+### Routing and the workspace gate
+
+The index route (`/`) renders `WorkspaceGate`, which queries `GET /api/v1/me` to read the user's memberships. If empty (first-time user), it renders the onboarding screen; otherwise, the titles list. The Overview page lives at `/overview`; `/organizations` is unchanged. Pilot user identity flows from `session.ts`, which reads `VITE_PILOT_USER_ID` from env or localStorage and is sent as `X-User-Id` on every request.
 
 ## Adding a page
 

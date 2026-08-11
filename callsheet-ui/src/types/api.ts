@@ -29,3 +29,26 @@ export interface OrganizationCreate {
   slug: string
   organization_type: OrganizationType
 }
+
+export type MembershipRole = 'owner'
+
+export interface User {
+  id: string
+  email: string
+  display_name: string
+  is_email_verified: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface Membership {
+  id: string
+  role: MembershipRole
+  organization: Organization
+  created_at: string
+}
+
+export interface CurrentUser {
+  user: User
+  memberships: Membership[]
+}

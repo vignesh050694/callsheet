@@ -2,19 +2,12 @@ import { useState } from 'react'
 
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/status-message'
 import { useCreateOrganization, useOrganizations } from '@/hooks/use-organizations'
+import { toSlug } from '@/lib/slug'
 import type { OrganizationType } from '@/types/api'
 
 const ORGANIZATION_TYPE_LABELS: Record<OrganizationType, string> = {
   production_house: 'Production house',
   agency: 'Agency',
-}
-
-/** Lowercase, hyphenated, no trailing separators — matches the backend's slug pattern. */
-function toSlug(rawName: string): string {
-  return rawName
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
 }
 
 function CreateOrganizationForm() {

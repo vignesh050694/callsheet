@@ -32,6 +32,7 @@ make dev            # uvicorn on :8000, reload enabled
 | `make db-up` / `make db-down` | Start/stop local Postgres |
 | `make migrate` | Apply migrations to head |
 | `make revision m="add titles"` | Autogenerate a migration from model changes |
+| `make seed-user email=... name="..."` | Create a verified pilot user for testing (prints user id) |
 | `make test` | pytest |
 | `make lint` / `make format` | ruff |
 | `make typecheck` | mypy |
@@ -58,6 +59,7 @@ app/
   schemas/                   Pydantic request/response DTOs
   db/session.py              engine + per-request session dependency
 alembic/                     migrations
+scripts/                     one-off utilities (seed_pilot_user.py for testing)
 tests/                       pytest, SQLite-backed
 ```
 
@@ -91,5 +93,7 @@ For a new resource — say titles (E02) — add one file per layer and register 
 
 ## Notes
 
-- The `Organization` model covers E01-S01. Memberships, titles, and the collection layer are not built yet.
+- E01-S01 (organizations and memberships) is built. Routes require caller identity via `X-User-Id` header (temporary seam for session layer). Ownership is a membership row with role `owner`, not a column on organizations.
+- `GET /api/v1/me` returns the signed-in user and their memberships; empty list routes first-time users to onboarding. `POST /api/v1/organizations` creates org and owner membership in one transaction and requires verified email (403 if not verified).
+- Titles and the collection layer (E02, E03) are not yet built.
 - `MONID_API_KEY` is reserved for the E03 collection layer and is unused so far.

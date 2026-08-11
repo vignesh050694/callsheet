@@ -6,6 +6,8 @@
  * carries all three so a screen can show the message and log the request id.
  */
 
+import { getCurrentUserId } from '@/lib/session'
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api/v1'
 const NO_CONTENT_STATUS = 204
 
@@ -51,6 +53,18 @@ async function readErrorBody(response: Response): Promise<ApiErrorBody> {
   }
 }
 
+/** Identity and content type, assembled in one place so no caller sets headers by hand. */
+function buildHeaders(hasBody: boolean): HeadersInit | undefined {
+  const headers: Record<string, string> = {}
+
+  if (hasBody) headers['Content-Type'] = 'application/json'
+
+  const currentUserId = getCurrentUserId()
+  if (currentUserId) headers['X-User-Id'] = currentUserId
+
+  return Object.keys(headers).length > 0 ? headers : undefined
+}
+
 export async function request<TResponse>(
   path: string,
   { method = 'GET', body, signal }: RequestOptions = {},
@@ -58,7 +72,7 @@ export async function request<TResponse>(
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method,
     signal,
-    headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+    headers: buildHeaders(body !== undefined),
     body: body === undefined ? undefined : JSON.stringify(body),
   })
 

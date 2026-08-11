@@ -5,6 +5,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
+import { currentUserKeys } from '@/hooks/use-current-user'
 import { apiClient } from '@/lib/api-client'
 import type { Organization, OrganizationCreate, Page } from '@/types/api'
 
@@ -42,6 +43,9 @@ export function useCreateOrganization() {
       apiClient.post<Organization>('/organizations', payload),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: organizationKeys.all })
+      // Creating an organization also creates the caller's owner membership, which is
+      // what moves them past the workspace gate.
+      void queryClient.invalidateQueries({ queryKey: currentUserKeys.all })
     },
   })
 }

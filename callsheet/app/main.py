@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 from app.api.v1.router import api_v1_router
 from app.core.config import Settings, get_settings
 from app.core.exceptions import (
+    AuthenticationRequiredError,
     DomainError,
     PermissionDeniedError,
     ResourceConflictError,
@@ -29,6 +30,7 @@ DOMAIN_ERROR_STATUS_CODES: dict[type[DomainError], int] = {
     ResourceNotFoundError: 404,
     ResourceConflictError: 409,
     ValidationFailedError: 422,
+    AuthenticationRequiredError: 401,
     PermissionDeniedError: 403,
 }
 DEFAULT_DOMAIN_ERROR_STATUS_CODE = 400
