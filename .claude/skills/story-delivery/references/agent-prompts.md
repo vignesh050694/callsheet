@@ -3,10 +3,12 @@
 Substitute the bracketed values. Every template starts the agent from the **story file**, not from
 the previous stage's summary — that independence is what makes the review meaningful.
 
-All four stages share these standing rules; repeat them in each prompt:
+All three stages share these standing rules; repeat them in each prompt:
 
 - Do not run `git commit`, `git checkout`, `git branch`, or `git push`. The orchestrator commits.
 - Do not edit files under `stories/` — the story is a contract, not a work surface.
+- Do not write documentation. No README, CHANGELOG, or API-doc updates; this pipeline ships code,
+  tests, and the ledger only.
 - Report what you actually did. If something failed or you skipped it, say so plainly.
 
 ---
@@ -109,29 +111,7 @@ Return a verdict of exactly `pass` or `changes-requested`. `changes-requested` i
 criterion is unmet, any check fails, or you found a real bug. For each finding: file:line, what
 is wrong, and the concrete failure it causes. No style preferences, no speculation — only what
 you can point at.
-```
 
-## Stage 4 — Document (Haiku)
-
-`Agent(subagent_type: "general-purpose", model: "haiku", description: "document <STORY_ID>")`
-
-```
-Update the documentation for completed user story <STORY_ID>.
-
-Read <STORY_PATH> for what the feature does and <CHANGED_FILES> for what was actually built.
-
-Update only what this story changed:
-- callsheet/README.md — new endpoints, env vars, setup or migration steps, make targets.
-- callsheet-ui/README.md — new screens, routes, or scripts.
-- Docstrings or module headers on the new public functions and classes, if the surrounding code
-  uses them.
-- A CHANGELOG entry if the project keeps one. Do not create one if it does not.
-
-Rules:
-- Do not modify implementation code, tests, or anything under stories/.
-- Do not write documentation for behaviour that does not exist yet.
-- Match the voice and structure of the existing docs. Short, factual, no marketing tone.
-- If nothing needs documenting, change nothing and say so — that is a valid outcome.
-
-Report: files changed with a one-line summary each, or "no documentation changes needed".
+Missing documentation is not a finding — this pipeline does not produce docs. Only flag a doc as
+missing if the story's own acceptance criteria name it.
 ```

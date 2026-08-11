@@ -1,14 +1,18 @@
 ---
 name: story-delivery
-description: Deliver a user story or a whole epic from the `stories/` backlog through a fixed four-model pipeline — Opus implements, Sonnet writes the tests, Sonnet reviews and runs them, Haiku updates the docs — on a per-epic git branch with one commit per story and status tracked in that epic's EPIC.md. Use whenever the request names a story or epic ID (E02-S01, "epic E03", "next story in E05"), or says implement/build/deliver/pick up a backlog story, "start the next story", "work through this epic", or asks for story or epic status. Trigger even when the request sounds like plain coding work — "add the title setup form", "build the language ID service" — if the work maps to a story file under stories/.
+description: Deliver a user story or a whole epic from the `stories/` backlog through a fixed three-model pipeline — Opus implements, Sonnet writes the tests, Sonnet reviews and runs them — on a per-epic git branch with one commit per story and status tracked in that epic's EPIC.md. Use whenever the request names a story or epic ID (E02-S01, "epic E03", "next story in E05"), or says implement/build/deliver/pick up a backlog story, "start the next story", "work through this epic", or asks for story or epic status. Trigger even when the request sounds like plain coding work — "add the title setup form", "build the language ID service" — if the work maps to a story file under stories/.
 ---
 
 # Story Delivery Pipeline
 
 Delivers backlog stories under `stories/` through a fixed assembly line. The behaviour this enforces:
 **every story is implemented by Opus, tested by a separate Sonnet, reviewed and verified by another
-separate Sonnet, documented by Haiku, and lands as exactly one commit on its epic's branch — and the
-epic's `EPIC.md` is the ledger that says where every story stands.**
+separate Sonnet, and lands as exactly one commit on its epic's branch — and the epic's `EPIC.md` is
+the ledger that says where every story stands.**
+
+This pipeline does not produce documentation. No README, CHANGELOG, or API-doc stage — code, tests,
+and the `EPIC.md` ledger are the whole deliverable. If a story's own acceptance criteria call for a
+doc, the implementer writes it as part of Stage 1; otherwise nothing is documented.
 
 The separation is the point. The agent that writes the code does not write its own tests, and neither
 of them signs off on the result. Each stage starts from the story's acceptance criteria, not from the
@@ -21,8 +25,7 @@ previous agent's summary.
 | 1. Implement | **Opus** | inline (or `Agent(model: "opus")`) | working code |
 | 2. Test | **Sonnet** | `Agent(model: "sonnet")` | tests covering every Gherkin scenario |
 | 3. Review & verify | **Sonnet** | `Agent(model: "sonnet")`, fresh | verdict + failing-test output |
-| 4. Document | **Haiku** | `Agent(model: "haiku")` | README/API/CHANGELOG updates |
-| 5. Commit & track | — | orchestrator only | one commit + `EPIC.md` status row |
+| 4. Commit & track | — | orchestrator only | one commit + `EPIC.md` status row |
 
 Stage 3 must be a **new** agent, not a follow-up message to the stage-2 agent — a reviewer that wrote
 the tests will defend them.
@@ -55,7 +58,7 @@ Stage 3 checks them.
    do not build around a missing dependency.
 4. **Check the tree is clean.** `git status --porcelain`. Uncommitted work belonging to someone else
    means stop and ask; the pipeline assumes it owns the working tree.
-5. **State the plan** in two or three lines before starting: story ID, epic branch, what the four
+5. **State the plan** in two or three lines before starting: story ID, epic branch, what the three
    stages will each cover. Then run it without further check-ins unless something blocks.
 
 ## Step 1 — Epic branch
@@ -71,11 +74,11 @@ git checkout epic/E02-title-setup-identity-discovery
 Every story in that epic commits onto the same branch. Never commit story work to `main`. Do not
 push, open a PR, or merge unless the user asks — see *Finishing an epic*.
 
-## Step 2 — Stages 1 through 4
+## Step 2 — Stages 1 through 3
 
 Run them in order. The prompt template for each stage is in `references/agent-prompts.md` — use it;
 the templates carry the constraints that keep the stages honest (Stage 2 may not modify source to
-make a test pass; Stage 4 may not touch code or tests).
+make a test pass; Stage 3 must be adversarial).
 
 **The review loop.** If Stage 3 returns `changes-requested`, go back to Stage 1 with the reviewer's
 findings and re-run Stages 2–3. Cap at **two** loops. On a third failure, stop, leave the work
@@ -88,8 +91,8 @@ user's call.
 
 ## Step 3 — Commit
 
-One commit per story, containing implementation, tests, docs, and the `EPIC.md` status update
-together. Format and the required trailers are in `references/commit-and-status.md`.
+One commit per story, containing implementation, tests, and the `EPIC.md` status update together.
+Format and the required trailers are in `references/commit-and-status.md`.
 
 Commit only after Stage 3 returns `pass` and the verify command is green. Report the actual result —
 if a pre-existing unrelated failure is in the way, say so explicitly rather than describing the run
