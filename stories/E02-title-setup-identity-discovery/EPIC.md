@@ -33,7 +33,7 @@ bleed), which is why exclusion terms are a first-class setup control, not a supp
 
 | ID | Summary | Phase | Status | Commit |
 |---|---|---|---|---|
-| E02-S01 | Create a title with a rich identity set | 1 | done | PENDING |
+| E02-S01 | Create a title with a rich identity set | 1 | done | 7c4777c |
 | E02-S02 | Anchor the title to a release date and campaign milestones | 1 | todo | — |
 | E02-S03 | Preview live sample results before committing setup | 1 | todo | — |
 | E02-S04 | Review and approve discovered alias suggestions | 1 | todo | — |
@@ -64,7 +64,7 @@ bleed), which is why exclusion terms are a first-class setup control, not a supp
 `epic/E01-organizations-access-membership`, which is not yet merged to `main` — a title needs
 the organizations and memberships that epic delivered)
 
-- **E02-S01** — done · `PENDING` · 97 tests · `make check` + `npm run check` green · both READMEs
+- **E02-S01** — done · `7c4777c` · 97 tests · `make check` + `npm run check` green · both READMEs
   updated. Four review rounds; seven real bypasses of the anchor rule found and fixed:
   zero-width characters counting as anchor terms; single-hash stripping breaking hashtag dedupe;
   blank-rendering Hangul/Braille characters classified as letters or symbols; `len()` counting
