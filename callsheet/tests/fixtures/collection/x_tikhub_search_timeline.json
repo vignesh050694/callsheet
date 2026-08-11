@@ -1,0 +1,4266 @@
+{
+  "_capture": {
+    "run_id": "01KZRZKR92DWVPEAYNVP177HP8",
+    "provider": "tikhub",
+    "endpoint": "/api/v1/twitter/web/fetch_search_timeline",
+    "requested_at": "2026-08-11T17:58:33.298Z",
+    "completed_at": "2026-08-11T17:58:37.660Z",
+    "price_model": "PER_CALL",
+    "cost_usd": 0.0015,
+    "billed_units": 1,
+    "query": {
+      "keyword": "Lokesh Kanagaraj DC",
+      "search_type": "Latest"
+    },
+    "note": "Verbatim tikhub response under 'response'. Captured live for E03-S07 so the normalizer maps a real shape rather than an assumed one. Do not edit 'response' by hand."
+  },
+  "response": {
+    "status": "ok",
+    "timeline": [
+      {
+        "type": "tweet",
+        "tweet_id": "2087233047506866356",
+        "screen_name": "TheTFICut",
+        "bookmarks": 1,
+        "favorites": 0,
+        "created_at": "Tue Aug 11 17:41:52 +0000 2026",
+        "text": "Lokesh Kanagaraj will be visiting AAA and AMB Cinemas tomorrow after 7 PM. \n\n#DC #DCMovie  https://t.co/vmUMJGfjYc",
+        "lang": "en",
+        "display_text_range": [
+          0,
+          114
+        ],
+        "source": "<a href=\"http://twitter.com/download/android\" rel=\"nofollow\">Twitter for Android</a>",
+        "quotes": 0,
+        "sensitive": false,
+        "replies": 0,
+        "conversation_id": "2087233047506866356",
+        "retweets": 0,
+        "views": "87",
+        "entities": {
+          "hashtags": [
+            {
+              "indices": [
+                77,
+                80
+              ],
+              "text": "DC"
+            },
+            {
+              "indices": [
+                81,
+                89
+              ],
+              "text": "DCMovie"
+            }
+          ],
+          "media": [
+            {
+              "additional_media_info": {
+                "monetizable": false,
+                "source_user": {
+                  "user_results": {
+                    "result": {
+                      "__typename": "User",
+                      "action_counts": {
+                        "favorites_count": 500
+                      },
+                      "affiliates_highlighted_label": [],
+                      "avatar": {
+                        "image_url": "https://pbs.twimg.com/profile_images/970627074691014656/D6EWByyV_normal.jpg"
+                      },
+                      "banner": {
+                        "image_url": "https://pbs.twimg.com/profile_banners/361244641/1775719415"
+                      },
+                      "core": {
+                        "created_at": "Wed Aug 24 13:50:32 +0000 2011",
+                        "name": "Sun Pictures",
+                        "screen_name": "sunpictures"
+                      },
+                      "dm_permissions": {
+                        "can_dm": true
+                      },
+                      "follow_request_sent": false,
+                      "has_graduated_access": true,
+                      "id": "VXNlcjozNjEyNDQ2NDE=",
+                      "is_blue_verified": true,
+                      "location": {
+                        "location": "Tamil Nadu"
+                      },
+                      "media_permissions": {
+                        "can_media_tag": true
+                      },
+                      "notifications_settings": {
+                        "notifications_enabled": false
+                      },
+                      "parody_commentary_fan_label": "None",
+                      "pinned_items": [],
+                      "possibly_sensitive": false,
+                      "privacy": {
+                        "protected": false
+                      },
+                      "profile_bio": {
+                        "description": "A Division of Sun TV Network LTD. | \nFollow us on WhatsApp: https://t.co/2hjFKEUsNL",
+                        "entities": {
+                          "description": {
+                            "urls": [
+                              {
+                                "display_url": "whatsapp.com/channel/0029Va…",
+                                "expanded_url": "https://whatsapp.com/channel/0029Va5i6tvJf05mpXWy6D3g",
+                                "indices": [
+                                  60,
+                                  83
+                                ],
+                                "url": "https://t.co/2hjFKEUsNL"
+                              }
+                            ]
+                          },
+                          "url": {
+                            "urls": [
+                              {
+                                "display_url": "sunpictures.in",
+                                "expanded_url": "http://www.sunpictures.in",
+                                "indices": [
+                                  0,
+                                  23
+                                ],
+                                "url": "https://t.co/3oKPLG4PDJ"
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      "profile_description_language": "en",
+                      "profile_image_shape": "Circle",
+                      "profile_metadata": {
+                        "profile_interstitial_type": ""
+                      },
+                      "profile_translation": {
+                        "translator_type": "none"
+                      },
+                      "relationship_counts": {
+                        "followers": 2997666,
+                        "following": 25
+                      },
+                      "relationship_perspectives": {
+                        "blocked_by": false,
+                        "blocking": false,
+                        "followed_by": false,
+                        "following": false,
+                        "live_following": false,
+                        "muting": false
+                      },
+                      "rest_id": "361244641",
+                      "super_follow_eligible": false,
+                      "super_followed_by": false,
+                      "super_following": false,
+                      "tweet_counts": {
+                        "media_tweets": 3907,
+                        "tweets": 5721
+                      },
+                      "verification": {
+                        "verified": false
+                      },
+                      "website": {
+                        "url": "https://t.co/3oKPLG4PDJ"
+                      }
+                    }
+                  }
+                }
+              },
+              "allow_download_status": {
+                "allow_download": true
+              },
+              "display_url": "pic.x.com/vmUMJGfjYc",
+              "expanded_url": "https://x.com/sunpictures/status/2084573192853807472/video/1",
+              "ext_media_availability": {
+                "status": "Available"
+              },
+              "id_str": "2084573132644655104",
+              "indices": [
+                91,
+                114
+              ],
+              "media_key": "13_2084573132644655104",
+              "media_results": {
+                "result": {
+                  "media_key": "13_2084573132644655104"
+                }
+              },
+              "media_url_https": "https://pbs.twimg.com/amplify_video_thumb/2084573132644655104/img/22BYtFA_CBIrKqgv.jpg",
+              "original_info": {
+                "focus_rects": [],
+                "height": 1920,
+                "width": 1080
+              },
+              "sizes": {
+                "large": {
+                  "h": 1920,
+                  "resize": "fit",
+                  "w": 1080
+                },
+                "medium": {
+                  "h": 1200,
+                  "resize": "fit",
+                  "w": 675
+                },
+                "small": {
+                  "h": 680,
+                  "resize": "fit",
+                  "w": 383
+                },
+                "thumb": {
+                  "h": 150,
+                  "resize": "crop",
+                  "w": 150
+                }
+              },
+              "source_status_id_str": "2084573192853807472",
+              "source_user_id_str": "361244641",
+              "type": "video",
+              "url": "https://t.co/vmUMJGfjYc",
+              "video_info": {
+                "aspect_ratio": [
+                  9,
+                  16
+                ],
+                "duration_millis": 19750,
+                "variants": [
+                  {
+                    "content_type": "application/x-mpegURL",
+                    "url": "https://video.twimg.com/amplify_video/2084573132644655104/pl/7ISJmseNX12hsjmr.m3u8?tag=29&v=cfc"
+                  },
+                  {
+                    "bitrate": 632000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2084573132644655104/vid/avc1/320x568/LJrPZPkYxkEkGWoP.mp4?tag=29"
+                  },
+                  {
+                    "bitrate": 950000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2084573132644655104/vid/avc1/480x852/k3n6TNLmm1ZKXzrV.mp4?tag=29"
+                  },
+                  {
+                    "bitrate": 2176000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2084573132644655104/vid/avc1/720x1280/Pp73kZICu42TImqo.mp4?tag=29"
+                  },
+                  {
+                    "bitrate": 10368000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2084573132644655104/vid/avc1/1080x1920/MLJpKYAmFsIQdqE0.mp4?tag=29"
+                  }
+                ]
+              }
+            }
+          ],
+          "symbols": [],
+          "timestamps": [],
+          "urls": [],
+          "user_mentions": []
+        },
+        "user_info": {
+          "screen_name": "TheTFICut",
+          "name": "The Final Cut",
+          "created_at": "Sun May 01 18:27:19 +0000 2022",
+          "description": null,
+          "rest_id": "1520832186009587712",
+          "followers_count": 9051,
+          "favorites_count": 1165,
+          "avatar": "https://pbs.twimg.com/profile_images/2040253794634645504/UcSMIqID_normal.jpg",
+          "url": null,
+          "cover_image": null,
+          "verified_type": null,
+          "verified": true,
+          "friends_count": null,
+          "location": "Hyderabad, India"
+        },
+        "media": {
+          "video": [
+            {
+              "media_url_https": "https://pbs.twimg.com/amplify_video_thumb/2084573132644655104/img/22BYtFA_CBIrKqgv.jpg",
+              "variants": [
+                {
+                  "content_type": "application/x-mpegURL",
+                  "url": "https://video.twimg.com/amplify_video/2084573132644655104/pl/7ISJmseNX12hsjmr.m3u8?tag=29&v=cfc"
+                },
+                {
+                  "bitrate": 632000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2084573132644655104/vid/avc1/320x568/LJrPZPkYxkEkGWoP.mp4?tag=29"
+                },
+                {
+                  "bitrate": 950000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2084573132644655104/vid/avc1/480x852/k3n6TNLmm1ZKXzrV.mp4?tag=29"
+                },
+                {
+                  "bitrate": 2176000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2084573132644655104/vid/avc1/720x1280/Pp73kZICu42TImqo.mp4?tag=29"
+                },
+                {
+                  "bitrate": 10368000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2084573132644655104/vid/avc1/1080x1920/MLJpKYAmFsIQdqE0.mp4?tag=29"
+                }
+              ],
+              "aspect_ratio": [
+                9,
+                16
+              ],
+              "duration": 19750,
+              "original_info": {
+                "focus_rects": [],
+                "height": 1920,
+                "width": 1080
+              },
+              "id": "2084573132644655104"
+            }
+          ]
+        }
+      },
+      {
+        "type": "tweet",
+        "tweet_id": "2087149236181991893",
+        "screen_name": "letsxCinematica",
+        "bookmarks": 21,
+        "favorites": 331,
+        "created_at": "Tue Aug 11 12:08:49 +0000 2026",
+        "text": "EXCLUSIVE: \n\n#LokeshKanagaraj is set to watch #DC tomorrow at 7 PM at AAA Cinemas, Hyderabad.\n\nhttps://t.co/GxYgi0M9DX",
+        "lang": "en",
+        "display_text_range": [
+          0,
+          118
+        ],
+        "source": "<a href=\"https://mobile.twitter.com\" rel=\"nofollow\">Twitter Web App</a>",
+        "quotes": 9,
+        "sensitive": false,
+        "replies": 8,
+        "conversation_id": "2087149236181991893",
+        "retweets": 66,
+        "views": "40488",
+        "entities": {
+          "hashtags": [
+            {
+              "indices": [
+                13,
+                29
+              ],
+              "text": "LokeshKanagaraj"
+            },
+            {
+              "indices": [
+                46,
+                49
+              ],
+              "text": "DC"
+            }
+          ],
+          "media": [
+            {
+              "additional_media_info": {
+                "monetizable": false,
+                "source_user": {
+                  "user_results": {
+                    "result": {
+                      "__typename": "User",
+                      "action_counts": {
+                        "favorites_count": 11764
+                      },
+                      "affiliates_highlighted_label": [],
+                      "avatar": {
+                        "image_url": "https://pbs.twimg.com/profile_images/1665645692298350592/rZqfj2LQ_normal.jpg"
+                      },
+                      "banner": {
+                        "image_url": "https://pbs.twimg.com/profile_banners/806910315896209409/1760595491"
+                      },
+                      "core": {
+                        "created_at": "Thu Dec 08 17:16:25 +0000 2016",
+                        "name": "Trends Allu Arjun ™",
+                        "screen_name": "TrendsAlluArjun"
+                      },
+                      "dm_permissions": {
+                        "can_dm": true
+                      },
+                      "follow_request_sent": false,
+                      "has_graduated_access": true,
+                      "id": "VXNlcjo4MDY5MTAzMTU4OTYyMDk0MDk=",
+                      "is_blue_verified": true,
+                      "location": {
+                        "location": "India"
+                      },
+                      "media_permissions": {
+                        "can_media_tag": false
+                      },
+                      "notifications_settings": {
+                        "notifications_enabled": false
+                      },
+                      "parody_commentary_fan_label": "None",
+                      "pinned_items": [],
+                      "possibly_sensitive": false,
+                      "privacy": {
+                        "protected": false
+                      },
+                      "profile_bio": {
+                        "description": "Official Trends Handle Of National Best Actor @alluarjun | Upcoming Movies #RAAKA ⚔️ #AA23 🐎 | Backup account @TrendsSSAA",
+                        "entities": {
+                          "description": []
+                        }
+                      },
+                      "profile_description_language": "en",
+                      "profile_image_shape": "Circle",
+                      "profile_metadata": {
+                        "profile_interstitial_type": ""
+                      },
+                      "profile_translation": {
+                        "translator_type": "none"
+                      },
+                      "relationship_counts": {
+                        "followers": 92049,
+                        "following": 5
+                      },
+                      "relationship_perspectives": {
+                        "blocked_by": false,
+                        "blocking": false,
+                        "followed_by": false,
+                        "following": false,
+                        "live_following": false,
+                        "muting": false
+                      },
+                      "rest_id": "806910315896209409",
+                      "super_follow_eligible": false,
+                      "super_followed_by": false,
+                      "super_following": false,
+                      "tweet_counts": {
+                        "media_tweets": 8304,
+                        "tweets": 28363
+                      },
+                      "verification": {
+                        "verified": false
+                      },
+                      "website": {
+                        "url": ""
+                      }
+                    }
+                  }
+                }
+              },
+              "display_url": "pic.x.com/GxYgi0M9DX",
+              "expanded_url": "https://x.com/TrendsAlluArjun/status/2011300984182751515/video/1",
+              "ext_media_availability": {
+                "status": "Available"
+              },
+              "id_str": "2011300966067507200",
+              "indices": [
+                95,
+                118
+              ],
+              "media_key": "7_2011300966067507200",
+              "media_results": {
+                "result": {
+                  "media_key": "7_2011300966067507200"
+                }
+              },
+              "media_url_https": "https://pbs.twimg.com/ext_tw_video_thumb/2011300966067507200/pu/img/2P-DKJJzHWY5-5q3.jpg",
+              "original_info": {
+                "focus_rects": [],
+                "height": 720,
+                "width": 1280
+              },
+              "sizes": {
+                "large": {
+                  "h": 720,
+                  "resize": "fit",
+                  "w": 1280
+                },
+                "medium": {
+                  "h": 675,
+                  "resize": "fit",
+                  "w": 1200
+                },
+                "small": {
+                  "h": 383,
+                  "resize": "fit",
+                  "w": 680
+                },
+                "thumb": {
+                  "h": 150,
+                  "resize": "crop",
+                  "w": 150
+                }
+              },
+              "source_status_id_str": "2011300984182751515",
+              "source_user_id_str": "806910315896209409",
+              "type": "video",
+              "url": "https://t.co/GxYgi0M9DX",
+              "video_info": {
+                "aspect_ratio": [
+                  16,
+                  9
+                ],
+                "duration_millis": 5201,
+                "variants": [
+                  {
+                    "content_type": "application/x-mpegURL",
+                    "url": "https://video.twimg.com/ext_tw_video/2011300966067507200/pu/pl/ucqZ5G2s0kKWANFF.m3u8?tag=19"
+                  },
+                  {
+                    "bitrate": 256000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/ext_tw_video/2011300966067507200/pu/vid/avc1/480x270/2uhWmpefuFpez8yE.mp4?tag=19"
+                  },
+                  {
+                    "bitrate": 832000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/ext_tw_video/2011300966067507200/pu/vid/avc1/640x360/g07AxCF15Vq6KYAP.mp4?tag=19"
+                  },
+                  {
+                    "bitrate": 2176000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/ext_tw_video/2011300966067507200/pu/vid/avc1/1280x720/P_RoWnjhStzDiQiD.mp4?tag=19"
+                  }
+                ]
+              }
+            }
+          ],
+          "symbols": [],
+          "timestamps": [],
+          "urls": [],
+          "user_mentions": []
+        },
+        "user_info": {
+          "screen_name": "letsxCinematica",
+          "name": "Cinematica",
+          "created_at": "Sun Oct 10 11:33:57 +0000 2021",
+          "description": null,
+          "rest_id": "1447163411679174666",
+          "followers_count": 216926,
+          "favorites_count": 58526,
+          "avatar": "https://pbs.twimg.com/profile_images/2068795829666893824/fRIGEa5t_normal.jpg",
+          "url": null,
+          "cover_image": null,
+          "verified_type": null,
+          "verified": true,
+          "friends_count": null,
+          "location": "London, England"
+        },
+        "media": {
+          "video": [
+            {
+              "media_url_https": "https://pbs.twimg.com/ext_tw_video_thumb/2011300966067507200/pu/img/2P-DKJJzHWY5-5q3.jpg",
+              "variants": [
+                {
+                  "content_type": "application/x-mpegURL",
+                  "url": "https://video.twimg.com/ext_tw_video/2011300966067507200/pu/pl/ucqZ5G2s0kKWANFF.m3u8?tag=19"
+                },
+                {
+                  "bitrate": 256000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/ext_tw_video/2011300966067507200/pu/vid/avc1/480x270/2uhWmpefuFpez8yE.mp4?tag=19"
+                },
+                {
+                  "bitrate": 832000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/ext_tw_video/2011300966067507200/pu/vid/avc1/640x360/g07AxCF15Vq6KYAP.mp4?tag=19"
+                },
+                {
+                  "bitrate": 2176000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/ext_tw_video/2011300966067507200/pu/vid/avc1/1280x720/P_RoWnjhStzDiQiD.mp4?tag=19"
+                }
+              ],
+              "aspect_ratio": [
+                16,
+                9
+              ],
+              "duration": 5201,
+              "original_info": {
+                "focus_rects": [],
+                "height": 720,
+                "width": 1280
+              },
+              "id": "2011300966067507200"
+            }
+          ]
+        }
+      },
+      {
+        "type": "tweet",
+        "tweet_id": "2087149719046983941",
+        "screen_name": "CineWorldX",
+        "bookmarks": 1,
+        "favorites": 18,
+        "created_at": "Tue Aug 11 12:10:45 +0000 2026",
+        "text": "#DC Telugu Version — BREAKEVEN ACHIEVED! 🔥🔥🔥\n\nWhat a sensational run across the Telugu States! 💥\n\nThe Lokesh Kanagaraj–Wamiqa Gabbi combo is creating absolute madness! 👺🔥\n#LokeshKanagaraj #WamiqaGabbi\n@Dir_Lokesh https://t.co/LlRroblKWA",
+        "lang": "en",
+        "display_text_range": [
+          0,
+          236
+        ],
+        "source": "<a href=\"http://twitter.com/download/android\" rel=\"nofollow\">Twitter for Android</a>",
+        "quotes": 0,
+        "sensitive": false,
+        "replies": 0,
+        "conversation_id": "2087149719046983941",
+        "retweets": 1,
+        "views": "952",
+        "entities": {
+          "hashtags": [
+            {
+              "indices": [
+                0,
+                3
+              ],
+              "text": "DC"
+            },
+            {
+              "indices": [
+                171,
+                187
+              ],
+              "text": "LokeshKanagaraj"
+            },
+            {
+              "indices": [
+                188,
+                200
+              ],
+              "text": "WamiqaGabbi"
+            }
+          ],
+          "media": [
+            {
+              "additional_media_info": {
+                "monetizable": false,
+                "source_user": {
+                  "user_results": {
+                    "result": {
+                      "__typename": "User",
+                      "action_counts": {
+                        "favorites_count": 14741
+                      },
+                      "affiliates_highlighted_label": [],
+                      "avatar": {
+                        "image_url": "https://pbs.twimg.com/profile_images/1747489816898625536/m4hWxtcO_normal.jpg"
+                      },
+                      "banner": {
+                        "image_url": "https://pbs.twimg.com/profile_banners/1552767463107940352/1784554254"
+                      },
+                      "core": {
+                        "created_at": "Thu Jul 28 21:26:38 +0000 2022",
+                        "name": "Telugu Cult 𝐘𝐓",
+                        "screen_name": "Telugu_Cult"
+                      },
+                      "dm_permissions": {
+                        "can_dm": false
+                      },
+                      "follow_request_sent": false,
+                      "has_graduated_access": true,
+                      "id": "VXNlcjoxNTUyNzY3NDYzMTA3OTQwMzUy",
+                      "is_blue_verified": true,
+                      "location": {
+                        "location": "Hyderabad "
+                      },
+                      "media_permissions": {
+                        "can_media_tag": false
+                      },
+                      "notifications_settings": {
+                        "notifications_enabled": false
+                      },
+                      "parody_commentary_fan_label": "None",
+                      "pinned_items": {
+                        "tweet_ids_str": [
+                          "1805790441125855297"
+                        ]
+                      },
+                      "possibly_sensitive": false,
+                      "privacy": {
+                        "protected": false
+                      },
+                      "professional": {
+                        "category": [
+                          {
+                            "icon_name": "IconBriefcaseStroke",
+                            "id": 15,
+                            "name": "Entertainment & Recreation"
+                          }
+                        ],
+                        "professional_type": "Creator",
+                        "rest_id": "1727597264703815969"
+                      },
+                      "profile_bio": {
+                        "description": "𝐒𝐭𝐚𝐲 𝐓𝐮𝐧𝐧𝐞𝐝 : 𝟐𝟒/𝟕 𝐔𝐩𝐝𝐚𝐭𝐞𝐬 & 𝐅𝐮𝐧 . Film Updates | Movie Reviews | Celebrity News | Movie Interviews",
+                        "entities": {
+                          "description": [],
+                          "url": {
+                            "urls": [
+                              {
+                                "display_url": "youtube.com/@TeluguCult/vi…",
+                                "expanded_url": "http://www.youtube.com/@TeluguCult/videos",
+                                "indices": [
+                                  0,
+                                  23
+                                ],
+                                "url": "https://t.co/MjqmvAHr4u"
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      "profile_description_language": "en",
+                      "profile_image_shape": "Circle",
+                      "profile_metadata": {
+                        "profile_interstitial_type": ""
+                      },
+                      "profile_translation": {
+                        "translator_type": "none"
+                      },
+                      "relationship_counts": {
+                        "followers": 29239,
+                        "following": 99
+                      },
+                      "relationship_perspectives": {
+                        "blocked_by": false,
+                        "blocking": false,
+                        "followed_by": false,
+                        "following": false,
+                        "live_following": false,
+                        "muting": false
+                      },
+                      "rest_id": "1552767463107940352",
+                      "super_follow_eligible": false,
+                      "super_followed_by": false,
+                      "super_following": false,
+                      "tweet_counts": {
+                        "media_tweets": 12629,
+                        "tweets": 20416
+                      },
+                      "verification": {
+                        "verified": false
+                      },
+                      "website": {
+                        "url": "https://t.co/MjqmvAHr4u"
+                      }
+                    }
+                  }
+                }
+              },
+              "allow_download_status": {
+                "allow_download": true
+              },
+              "display_url": "pic.x.com/LlRroblKWA",
+              "expanded_url": "https://x.com/i/status/2087090707475616139/video/1",
+              "ext_media_availability": {
+                "status": "Available"
+              },
+              "id_str": "2087090660595879937",
+              "indices": [
+                213,
+                236
+              ],
+              "media_key": "13_2087090660595879937",
+              "media_results": {
+                "result": {
+                  "media_key": "13_2087090660595879937"
+                }
+              },
+              "media_url_https": "https://pbs.twimg.com/amplify_video_thumb/2087090660595879937/img/v85i5nK6BsQ23WzI.jpg",
+              "original_info": {
+                "focus_rects": [],
+                "height": 622,
+                "width": 1280
+              },
+              "sizes": {
+                "large": {
+                  "h": 622,
+                  "resize": "fit",
+                  "w": 1280
+                },
+                "medium": {
+                  "h": 583,
+                  "resize": "fit",
+                  "w": 1200
+                },
+                "small": {
+                  "h": 330,
+                  "resize": "fit",
+                  "w": 680
+                },
+                "thumb": {
+                  "h": 150,
+                  "resize": "crop",
+                  "w": 150
+                }
+              },
+              "source_status_id_str": "2087090707475616139",
+              "source_user_id_str": "1552767463107940352",
+              "type": "video",
+              "url": "https://t.co/LlRroblKWA",
+              "video_info": {
+                "aspect_ratio": [
+                  640,
+                  311
+                ],
+                "duration_millis": 43373,
+                "variants": [
+                  {
+                    "content_type": "application/x-mpegURL",
+                    "url": "https://video.twimg.com/amplify_video/2087090660595879937/pl/qEMljGTbbha46-LL.m3u8?tag=29&v=cfc"
+                  },
+                  {
+                    "bitrate": 256000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2087090660595879937/vid/avc1/554x270/lfJbjT0gwlrCDnIr.mp4?tag=29"
+                  },
+                  {
+                    "bitrate": 832000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2087090660595879937/vid/avc1/740x360/7a5VVPQPMY30EMO0.mp4?tag=29"
+                  },
+                  {
+                    "bitrate": 2176000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2087090660595879937/vid/avc1/1280x622/Z67K2LnabwVsK3x0.mp4?tag=29"
+                  }
+                ]
+              }
+            }
+          ],
+          "user_mentions": [
+            {
+              "id_str": "1103860407624556546",
+              "indices": [
+                201,
+                212
+              ],
+              "name": "Lokesh Kanagaraj",
+              "screen_name": "Dir_Lokesh"
+            }
+          ],
+          "symbols": [],
+          "timestamps": [],
+          "urls": []
+        },
+        "user_info": {
+          "screen_name": "CineWorldX",
+          "name": "CineWorldX",
+          "created_at": "Thu Nov 21 07:29:58 +0000 2019",
+          "description": null,
+          "rest_id": "1197416799903588352",
+          "followers_count": 68965,
+          "favorites_count": 8614,
+          "avatar": "https://pbs.twimg.com/profile_images/2016366357177081856/wl5JSRC4_normal.jpg",
+          "url": null,
+          "cover_image": null,
+          "verified_type": null,
+          "verified": true,
+          "friends_count": null,
+          "location": "coimbatore"
+        },
+        "media": {
+          "video": [
+            {
+              "media_url_https": "https://pbs.twimg.com/amplify_video_thumb/2087090660595879937/img/v85i5nK6BsQ23WzI.jpg",
+              "variants": [
+                {
+                  "content_type": "application/x-mpegURL",
+                  "url": "https://video.twimg.com/amplify_video/2087090660595879937/pl/qEMljGTbbha46-LL.m3u8?tag=29&v=cfc"
+                },
+                {
+                  "bitrate": 256000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2087090660595879937/vid/avc1/554x270/lfJbjT0gwlrCDnIr.mp4?tag=29"
+                },
+                {
+                  "bitrate": 832000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2087090660595879937/vid/avc1/740x360/7a5VVPQPMY30EMO0.mp4?tag=29"
+                },
+                {
+                  "bitrate": 2176000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2087090660595879937/vid/avc1/1280x622/Z67K2LnabwVsK3x0.mp4?tag=29"
+                }
+              ],
+              "aspect_ratio": [
+                640,
+                311
+              ],
+              "duration": 43373,
+              "original_info": {
+                "focus_rects": [],
+                "height": 622,
+                "width": 1280
+              },
+              "id": "2087090660595879937"
+            }
+          ]
+        }
+      },
+      {
+        "type": "tweet",
+        "tweet_id": "2087182165117423709",
+        "screen_name": "kumudamdigi",
+        "bookmarks": 0,
+        "favorites": 0,
+        "created_at": "Tue Aug 11 14:19:40 +0000 2026",
+        "text": "😂 காலையிலேயே Blood குளியலா? | Lokesh Kanagaraj\nFULL VIDEO : https://t.co/myf0BNwacl\n#DCMovie #DC #DCActors #Avinash #KrishDayal #LokeshKanagaraj https://t.co/xlYH8gQa5q",
+        "lang": "et",
+        "display_text_range": [
+          0,
+          144
+        ],
+        "source": "<a href=\"https://mobile.twitter.com\" rel=\"nofollow\">Twitter Web App</a>",
+        "quotes": 0,
+        "sensitive": false,
+        "replies": 0,
+        "conversation_id": "2087182165117423709",
+        "retweets": 0,
+        "views": "324",
+        "entities": {
+          "hashtags": [
+            {
+              "indices": [
+                84,
+                92
+              ],
+              "text": "DCMovie"
+            },
+            {
+              "indices": [
+                93,
+                96
+              ],
+              "text": "DC"
+            },
+            {
+              "indices": [
+                97,
+                106
+              ],
+              "text": "DCActors"
+            },
+            {
+              "indices": [
+                107,
+                115
+              ],
+              "text": "Avinash"
+            },
+            {
+              "indices": [
+                116,
+                127
+              ],
+              "text": "KrishDayal"
+            },
+            {
+              "indices": [
+                128,
+                144
+              ],
+              "text": "LokeshKanagaraj"
+            }
+          ],
+          "media": [
+            {
+              "additional_media_info": {
+                "monetizable": false
+              },
+              "allow_download_status": {
+                "allow_download": true
+              },
+              "display_url": "pic.x.com/xlYH8gQa5q",
+              "expanded_url": "https://x.com/kumudamdigi/status/2087182165117423709/video/1",
+              "ext_media_availability": {
+                "status": "Available"
+              },
+              "id_str": "2087181999878574080",
+              "indices": [
+                145,
+                168
+              ],
+              "media_key": "13_2087181999878574080",
+              "media_results": {
+                "result": {
+                  "media_key": "13_2087181999878574080"
+                }
+              },
+              "media_url_https": "https://pbs.twimg.com/amplify_video_thumb/2087181999878574080/img/nLv4XyVjPWCeJA98.jpg",
+              "original_info": {
+                "focus_rects": [],
+                "height": 1920,
+                "width": 1080
+              },
+              "sizes": {
+                "large": {
+                  "h": 1920,
+                  "resize": "fit",
+                  "w": 1080
+                },
+                "medium": {
+                  "h": 1200,
+                  "resize": "fit",
+                  "w": 675
+                },
+                "small": {
+                  "h": 680,
+                  "resize": "fit",
+                  "w": 383
+                },
+                "thumb": {
+                  "h": 150,
+                  "resize": "crop",
+                  "w": 150
+                }
+              },
+              "type": "video",
+              "url": "https://t.co/xlYH8gQa5q",
+              "video_info": {
+                "aspect_ratio": [
+                  9,
+                  16
+                ],
+                "duration_millis": 85160,
+                "variants": [
+                  {
+                    "content_type": "application/x-mpegURL",
+                    "url": "https://video.twimg.com/amplify_video/2087181999878574080/pl/kchZMIigWPkOxaKY.m3u8?tag=14"
+                  },
+                  {
+                    "bitrate": 632000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2087181999878574080/vid/avc1/320x568/YJyCNlhr22gRWRbq.mp4?tag=14"
+                  },
+                  {
+                    "bitrate": 950000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2087181999878574080/vid/avc1/480x852/VBhtrpIg7pZ7aLq6.mp4?tag=14"
+                  },
+                  {
+                    "bitrate": 2176000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2087181999878574080/vid/avc1/720x1280/c1-ocO_DTVuXlnhr.mp4?tag=14"
+                  }
+                ]
+              }
+            }
+          ],
+          "urls": [
+            {
+              "display_url": "youtu.be/M5JU_-rvCjo",
+              "expanded_url": "https://youtu.be/M5JU_-rvCjo",
+              "indices": [
+                60,
+                83
+              ],
+              "url": "https://t.co/myf0BNwacl"
+            }
+          ],
+          "symbols": [],
+          "timestamps": [],
+          "user_mentions": []
+        },
+        "user_info": {
+          "screen_name": "kumudamdigi",
+          "name": "Kumudam",
+          "created_at": "Tue Dec 10 12:38:01 +0000 2019",
+          "description": null,
+          "rest_id": "1204379660194217985",
+          "followers_count": 46060,
+          "favorites_count": 634,
+          "avatar": "https://pbs.twimg.com/profile_images/1626841959611645952/7_Y5n4QM_normal.jpg",
+          "url": null,
+          "cover_image": null,
+          "verified_type": null,
+          "verified": false,
+          "friends_count": null,
+          "location": "Chennai"
+        },
+        "media": {
+          "video": [
+            {
+              "media_url_https": "https://pbs.twimg.com/amplify_video_thumb/2087181999878574080/img/nLv4XyVjPWCeJA98.jpg",
+              "variants": [
+                {
+                  "content_type": "application/x-mpegURL",
+                  "url": "https://video.twimg.com/amplify_video/2087181999878574080/pl/kchZMIigWPkOxaKY.m3u8?tag=14"
+                },
+                {
+                  "bitrate": 632000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2087181999878574080/vid/avc1/320x568/YJyCNlhr22gRWRbq.mp4?tag=14"
+                },
+                {
+                  "bitrate": 950000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2087181999878574080/vid/avc1/480x852/VBhtrpIg7pZ7aLq6.mp4?tag=14"
+                },
+                {
+                  "bitrate": 2176000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2087181999878574080/vid/avc1/720x1280/c1-ocO_DTVuXlnhr.mp4?tag=14"
+                }
+              ],
+              "aspect_ratio": [
+                9,
+                16
+              ],
+              "duration": 85160,
+              "original_info": {
+                "focus_rects": [],
+                "height": 1920,
+                "width": 1080
+              },
+              "id": "2087181999878574080"
+            }
+          ]
+        }
+      },
+      {
+        "type": "tweet",
+        "tweet_id": "2086672193178492941",
+        "screen_name": "Ganeshen5",
+        "bookmarks": 106,
+        "favorites": 1600,
+        "created_at": "Mon Aug 10 04:33:14 +0000 2026",
+        "text": "#DC spoiler alert:\n\nWamiqa going to the police station to save Lokesh with Thalam Trip playing in the background is one of the biggest cinematic highs of the year. \n\nwhen was the last time we saw the HEROINE saving the HERO 😭😭🔥🔥🔥 https://t.co/TLSgnZREtw",
+        "lang": "en",
+        "display_text_range": [
+          0,
+          229
+        ],
+        "source": "<a href=\"http://twitter.com/download/iphone\" rel=\"nofollow\">Twitter for iPhone</a>",
+        "quotes": 6,
+        "sensitive": false,
+        "replies": 10,
+        "conversation_id": "2086672193178492941",
+        "retweets": 142,
+        "views": "39188",
+        "entities": {
+          "hashtags": [
+            {
+              "indices": [
+                0,
+                3
+              ],
+              "text": "DC"
+            }
+          ],
+          "media": [
+            {
+              "display_url": "pic.x.com/TLSgnZREtw",
+              "expanded_url": "https://x.com/Ganeshen5/status/2086672193178492941/photo/1",
+              "ext_media_availability": {
+                "status": "Available"
+              },
+              "id_str": "2086672187285516288",
+              "indices": [
+                230,
+                253
+              ],
+              "media_key": "16_2086672187285516288",
+              "media_results": {
+                "result": {
+                  "media_key": "16_2086672187285516288"
+                }
+              },
+              "media_url_https": "https://pbs.twimg.com/tweet_video_thumb/HPVZTHXXMAAQGq6.jpg",
+              "original_info": {
+                "focus_rects": [],
+                "height": 300,
+                "width": 440
+              },
+              "sizes": {
+                "large": {
+                  "h": 300,
+                  "resize": "fit",
+                  "w": 440
+                },
+                "medium": {
+                  "h": 300,
+                  "resize": "fit",
+                  "w": 440
+                },
+                "small": {
+                  "h": 300,
+                  "resize": "fit",
+                  "w": 440
+                },
+                "thumb": {
+                  "h": 150,
+                  "resize": "crop",
+                  "w": 150
+                }
+              },
+              "type": "animated_gif",
+              "url": "https://t.co/TLSgnZREtw",
+              "video_info": {
+                "aspect_ratio": [
+                  22,
+                  15
+                ],
+                "variants": [
+                  {
+                    "bitrate": 0,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/tweet_video/HPVZTHXXMAAQGq6.mp4"
+                  }
+                ]
+              }
+            }
+          ],
+          "symbols": [],
+          "timestamps": [],
+          "urls": [],
+          "user_mentions": []
+        },
+        "user_info": {
+          "screen_name": "Ganeshen5",
+          "name": "Ganeshen🌶️",
+          "created_at": "Fri Jan 19 00:10:24 +0000 2018",
+          "description": null,
+          "rest_id": "954143971772633088",
+          "followers_count": 4529,
+          "favorites_count": 71689,
+          "avatar": "https://pbs.twimg.com/profile_images/1721067044248879104/LZXDT0f3_normal.jpg",
+          "url": null,
+          "cover_image": null,
+          "verified_type": null,
+          "verified": true,
+          "friends_count": null,
+          "location": "globe trotter"
+        },
+        "media": {
+          "video": [
+            {
+              "media_url_https": "https://pbs.twimg.com/tweet_video_thumb/HPVZTHXXMAAQGq6.jpg",
+              "variants": [
+                {
+                  "bitrate": 0,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/tweet_video/HPVZTHXXMAAQGq6.mp4"
+                }
+              ],
+              "aspect_ratio": [
+                22,
+                15
+              ],
+              "duration": null,
+              "original_info": {
+                "focus_rects": [],
+                "height": 300,
+                "width": 440
+              },
+              "id": "2086672187285516288"
+            }
+          ]
+        }
+      },
+      {
+        "type": "tweet",
+        "tweet_id": "2086612083903443274",
+        "screen_name": "KeralaBxOffce",
+        "bookmarks": 5,
+        "favorites": 366,
+        "created_at": "Mon Aug 10 00:34:22 +0000 2026",
+        "text": "#DC Registers 52 Lakhs Advance Sales for the First Monday in Kerala 👏👏👏 Excellent Booking Trend for a Lokesh Kanagaraj Starring Film 📈 https://t.co/xcLOsWeKkX",
+        "lang": "en",
+        "display_text_range": [
+          0,
+          158
+        ],
+        "source": "<a href=\"http://twitter.com/download/android\" rel=\"nofollow\">Twitter for Android</a>",
+        "quotes": 0,
+        "sensitive": false,
+        "replies": 0,
+        "conversation_id": "2086612083903443274",
+        "retweets": 22,
+        "views": "7138",
+        "entities": {
+          "hashtags": [
+            {
+              "indices": [
+                0,
+                3
+              ],
+              "text": "DC"
+            }
+          ],
+          "urls": [
+            {
+              "display_url": "x.com/roman_jebin/st…",
+              "expanded_url": "https://x.com/roman_jebin/status/2086413152733057403/video/1",
+              "indices": [
+                135,
+                158
+              ],
+              "url": "https://t.co/xcLOsWeKkX"
+            }
+          ],
+          "symbols": [],
+          "timestamps": [],
+          "user_mentions": []
+        },
+        "user_info": {
+          "screen_name": "KeralaBxOffce",
+          "name": "Kerala Box Office",
+          "created_at": "Tue Apr 17 08:25:37 +0000 2018",
+          "description": null,
+          "rest_id": "986158726431227904",
+          "followers_count": 24755,
+          "favorites_count": 3863,
+          "avatar": "https://pbs.twimg.com/profile_images/1857361723239415808/5p2w5yAV_normal.jpg",
+          "url": null,
+          "cover_image": null,
+          "verified_type": null,
+          "verified": true,
+          "friends_count": null,
+          "location": "Angamaly, India"
+        },
+        "media": []
+      },
+      {
+        "type": "tweet",
+        "tweet_id": "2087140379003171060",
+        "screen_name": "SHYAM_CSK",
+        "bookmarks": 0,
+        "favorites": 13,
+        "created_at": "Tue Aug 11 11:33:38 +0000 2026",
+        "text": "En peru LOKESH KANAGARAJ da! 💥🔥🧨\n\nKOKESH LANAGARAJ illa 😎 https://t.co/DqrL1WUM66",
+        "lang": "in",
+        "display_text_range": [
+          0,
+          57
+        ],
+        "source": "<a href=\"http://twitter.com/download/android\" rel=\"nofollow\">Twitter for Android</a>",
+        "quotes": 0,
+        "sensitive": false,
+        "replies": 1,
+        "conversation_id": "2087140379003171060",
+        "retweets": 0,
+        "views": "721",
+        "entities": {
+          "media": [
+            {
+              "additional_media_info": {
+                "monetizable": false
+              },
+              "allow_download_status": {
+                "allow_download": true
+              },
+              "display_url": "pic.x.com/DqrL1WUM66",
+              "expanded_url": "https://x.com/SHYAM_CSK/status/2087140379003171060/video/1",
+              "ext_media_availability": {
+                "status": "Available"
+              },
+              "id_str": "2087140348112060416",
+              "indices": [
+                58,
+                81
+              ],
+              "media_key": "13_2087140348112060416",
+              "media_results": {
+                "result": {
+                  "media_key": "13_2087140348112060416"
+                }
+              },
+              "media_url_https": "https://pbs.twimg.com/amplify_video_thumb/2087140348112060416/img/guZ77sqWswHPUUL7.jpg",
+              "original_info": {
+                "focus_rects": [],
+                "height": 862,
+                "width": 1923
+              },
+              "sizes": {
+                "large": {
+                  "h": 862,
+                  "resize": "fit",
+                  "w": 1923
+                },
+                "medium": {
+                  "h": 538,
+                  "resize": "fit",
+                  "w": 1200
+                },
+                "small": {
+                  "h": 305,
+                  "resize": "fit",
+                  "w": 680
+                },
+                "thumb": {
+                  "h": 150,
+                  "resize": "crop",
+                  "w": 150
+                }
+              },
+              "type": "video",
+              "url": "https://t.co/DqrL1WUM66",
+              "video_info": {
+                "aspect_ratio": [
+                  1923,
+                  862
+                ],
+                "duration_millis": 3196,
+                "variants": [
+                  {
+                    "content_type": "application/x-mpegURL",
+                    "url": "https://video.twimg.com/amplify_video/2087140348112060416/pl/-d8mQPj7t8Xs6AMp.m3u8?tag=29"
+                  },
+                  {
+                    "bitrate": 256000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2087140348112060416/vid/avc1/602x270/bDELihOQmK8xuFpL.mp4?tag=29"
+                  },
+                  {
+                    "bitrate": 832000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2087140348112060416/vid/avc1/802x360/pZf00s9O2HOeLZ00.mp4?tag=29"
+                  },
+                  {
+                    "bitrate": 2176000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2087140348112060416/vid/avc1/1606x720/yVM4qpTOE0CH3fNI.mp4?tag=29"
+                  },
+                  {
+                    "bitrate": 10368000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2087140348112060416/vid/avc1/1922x862/YBHBiXJIzabCsmLX.mp4?tag=29"
+                  }
+                ]
+              }
+            }
+          ],
+          "hashtags": [],
+          "symbols": [],
+          "timestamps": [],
+          "urls": [],
+          "user_mentions": []
+        },
+        "user_info": {
+          "screen_name": "SHYAM_CSK",
+          "name": "SHYAM",
+          "created_at": "Thu Apr 01 13:40:21 +0000 2021",
+          "description": null,
+          "rest_id": "1377616766927572992",
+          "followers_count": 2501,
+          "favorites_count": 181,
+          "avatar": "https://pbs.twimg.com/profile_images/1965042363786797056/uzsEroA9_normal.jpg",
+          "url": null,
+          "cover_image": null,
+          "verified_type": null,
+          "verified": true,
+          "friends_count": null,
+          "location": ""
+        },
+        "media": {
+          "video": [
+            {
+              "media_url_https": "https://pbs.twimg.com/amplify_video_thumb/2087140348112060416/img/guZ77sqWswHPUUL7.jpg",
+              "variants": [
+                {
+                  "content_type": "application/x-mpegURL",
+                  "url": "https://video.twimg.com/amplify_video/2087140348112060416/pl/-d8mQPj7t8Xs6AMp.m3u8?tag=29"
+                },
+                {
+                  "bitrate": 256000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2087140348112060416/vid/avc1/602x270/bDELihOQmK8xuFpL.mp4?tag=29"
+                },
+                {
+                  "bitrate": 832000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2087140348112060416/vid/avc1/802x360/pZf00s9O2HOeLZ00.mp4?tag=29"
+                },
+                {
+                  "bitrate": 2176000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2087140348112060416/vid/avc1/1606x720/yVM4qpTOE0CH3fNI.mp4?tag=29"
+                },
+                {
+                  "bitrate": 10368000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2087140348112060416/vid/avc1/1922x862/YBHBiXJIzabCsmLX.mp4?tag=29"
+                }
+              ],
+              "aspect_ratio": [
+                1923,
+                862
+              ],
+              "duration": 3196,
+              "original_info": {
+                "focus_rects": [],
+                "height": 862,
+                "width": 1923
+              },
+              "id": "2087140348112060416"
+            }
+          ]
+        },
+        "quoted": {
+          "tweet_id": "2087138361731666199",
+          "bookmarks": 89,
+          "created_at": "Tue Aug 11 11:25:37 +0000 2026",
+          "favorites": 6477,
+          "text": "#DC is exploding at the Box Office!💥\n\nWatch it now in theatres near you! 🌹\n\n@Dir_Lokesh @ArunMatheswaran @anirudhofficial #WamiqaGabbi @isanjkayy @mukesh_DOP @editor_prasanna @skannanartdir @PC_stunts @kabilanchelliah @kuchirayar73 @RIAZtheboss https://t.co/66arYyhHE2",
+          "lang": "en",
+          "views": "158594",
+          "quotes": 67,
+          "sensitive": false,
+          "replies": 53,
+          "retweets": 629,
+          "conversation_id": "2087138361731666199",
+          "author": {
+            "rest_id": "361244641",
+            "created_at": "Wed Aug 24 13:50:32 +0000 2011",
+            "name": "Sun Pictures",
+            "screen_name": "sunpictures",
+            "avatar": "https://pbs.twimg.com/profile_images/970627074691014656/D6EWByyV_normal.jpg",
+            "blue_verified": true
+          },
+          "media": {
+            "photo": [
+              {
+                "media_url_https": "https://pbs.twimg.com/media/HPcBP7FacAA4tx_.jpg",
+                "id": "2087138325379575808",
+                "sizes": {
+                  "h": 2048,
+                  "w": 1366
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "type": "tweet",
+        "tweet_id": "2085654848578699452",
+        "screen_name": "umashankar82721",
+        "bookmarks": 33,
+        "favorites": 83,
+        "created_at": "Fri Aug 07 09:10:40 +0000 2026",
+        "text": "#DC : Movie Review 💥🍿\n\nArun Matheashwaran is the real show-stealer. Despite the low expectations after his previous outing, I always wondered why someone as talented as him hadn't achieved bigger success. With DC, he has proved that he belongs among the top league of directors.\n\nThe writing and screenplay are beautifully crafted. Both halves of the film kept me thoroughly satisfied in every aspect.\n\nLokesh Kanagaraj, despite being trolled for his looks and other reasons, has silenced the criticism with his performance. What an impressive act! He absolutely shines, especially during the interval block, which is a complete banger. Kollywood has found another hero, and he is more than welcome.\n\nAnirudh—wow! He has absolutely blown me away. The background score and songs are the heart and soul of the film, elevating every moment to the next level. This is pure musical madness from him for his friend Loki.\n\nSanjana's screen time is limited but highly impactful. On the other hand, Wamiqa Gabbi literally carries the film alongside Lokesh with an equally strong presence.\n\nThe supporting cast, especially those who share screen space with Lokesh, have all done a fantastic job. The head cop's character is perfectly written and aptly portrayed.\n\nDC carries a simple social message beneath its action-packed revenge drama, but it's the treatment that makes it truly worth watching.\n\nFinal Verdict: Super Hit\n\nRating: 3.75/5 ⭐⭐⭐✨\n\n@ArunMatheswaran @anirudhofficial @Dir_Lokesh @iWamiqaGabbi",
+        "lang": "en",
+        "display_text_range": [
+          0,
+          278
+        ],
+        "source": "<a href=\"http://twitter.com/download/android\" rel=\"nofollow\">Twitter for Android</a>",
+        "quotes": 0,
+        "sensitive": false,
+        "replies": 8,
+        "conversation_id": "2085654848578699452",
+        "retweets": 7,
+        "views": "40697",
+        "entities": {
+          "hashtags": [
+            {
+              "indices": [
+                0,
+                3
+              ],
+              "text": "DC"
+            }
+          ],
+          "symbols": [],
+          "urls": [],
+          "user_mentions": [
+            {
+              "id_str": "1398413301571145729",
+              "indices": [
+                1437,
+                1453
+              ],
+              "name": "Arun Matheswaran",
+              "screen_name": "ArunMatheswaran"
+            },
+            {
+              "id_str": "216447259",
+              "indices": [
+                1454,
+                1470
+              ],
+              "name": "Anirudh Ravichander",
+              "screen_name": "anirudhofficial"
+            },
+            {
+              "id_str": "1103860407624556546",
+              "indices": [
+                1471,
+                1482
+              ],
+              "name": "Lokesh Kanagaraj",
+              "screen_name": "Dir_Lokesh"
+            },
+            {
+              "id_str": "1836695777684455424",
+              "indices": [
+                1483,
+                1496
+              ],
+              "name": "Wamiqa Gabbi",
+              "screen_name": "iWamiqaGabbi"
+            }
+          ]
+        },
+        "user_info": {
+          "screen_name": "umashankar82721",
+          "name": "Deon X",
+          "created_at": "Mon Apr 07 05:44:39 +0000 2025",
+          "description": null,
+          "rest_id": "1909119980399902721",
+          "followers_count": 8043,
+          "favorites_count": 26504,
+          "avatar": "https://pbs.twimg.com/profile_images/2041221877075709952/-CAlcA64_normal.jpg",
+          "url": null,
+          "cover_image": null,
+          "verified_type": null,
+          "verified": true,
+          "friends_count": null,
+          "location": ""
+        },
+        "media": {
+          "photo": [
+            {
+              "media_url_https": "https://pbs.twimg.com/media/HPG707naUAEw1td.jpg",
+              "id": "2085654620479836161",
+              "sizes": {
+                "h": 270,
+                "w": 480
+              }
+            },
+            {
+              "media_url_https": "https://pbs.twimg.com/media/HPG8BhebsAAk9Yn.jpg",
+              "id": "2085654836801155072",
+              "sizes": {
+                "h": 1200,
+                "w": 1200
+              }
+            }
+          ],
+          "video": [
+            {
+              "media_url_https": "https://pbs.twimg.com/amplify_video_thumb/2085654630764265472/img/Dh7rqLdWjyv3mcY8.jpg",
+              "variants": [
+                {
+                  "content_type": "application/x-mpegURL",
+                  "url": "https://video.twimg.com/amplify_video/2085654630764265472/pl/sDO_HRg7CEaiHtAe.m3u8?tag=29"
+                },
+                {
+                  "bitrate": 632000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2085654630764265472/vid/avc1/320x568/eOzrPlZFAC6q4kRI.mp4?tag=29"
+                },
+                {
+                  "bitrate": 950000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2085654630764265472/vid/avc1/480x852/4-tUoSAFxCHwsfbk.mp4?tag=29"
+                },
+                {
+                  "bitrate": 2176000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2085654630764265472/vid/avc1/720x1280/aN6M6LqkH8yYAdiM.mp4?tag=29"
+                },
+                {
+                  "bitrate": 10368000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2085654630764265472/vid/avc1/1080x1920/VzlhlNIPoCzTDrjB.mp4?tag=29"
+                }
+              ],
+              "aspect_ratio": [
+                9,
+                16
+              ],
+              "duration": 853,
+              "original_info": {
+                "focus_rects": [],
+                "height": 1920,
+                "width": 1080
+              },
+              "id": "2085654630764265472"
+            },
+            {
+              "media_url_https": "https://pbs.twimg.com/amplify_video_thumb/2085654659830812672/img/cGRLGV5C8S5l6SC0.jpg",
+              "variants": [
+                {
+                  "content_type": "application/x-mpegURL",
+                  "url": "https://video.twimg.com/amplify_video/2085654659830812672/pl/er9ofvFsttmTuI2D.m3u8?tag=29&v=cfc"
+                },
+                {
+                  "bitrate": 632000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2085654659830812672/vid/avc1/320x568/dmNRcaQzKNfhcOqa.mp4?tag=29"
+                },
+                {
+                  "bitrate": 950000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2085654659830812672/vid/avc1/480x852/eh28f65Xjp0kxuSc.mp4?tag=29"
+                },
+                {
+                  "bitrate": 2176000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2085654659830812672/vid/avc1/720x1280/OuAq3O7XK73ELTvM.mp4?tag=29"
+                },
+                {
+                  "bitrate": 10368000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2085654659830812672/vid/avc1/1080x1920/Z6Z8kOi-UCZSbkRw.mp4?tag=29"
+                }
+              ],
+              "aspect_ratio": [
+                9,
+                16
+              ],
+              "duration": 11328,
+              "original_info": {
+                "focus_rects": [],
+                "height": 1920,
+                "width": 1080
+              },
+              "id": "2085654659830812672"
+            }
+          ]
+        }
+      },
+      {
+        "type": "tweet",
+        "tweet_id": "2086737385803649378",
+        "screen_name": "Cinemaaforu",
+        "bookmarks": 3,
+        "favorites": 41,
+        "created_at": "Mon Aug 10 08:52:17 +0000 2026",
+        "text": "#LokeshKanagaraj’s #DC is on a rampage at the box office recording double digit gross collections in India today💥\n\nDC is now on course to enter the ₹50Cr club with the weekday hold set to decide how far this momentum can take it. https://t.co/MlhwK96ZVM",
+        "lang": "en",
+        "display_text_range": [
+          0,
+          253
+        ],
+        "source": "<a href=\"http://twitter.com/download/iphone\" rel=\"nofollow\">Twitter for iPhone</a>",
+        "quotes": 0,
+        "sensitive": false,
+        "replies": 0,
+        "conversation_id": "2086737385803649378",
+        "retweets": 4,
+        "views": "2355",
+        "entities": {
+          "hashtags": [
+            {
+              "indices": [
+                0,
+                16
+              ],
+              "text": "LokeshKanagaraj"
+            },
+            {
+              "indices": [
+                19,
+                22
+              ],
+              "text": "DC"
+            }
+          ],
+          "urls": [
+            {
+              "display_url": "x.com/roman_jebin/st…",
+              "expanded_url": "https://x.com/roman_jebin/status/2086413152733057403/video/1",
+              "indices": [
+                230,
+                253
+              ],
+              "url": "https://t.co/MlhwK96ZVM"
+            }
+          ],
+          "symbols": [],
+          "timestamps": [],
+          "user_mentions": []
+        },
+        "user_info": {
+          "screen_name": "Cinemaaforu",
+          "name": "Cinema for You",
+          "created_at": "Fri Nov 29 04:23:27 +0000 2019",
+          "description": null,
+          "rest_id": "1200268980134371328",
+          "followers_count": 78661,
+          "favorites_count": 23774,
+          "avatar": "https://pbs.twimg.com/profile_images/1998988756448325634/GDnBhDt9_normal.jpg",
+          "url": null,
+          "cover_image": null,
+          "verified_type": null,
+          "verified": true,
+          "friends_count": null,
+          "location": "India "
+        },
+        "media": []
+      },
+      {
+        "type": "tweet",
+        "tweet_id": "2087230327089717251",
+        "screen_name": "TheCineGossips",
+        "bookmarks": 0,
+        "favorites": 8,
+        "created_at": "Tue Aug 11 17:31:03 +0000 2026",
+        "text": "Tomorrow #LokeshKanagaraj is set for a theatrical visit to AAA Cinemas and AMB Cinemas - post 7pm shows. \n\nBook your tickets and meet the cult mayhem. \n#DCMovie #DC  https://t.co/VcFTjc2hoZ",
+        "lang": "en",
+        "display_text_range": [
+          0,
+          189
+        ],
+        "source": "<a href=\"http://twitter.com/download/android\" rel=\"nofollow\">Twitter for Android</a>",
+        "quotes": 0,
+        "sensitive": false,
+        "replies": 1,
+        "conversation_id": "2087230327089717251",
+        "retweets": 1,
+        "views": "236",
+        "entities": {
+          "hashtags": [
+            {
+              "indices": [
+                9,
+                25
+              ],
+              "text": "LokeshKanagaraj"
+            },
+            {
+              "indices": [
+                152,
+                160
+              ],
+              "text": "DCMovie"
+            },
+            {
+              "indices": [
+                161,
+                164
+              ],
+              "text": "DC"
+            }
+          ],
+          "media": [
+            {
+              "additional_media_info": {
+                "monetizable": false,
+                "source_user": {
+                  "user_results": {
+                    "result": {
+                      "__typename": "User",
+                      "action_counts": {
+                        "favorites_count": 23556
+                      },
+                      "affiliates_highlighted_label": [],
+                      "avatar": {
+                        "image_url": "https://pbs.twimg.com/profile_images/1870717016275103745/29h8-Lz5_normal.jpg"
+                      },
+                      "banner": {
+                        "image_url": "https://pbs.twimg.com/profile_banners/1535353453144252416/1753468657"
+                      },
+                      "core": {
+                        "created_at": "Fri Jun 10 20:09:32 +0000 2022",
+                        "name": "MawaNuvvuThopu",
+                        "screen_name": "MawaNuvvuThopu"
+                      },
+                      "dm_permissions": {
+                        "can_dm": true
+                      },
+                      "follow_request_sent": false,
+                      "has_graduated_access": true,
+                      "id": "VXNlcjoxNTM1MzUzNDUzMTQ0MjUyNDE2",
+                      "is_blue_verified": true,
+                      "location": {
+                        "location": ""
+                      },
+                      "media_permissions": {
+                        "can_media_tag": true
+                      },
+                      "notifications_settings": {
+                        "notifications_enabled": false
+                      },
+                      "parody_commentary_fan_label": "None",
+                      "pinned_items": {
+                        "tweet_ids_str": [
+                          "1992174176120295760"
+                        ]
+                      },
+                      "possibly_sensitive": false,
+                      "privacy": {
+                        "protected": false
+                      },
+                      "professional": {
+                        "category": [
+                          {
+                            "icon_name": "IconBriefcaseStroke",
+                            "id": 15,
+                            "name": "Entertainment & Recreation"
+                          }
+                        ],
+                        "professional_type": "Creator",
+                        "rest_id": "1824724377574764607"
+                      },
+                      "profile_bio": {
+                        "description": "Life Is Very Short Mawa, Always Be Happy, Problems Will Come And Go, Just Chill Mawa🫂❤️😎\n\nDM For Promotions & Personal PR \n\nInstagram : MawaNuvvuThopu 64k+👇",
+                        "entities": {
+                          "description": [],
+                          "url": {
+                            "urls": [
+                              {
+                                "display_url": "instagram.com/mawanuvvuthopu…",
+                                "expanded_url": "https://www.instagram.com/mawanuvvuthopu?igsh=Y3dnZDdhMTB4c3E5",
+                                "indices": [
+                                  0,
+                                  23
+                                ],
+                                "url": "https://t.co/78iPzU97Rl"
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      "profile_description_language": "en",
+                      "profile_image_shape": "Circle",
+                      "profile_metadata": {
+                        "profile_interstitial_type": ""
+                      },
+                      "profile_translation": {
+                        "translator_type": "none"
+                      },
+                      "relationship_counts": {
+                        "followers": 9795,
+                        "following": 1747
+                      },
+                      "relationship_perspectives": {
+                        "blocked_by": false,
+                        "blocking": false,
+                        "followed_by": false,
+                        "following": false,
+                        "live_following": false,
+                        "muting": false
+                      },
+                      "rest_id": "1535353453144252416",
+                      "super_follow_eligible": false,
+                      "super_followed_by": false,
+                      "super_following": false,
+                      "tweet_counts": {
+                        "media_tweets": 2265,
+                        "tweets": 3758
+                      },
+                      "verification": {
+                        "verified": false
+                      },
+                      "website": {
+                        "url": "https://t.co/78iPzU97Rl"
+                      }
+                    }
+                  }
+                }
+              },
+              "allow_download_status": {
+                "allow_download": true
+              },
+              "display_url": "pic.x.com/VcFTjc2hoZ",
+              "expanded_url": "https://x.com/MawaNuvvuThopu/status/2085618776847077570/video/1",
+              "ext_media_availability": {
+                "status": "Available"
+              },
+              "id_str": "2085618675126763521",
+              "indices": [
+                166,
+                189
+              ],
+              "media_key": "13_2085618675126763521",
+              "media_results": {
+                "result": {
+                  "media_key": "13_2085618675126763521"
+                }
+              },
+              "media_url_https": "https://pbs.twimg.com/amplify_video_thumb/2085618675126763521/img/1Ybu951KviGWMuCX.jpg",
+              "original_info": {
+                "focus_rects": [],
+                "height": 720,
+                "width": 1280
+              },
+              "sizes": {
+                "large": {
+                  "h": 720,
+                  "resize": "fit",
+                  "w": 1280
+                },
+                "medium": {
+                  "h": 675,
+                  "resize": "fit",
+                  "w": 1200
+                },
+                "small": {
+                  "h": 383,
+                  "resize": "fit",
+                  "w": 680
+                },
+                "thumb": {
+                  "h": 150,
+                  "resize": "crop",
+                  "w": 150
+                }
+              },
+              "source_status_id_str": "2085618776847077570",
+              "source_user_id_str": "1535353453144252416",
+              "type": "video",
+              "url": "https://t.co/VcFTjc2hoZ",
+              "video_info": {
+                "aspect_ratio": [
+                  16,
+                  9
+                ],
+                "duration_millis": 45845,
+                "variants": [
+                  {
+                    "content_type": "application/x-mpegURL",
+                    "url": "https://video.twimg.com/amplify_video/2085618675126763521/pl/1bnjLQcKgoDKeMcT.m3u8?tag=29"
+                  },
+                  {
+                    "bitrate": 256000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2085618675126763521/vid/avc1/480x270/Ay029CXvzneRkNL3.mp4?tag=29"
+                  },
+                  {
+                    "bitrate": 832000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2085618675126763521/vid/avc1/640x360/VqkEKFzgTWGp15rx.mp4?tag=29"
+                  },
+                  {
+                    "bitrate": 2176000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2085618675126763521/vid/avc1/1280x720/c1Oj5WCtuG-wD_nK.mp4?tag=29"
+                  }
+                ]
+              }
+            }
+          ],
+          "symbols": [],
+          "timestamps": [],
+          "urls": [],
+          "user_mentions": []
+        },
+        "user_info": {
+          "screen_name": "TheCineGossips",
+          "name": "The Cine Gossips",
+          "created_at": "Fri Oct 13 06:03:18 +0000 2023",
+          "description": null,
+          "rest_id": "1712710493604077568",
+          "followers_count": 12855,
+          "favorites_count": 224,
+          "avatar": "https://pbs.twimg.com/profile_images/1894875425026838528/ETIHAqYr_normal.jpg",
+          "url": null,
+          "cover_image": null,
+          "verified_type": null,
+          "verified": true,
+          "friends_count": null,
+          "location": ""
+        },
+        "media": {
+          "video": [
+            {
+              "media_url_https": "https://pbs.twimg.com/amplify_video_thumb/2085618675126763521/img/1Ybu951KviGWMuCX.jpg",
+              "variants": [
+                {
+                  "content_type": "application/x-mpegURL",
+                  "url": "https://video.twimg.com/amplify_video/2085618675126763521/pl/1bnjLQcKgoDKeMcT.m3u8?tag=29"
+                },
+                {
+                  "bitrate": 256000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2085618675126763521/vid/avc1/480x270/Ay029CXvzneRkNL3.mp4?tag=29"
+                },
+                {
+                  "bitrate": 832000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2085618675126763521/vid/avc1/640x360/VqkEKFzgTWGp15rx.mp4?tag=29"
+                },
+                {
+                  "bitrate": 2176000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2085618675126763521/vid/avc1/1280x720/c1Oj5WCtuG-wD_nK.mp4?tag=29"
+                }
+              ],
+              "aspect_ratio": [
+                16,
+                9
+              ],
+              "duration": 45845,
+              "original_info": {
+                "focus_rects": [],
+                "height": 720,
+                "width": 1280
+              },
+              "id": "2085618675126763521"
+            }
+          ]
+        }
+      },
+      {
+        "type": "tweet",
+        "tweet_id": "2087194374757290101",
+        "screen_name": "Karthikk__02",
+        "bookmarks": 0,
+        "favorites": 9,
+        "created_at": "Tue Aug 11 15:08:11 +0000 2026",
+        "text": "Once Again with Actor Lokesh❤️‍🔥😭@Dir_Lokesh \n#DC  https://t.co/OMd6jWUyCq",
+        "lang": "en",
+        "display_text_range": [
+          0,
+          74
+        ],
+        "source": "<a href=\"http://twitter.com/download/iphone\" rel=\"nofollow\">Twitter for iPhone</a>",
+        "quotes": 0,
+        "sensitive": false,
+        "replies": 0,
+        "conversation_id": "2087194374757290101",
+        "retweets": 0,
+        "views": "468",
+        "entities": {
+          "hashtags": [
+            {
+              "indices": [
+                46,
+                49
+              ],
+              "text": "DC"
+            }
+          ],
+          "media": [
+            {
+              "additional_media_info": {
+                "monetizable": false,
+                "source_user": {
+                  "user_results": {
+                    "result": {
+                      "__typename": "User",
+                      "action_counts": {
+                        "favorites_count": 14741
+                      },
+                      "affiliates_highlighted_label": [],
+                      "avatar": {
+                        "image_url": "https://pbs.twimg.com/profile_images/1747489816898625536/m4hWxtcO_normal.jpg"
+                      },
+                      "banner": {
+                        "image_url": "https://pbs.twimg.com/profile_banners/1552767463107940352/1784554254"
+                      },
+                      "core": {
+                        "created_at": "Thu Jul 28 21:26:38 +0000 2022",
+                        "name": "Telugu Cult 𝐘𝐓",
+                        "screen_name": "Telugu_Cult"
+                      },
+                      "dm_permissions": {
+                        "can_dm": false
+                      },
+                      "follow_request_sent": false,
+                      "has_graduated_access": true,
+                      "id": "VXNlcjoxNTUyNzY3NDYzMTA3OTQwMzUy",
+                      "is_blue_verified": true,
+                      "location": {
+                        "location": "Hyderabad "
+                      },
+                      "media_permissions": {
+                        "can_media_tag": false
+                      },
+                      "notifications_settings": {
+                        "notifications_enabled": false
+                      },
+                      "parody_commentary_fan_label": "None",
+                      "pinned_items": {
+                        "tweet_ids_str": [
+                          "1805790441125855297"
+                        ]
+                      },
+                      "possibly_sensitive": false,
+                      "privacy": {
+                        "protected": false
+                      },
+                      "professional": {
+                        "category": [
+                          {
+                            "icon_name": "IconBriefcaseStroke",
+                            "id": 15,
+                            "name": "Entertainment & Recreation"
+                          }
+                        ],
+                        "professional_type": "Creator",
+                        "rest_id": "1727597264703815969"
+                      },
+                      "profile_bio": {
+                        "description": "𝐒𝐭𝐚𝐲 𝐓𝐮𝐧𝐧𝐞𝐝 : 𝟐𝟒/𝟕 𝐔𝐩𝐝𝐚𝐭𝐞𝐬 & 𝐅𝐮𝐧 . Film Updates | Movie Reviews | Celebrity News | Movie Interviews",
+                        "entities": {
+                          "description": [],
+                          "url": {
+                            "urls": [
+                              {
+                                "display_url": "youtube.com/@TeluguCult/vi…",
+                                "expanded_url": "http://www.youtube.com/@TeluguCult/videos",
+                                "indices": [
+                                  0,
+                                  23
+                                ],
+                                "url": "https://t.co/MjqmvAHr4u"
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      "profile_description_language": "en",
+                      "profile_image_shape": "Circle",
+                      "profile_metadata": {
+                        "profile_interstitial_type": ""
+                      },
+                      "profile_translation": {
+                        "translator_type": "none"
+                      },
+                      "relationship_counts": {
+                        "followers": 29239,
+                        "following": 99
+                      },
+                      "relationship_perspectives": {
+                        "blocked_by": false,
+                        "blocking": false,
+                        "followed_by": false,
+                        "following": false,
+                        "live_following": false,
+                        "muting": false
+                      },
+                      "rest_id": "1552767463107940352",
+                      "super_follow_eligible": false,
+                      "super_followed_by": false,
+                      "super_following": false,
+                      "tweet_counts": {
+                        "media_tweets": 12629,
+                        "tweets": 20416
+                      },
+                      "verification": {
+                        "verified": false
+                      },
+                      "website": {
+                        "url": "https://t.co/MjqmvAHr4u"
+                      }
+                    }
+                  }
+                }
+              },
+              "allow_download_status": {
+                "allow_download": true
+              },
+              "display_url": "pic.x.com/OMd6jWUyCq",
+              "expanded_url": "https://x.com/Telugu_Cult/status/2086305446684766367/video/1",
+              "ext_media_availability": {
+                "status": "Available"
+              },
+              "id_str": "2086305406465499136",
+              "indices": [
+                51,
+                74
+              ],
+              "media_key": "13_2086305406465499136",
+              "media_results": {
+                "result": {
+                  "media_key": "13_2086305406465499136"
+                }
+              },
+              "media_url_https": "https://pbs.twimg.com/amplify_video_thumb/2086305406465499136/img/ZwlTCDgYv9D6kc1l.jpg",
+              "original_info": {
+                "focus_rects": [],
+                "height": 720,
+                "width": 1280
+              },
+              "sizes": {
+                "large": {
+                  "h": 720,
+                  "resize": "fit",
+                  "w": 1280
+                },
+                "medium": {
+                  "h": 675,
+                  "resize": "fit",
+                  "w": 1200
+                },
+                "small": {
+                  "h": 383,
+                  "resize": "fit",
+                  "w": 680
+                },
+                "thumb": {
+                  "h": 150,
+                  "resize": "crop",
+                  "w": 150
+                }
+              },
+              "source_status_id_str": "2086305446684766367",
+              "source_user_id_str": "1552767463107940352",
+              "type": "video",
+              "url": "https://t.co/OMd6jWUyCq",
+              "video_info": {
+                "aspect_ratio": [
+                  16,
+                  9
+                ],
+                "duration_millis": 45875,
+                "variants": [
+                  {
+                    "content_type": "application/x-mpegURL",
+                    "url": "https://video.twimg.com/amplify_video/2086305406465499136/pl/v72JxJLuHXJSumni.m3u8?tag=29"
+                  },
+                  {
+                    "bitrate": 256000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2086305406465499136/vid/avc1/480x270/N5-LYgG9SeTLHJaG.mp4?tag=29"
+                  },
+                  {
+                    "bitrate": 832000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2086305406465499136/vid/avc1/640x360/GX9eZt1Zn-0s-Lqp.mp4?tag=29"
+                  },
+                  {
+                    "bitrate": 2176000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2086305406465499136/vid/avc1/1280x720/ks9oFQIdl-mP-oPm.mp4?tag=29"
+                  }
+                ]
+              }
+            }
+          ],
+          "user_mentions": [
+            {
+              "id_str": "1103860407624556546",
+              "indices": [
+                33,
+                44
+              ],
+              "name": "Lokesh Kanagaraj",
+              "screen_name": "Dir_Lokesh"
+            }
+          ],
+          "symbols": [],
+          "timestamps": [],
+          "urls": []
+        },
+        "user_info": {
+          "screen_name": "Karthikk__02",
+          "name": "Karthik 🦁",
+          "created_at": "Mon May 06 08:15:28 +0000 2024",
+          "description": null,
+          "rest_id": "1787395684876103680",
+          "followers_count": 1620,
+          "favorites_count": 39885,
+          "avatar": "https://pbs.twimg.com/profile_images/2068694073524031489/48-KZ7IX_normal.jpg",
+          "url": null,
+          "cover_image": null,
+          "verified_type": null,
+          "verified": true,
+          "friends_count": null,
+          "location": "Hyderabad to Warangal 🔁"
+        },
+        "media": {
+          "video": [
+            {
+              "media_url_https": "https://pbs.twimg.com/amplify_video_thumb/2086305406465499136/img/ZwlTCDgYv9D6kc1l.jpg",
+              "variants": [
+                {
+                  "content_type": "application/x-mpegURL",
+                  "url": "https://video.twimg.com/amplify_video/2086305406465499136/pl/v72JxJLuHXJSumni.m3u8?tag=29"
+                },
+                {
+                  "bitrate": 256000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2086305406465499136/vid/avc1/480x270/N5-LYgG9SeTLHJaG.mp4?tag=29"
+                },
+                {
+                  "bitrate": 832000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2086305406465499136/vid/avc1/640x360/GX9eZt1Zn-0s-Lqp.mp4?tag=29"
+                },
+                {
+                  "bitrate": 2176000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2086305406465499136/vid/avc1/1280x720/ks9oFQIdl-mP-oPm.mp4?tag=29"
+                }
+              ],
+              "aspect_ratio": [
+                16,
+                9
+              ],
+              "duration": 45875,
+              "original_info": {
+                "focus_rects": [],
+                "height": 720,
+                "width": 1280
+              },
+              "id": "2086305406465499136"
+            }
+          ]
+        },
+        "quoted": {
+          "tweet_id": "2087149236181991893",
+          "bookmarks": 21,
+          "created_at": "Tue Aug 11 12:08:49 +0000 2026",
+          "favorites": 331,
+          "text": "EXCLUSIVE: \n\n#LokeshKanagaraj is set to watch #DC tomorrow at 7 PM at AAA Cinemas, Hyderabad.\n\nhttps://t.co/GxYgi0M9DX",
+          "lang": "en",
+          "views": "40488",
+          "quotes": 9,
+          "sensitive": false,
+          "replies": 8,
+          "retweets": 66,
+          "conversation_id": "2087149236181991893",
+          "author": {
+            "rest_id": "1447163411679174666",
+            "created_at": "Sun Oct 10 11:33:57 +0000 2021",
+            "name": "Cinematica",
+            "screen_name": "letsxCinematica",
+            "avatar": "https://pbs.twimg.com/profile_images/2068795829666893824/fRIGEa5t_normal.jpg",
+            "blue_verified": true
+          },
+          "media": {
+            "video": [
+              {
+                "media_url_https": "https://pbs.twimg.com/ext_tw_video_thumb/2011300966067507200/pu/img/2P-DKJJzHWY5-5q3.jpg",
+                "variants": [
+                  {
+                    "content_type": "application/x-mpegURL",
+                    "url": "https://video.twimg.com/ext_tw_video/2011300966067507200/pu/pl/ucqZ5G2s0kKWANFF.m3u8?tag=19"
+                  },
+                  {
+                    "bitrate": 256000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/ext_tw_video/2011300966067507200/pu/vid/avc1/480x270/2uhWmpefuFpez8yE.mp4?tag=19"
+                  },
+                  {
+                    "bitrate": 832000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/ext_tw_video/2011300966067507200/pu/vid/avc1/640x360/g07AxCF15Vq6KYAP.mp4?tag=19"
+                  },
+                  {
+                    "bitrate": 2176000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/ext_tw_video/2011300966067507200/pu/vid/avc1/1280x720/P_RoWnjhStzDiQiD.mp4?tag=19"
+                  }
+                ],
+                "aspect_ratio": [
+                  16,
+                  9
+                ],
+                "duration": 5201,
+                "original_info": {
+                  "focus_rects": [],
+                  "height": 720,
+                  "width": 1280
+                },
+                "id": "2011300966067507200"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "type": "tweet",
+        "tweet_id": "2087167449473110528",
+        "screen_name": "kumudamdigi",
+        "bookmarks": 0,
+        "favorites": 0,
+        "created_at": "Tue Aug 11 13:21:12 +0000 2026",
+        "text": "DC Shoot-ல கை கிழிச்சி Septic...| Avinash &amp; Krish Dayal Exclusive Interview | Lokesh Kanagaraj\nFULL VIDEO LINK :https://t.co/Xvveq1a7zI\n#DCMovie #DC #DCActors #Avinash #KrishDayal #LokeshKanagaraj https://t.co/YgVPXBWOs3",
+        "lang": "en",
+        "display_text_range": [
+          0,
+          200
+        ],
+        "source": "<a href=\"https://mobile.twitter.com\" rel=\"nofollow\">Twitter Web App</a>",
+        "quotes": 0,
+        "sensitive": false,
+        "replies": 0,
+        "conversation_id": "2087167449473110528",
+        "retweets": 0,
+        "views": "292",
+        "entities": {
+          "hashtags": [
+            {
+              "indices": [
+                140,
+                148
+              ],
+              "text": "DCMovie"
+            },
+            {
+              "indices": [
+                149,
+                152
+              ],
+              "text": "DC"
+            },
+            {
+              "indices": [
+                153,
+                162
+              ],
+              "text": "DCActors"
+            },
+            {
+              "indices": [
+                163,
+                171
+              ],
+              "text": "Avinash"
+            },
+            {
+              "indices": [
+                172,
+                183
+              ],
+              "text": "KrishDayal"
+            },
+            {
+              "indices": [
+                184,
+                200
+              ],
+              "text": "LokeshKanagaraj"
+            }
+          ],
+          "media": [
+            {
+              "additional_media_info": {
+                "monetizable": false
+              },
+              "allow_download_status": {
+                "allow_download": true
+              },
+              "display_url": "pic.x.com/YgVPXBWOs3",
+              "expanded_url": "https://x.com/kumudamdigi/status/2087167449473110528/video/1",
+              "ext_media_availability": {
+                "status": "Available"
+              },
+              "id_str": "2087167256510017538",
+              "indices": [
+                201,
+                224
+              ],
+              "media_key": "13_2087167256510017538",
+              "media_results": {
+                "result": {
+                  "media_key": "13_2087167256510017538"
+                }
+              },
+              "media_url_https": "https://pbs.twimg.com/amplify_video_thumb/2087167256510017538/img/yCvL_qTXc1icpgo4.jpg",
+              "original_info": {
+                "focus_rects": [],
+                "height": 1350,
+                "width": 1080
+              },
+              "sizes": {
+                "large": {
+                  "h": 1350,
+                  "resize": "fit",
+                  "w": 1080
+                },
+                "medium": {
+                  "h": 1200,
+                  "resize": "fit",
+                  "w": 960
+                },
+                "small": {
+                  "h": 680,
+                  "resize": "fit",
+                  "w": 544
+                },
+                "thumb": {
+                  "h": 150,
+                  "resize": "crop",
+                  "w": 150
+                }
+              },
+              "type": "video",
+              "url": "https://t.co/YgVPXBWOs3",
+              "video_info": {
+                "aspect_ratio": [
+                  4,
+                  5
+                ],
+                "duration_millis": 173440,
+                "variants": [
+                  {
+                    "content_type": "application/x-mpegURL",
+                    "url": "https://video.twimg.com/amplify_video/2087167256510017538/pl/s6kKXsHLoDKTvgHJ.m3u8?tag=14"
+                  },
+                  {
+                    "bitrate": 632000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2087167256510017538/vid/avc1/320x400/fzf5Uh5q2B-UPVV2.mp4?tag=14"
+                  },
+                  {
+                    "bitrate": 950000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2087167256510017538/vid/avc1/480x600/mJIAzckohaQWq5p-.mp4?tag=14"
+                  },
+                  {
+                    "bitrate": 2176000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2087167256510017538/vid/avc1/720x900/0aZNcwUVsaYR2N6u.mp4?tag=14"
+                  }
+                ]
+              }
+            }
+          ],
+          "urls": [
+            {
+              "display_url": "youtu.be/CXyPtTiReWo",
+              "expanded_url": "https://youtu.be/CXyPtTiReWo",
+              "indices": [
+                116,
+                139
+              ],
+              "url": "https://t.co/Xvveq1a7zI"
+            }
+          ],
+          "symbols": [],
+          "timestamps": [],
+          "user_mentions": []
+        },
+        "user_info": {
+          "screen_name": "kumudamdigi",
+          "name": "Kumudam",
+          "created_at": "Tue Dec 10 12:38:01 +0000 2019",
+          "description": null,
+          "rest_id": "1204379660194217985",
+          "followers_count": 46060,
+          "favorites_count": 634,
+          "avatar": "https://pbs.twimg.com/profile_images/1626841959611645952/7_Y5n4QM_normal.jpg",
+          "url": null,
+          "cover_image": null,
+          "verified_type": null,
+          "verified": false,
+          "friends_count": null,
+          "location": "Chennai"
+        },
+        "media": {
+          "video": [
+            {
+              "media_url_https": "https://pbs.twimg.com/amplify_video_thumb/2087167256510017538/img/yCvL_qTXc1icpgo4.jpg",
+              "variants": [
+                {
+                  "content_type": "application/x-mpegURL",
+                  "url": "https://video.twimg.com/amplify_video/2087167256510017538/pl/s6kKXsHLoDKTvgHJ.m3u8?tag=14"
+                },
+                {
+                  "bitrate": 632000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2087167256510017538/vid/avc1/320x400/fzf5Uh5q2B-UPVV2.mp4?tag=14"
+                },
+                {
+                  "bitrate": 950000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2087167256510017538/vid/avc1/480x600/mJIAzckohaQWq5p-.mp4?tag=14"
+                },
+                {
+                  "bitrate": 2176000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2087167256510017538/vid/avc1/720x900/0aZNcwUVsaYR2N6u.mp4?tag=14"
+                }
+              ],
+              "aspect_ratio": [
+                4,
+                5
+              ],
+              "duration": 173440,
+              "original_info": {
+                "focus_rects": [],
+                "height": 1350,
+                "width": 1080
+              },
+              "id": "2087167256510017538"
+            }
+          ]
+        }
+      },
+      {
+        "type": "tweet",
+        "tweet_id": "2086774522016149583",
+        "screen_name": "Movie_Freak_21",
+        "bookmarks": 2,
+        "favorites": 20,
+        "created_at": "Mon Aug 10 11:19:51 +0000 2026",
+        "text": "Lokesh Kanagaraj Ane peru unte chaalu. Ekkadaina collections thepinchestundhi aa brand 🔥🔥. https://t.co/qrAeXShpVN",
+        "lang": "et",
+        "display_text_range": [
+          0,
+          90
+        ],
+        "source": "<a href=\"http://twitter.com/download/android\" rel=\"nofollow\">Twitter for Android</a>",
+        "quotes": 0,
+        "sensitive": false,
+        "replies": 0,
+        "conversation_id": "2086774522016149583",
+        "retweets": 1,
+        "views": "1689",
+        "entities": {
+          "media": [
+            {
+              "additional_media_info": {
+                "monetizable": false
+              },
+              "allow_download_status": {
+                "allow_download": true
+              },
+              "display_url": "pic.x.com/qrAeXShpVN",
+              "expanded_url": "https://x.com/Movie_Freak_21/status/2086774522016149583/video/1",
+              "ext_media_availability": {
+                "status": "Available"
+              },
+              "id_str": "2086774493452873729",
+              "indices": [
+                91,
+                114
+              ],
+              "media_key": "13_2086774493452873729",
+              "media_results": {
+                "result": {
+                  "media_key": "13_2086774493452873729"
+                }
+              },
+              "media_url_https": "https://pbs.twimg.com/amplify_video_thumb/2086774493452873729/img/7Zub6xUDJt05si2v.jpg",
+              "original_info": {
+                "focus_rects": [],
+                "height": 576,
+                "width": 1280
+              },
+              "sizes": {
+                "large": {
+                  "h": 576,
+                  "resize": "fit",
+                  "w": 1280
+                },
+                "medium": {
+                  "h": 540,
+                  "resize": "fit",
+                  "w": 1200
+                },
+                "small": {
+                  "h": 306,
+                  "resize": "fit",
+                  "w": 680
+                },
+                "thumb": {
+                  "h": 150,
+                  "resize": "crop",
+                  "w": 150
+                }
+              },
+              "type": "video",
+              "url": "https://t.co/qrAeXShpVN",
+              "video_info": {
+                "aspect_ratio": [
+                  20,
+                  9
+                ],
+                "duration_millis": 24762,
+                "variants": [
+                  {
+                    "content_type": "application/x-mpegURL",
+                    "url": "https://video.twimg.com/amplify_video/2086774493452873729/pl/w0L5g2qZNvY88pez.m3u8?tag=29&v=cfc"
+                  },
+                  {
+                    "bitrate": 256000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2086774493452873729/vid/avc1/600x270/fpcDmjiUFwIDEcMd.mp4?tag=29"
+                  },
+                  {
+                    "bitrate": 832000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2086774493452873729/vid/avc1/800x360/UExPIKkw9ZyZY9Hy.mp4?tag=29"
+                  },
+                  {
+                    "bitrate": 2176000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2086774493452873729/vid/avc1/1280x576/m8QvPxWeiYEzXhzv.mp4?tag=29"
+                  }
+                ]
+              }
+            }
+          ],
+          "hashtags": [],
+          "symbols": [],
+          "timestamps": [],
+          "urls": [],
+          "user_mentions": []
+        },
+        "user_info": {
+          "screen_name": "Movie_Freak_21",
+          "name": "RK😉",
+          "created_at": "Fri Jan 08 03:29:45 +0000 2021",
+          "description": null,
+          "rest_id": "1347382677486280705",
+          "followers_count": 1697,
+          "favorites_count": 133890,
+          "avatar": "https://pbs.twimg.com/profile_images/2086436432475045888/g5REPcYd_normal.jpg",
+          "url": null,
+          "cover_image": null,
+          "verified_type": null,
+          "verified": false,
+          "friends_count": null,
+          "location": "Amboseli Wilderness"
+        },
+        "media": {
+          "video": [
+            {
+              "media_url_https": "https://pbs.twimg.com/amplify_video_thumb/2086774493452873729/img/7Zub6xUDJt05si2v.jpg",
+              "variants": [
+                {
+                  "content_type": "application/x-mpegURL",
+                  "url": "https://video.twimg.com/amplify_video/2086774493452873729/pl/w0L5g2qZNvY88pez.m3u8?tag=29&v=cfc"
+                },
+                {
+                  "bitrate": 256000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2086774493452873729/vid/avc1/600x270/fpcDmjiUFwIDEcMd.mp4?tag=29"
+                },
+                {
+                  "bitrate": 832000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2086774493452873729/vid/avc1/800x360/UExPIKkw9ZyZY9Hy.mp4?tag=29"
+                },
+                {
+                  "bitrate": 2176000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2086774493452873729/vid/avc1/1280x576/m8QvPxWeiYEzXhzv.mp4?tag=29"
+                }
+              ],
+              "aspect_ratio": [
+                20,
+                9
+              ],
+              "duration": 24762,
+              "original_info": {
+                "focus_rects": [],
+                "height": 576,
+                "width": 1280
+              },
+              "id": "2086774493452873729"
+            }
+          ]
+        },
+        "quoted": {
+          "tweet_id": "2086757196189086022",
+          "bookmarks": 16,
+          "created_at": "Mon Aug 10 10:11:00 +0000 2026",
+          "favorites": 764,
+          "text": "DC Movie 2026 3 Days Total WW Collections!!\n\n🌟Sensational Day 3 All Over⚡️⚡️⚡️\n🌟Exceeded All Expectations On Day 3💥💥💥\n🌟Block Buster Loading🔥🔥🔥\n\n#DC #DCMovie #DCReview #lokeshKanagaraj #Anirudh\nhttps://t.co/CReARrzQzN",
+          "lang": "en",
+          "views": "29326",
+          "quotes": 4,
+          "sensitive": false,
+          "replies": 6,
+          "retweets": 74,
+          "conversation_id": "2086757196189086022",
+          "author": {
+            "rest_id": "2700083636",
+            "created_at": "Sat Aug 02 06:07:10 +0000 2014",
+            "name": "T2BLive.COM",
+            "screen_name": "T2BLive",
+            "avatar": "https://pbs.twimg.com/profile_images/1559169045903323136/bdkR-Hki_normal.jpg",
+            "blue_verified": true
+          },
+          "media": []
+        }
+      },
+      {
+        "type": "tweet",
+        "tweet_id": "2086726113058000905",
+        "screen_name": "KeralaBxOffce",
+        "bookmarks": 93,
+        "favorites": 1528,
+        "created_at": "Mon Aug 10 08:07:29 +0000 2026",
+        "text": "Lokesh Is going to open ₹10cr before Ajith Kumar in Kerala Box Office! 🔥 \n\n#DC  https://t.co/AgX2wyb5V2",
+        "lang": "en",
+        "display_text_range": [
+          0,
+          103
+        ],
+        "source": "<a href=\"http://twitter.com/download/android\" rel=\"nofollow\">Twitter for Android</a>",
+        "quotes": 10,
+        "sensitive": false,
+        "replies": 12,
+        "conversation_id": "2086726113058000905",
+        "retweets": 89,
+        "views": "44560",
+        "entities": {
+          "hashtags": [
+            {
+              "indices": [
+                75,
+                78
+              ],
+              "text": "DC"
+            }
+          ],
+          "media": [
+            {
+              "additional_media_info": {
+                "monetizable": false,
+                "source_user": {
+                  "user_results": {
+                    "result": {
+                      "__typename": "User",
+                      "action_counts": {
+                        "favorites_count": 5017
+                      },
+                      "affiliates_highlighted_label": [],
+                      "avatar": {
+                        "image_url": "https://pbs.twimg.com/profile_images/1985686530451783680/WCrzy2J8_normal.jpg"
+                      },
+                      "banner": {
+                        "image_url": "https://pbs.twimg.com/profile_banners/1090513571581091840/1747852235"
+                      },
+                      "core": {
+                        "created_at": "Wed Jan 30 07:34:31 +0000 2019",
+                        "name": "Lets Cinema",
+                        "screen_name": "letscinema"
+                      },
+                      "dm_permissions": {
+                        "can_dm": true
+                      },
+                      "follow_request_sent": false,
+                      "has_graduated_access": true,
+                      "id": "VXNlcjoxMDkwNTEzNTcxNTgxMDkxODQw",
+                      "is_blue_verified": false,
+                      "location": {
+                        "location": "Los Ángeles, United States"
+                      },
+                      "media_permissions": {
+                        "can_media_tag": false
+                      },
+                      "notifications_settings": {
+                        "notifications_enabled": false
+                      },
+                      "parody_commentary_fan_label": "None",
+                      "pinned_items": [],
+                      "possibly_sensitive": false,
+                      "privacy": {
+                        "protected": false
+                      },
+                      "professional": {
+                        "category": [],
+                        "professional_type": "Business",
+                        "rest_id": "1465389864480698369"
+                      },
+                      "profile_bio": {
+                        "description": "The trusted name for cinema updates & box office data. DM/Email for collabs — contact@letscinema.com ✉️",
+                        "entities": {
+                          "description": [],
+                          "url": {
+                            "urls": [
+                              {
+                                "display_url": "letscinema.com",
+                                "expanded_url": "http://letscinema.com",
+                                "indices": [
+                                  0,
+                                  23
+                                ],
+                                "url": "https://t.co/HYarAlRUrz"
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      "profile_description_language": "en",
+                      "profile_image_shape": "Square",
+                      "profile_metadata": {
+                        "profile_interstitial_type": ""
+                      },
+                      "profile_translation": {
+                        "translator_type": "none"
+                      },
+                      "relationship_counts": {
+                        "followers": 555858,
+                        "following": 823
+                      },
+                      "relationship_perspectives": {
+                        "blocked_by": false,
+                        "blocking": false,
+                        "followed_by": false,
+                        "following": false,
+                        "live_following": false,
+                        "muting": false
+                      },
+                      "rest_id": "1090513571581091840",
+                      "super_follow_eligible": true,
+                      "super_followed_by": false,
+                      "super_following": false,
+                      "tweet_counts": {
+                        "media_tweets": 16221,
+                        "tweets": 27259
+                      },
+                      "verification": {
+                        "verified": false,
+                        "verified_type": "Business"
+                      },
+                      "website": {
+                        "url": "https://t.co/HYarAlRUrz"
+                      }
+                    }
+                  }
+                }
+              },
+              "allow_download_status": {
+                "allow_download": true
+              },
+              "display_url": "pic.x.com/AgX2wyb5V2",
+              "expanded_url": "https://x.com/letscinema/status/2085972870455599564/video/1",
+              "ext_media_availability": {
+                "status": "Available"
+              },
+              "id_str": "2085972841208635392",
+              "indices": [
+                80,
+                103
+              ],
+              "media_key": "13_2085972841208635392",
+              "media_results": {
+                "result": {
+                  "media_key": "13_2085972841208635392"
+                }
+              },
+              "media_url_https": "https://pbs.twimg.com/amplify_video_thumb/2085972841208635392/img/BGKJ7fccFXp9LalQ.jpg",
+              "original_info": {
+                "focus_rects": [],
+                "height": 720,
+                "width": 960
+              },
+              "sizes": {
+                "large": {
+                  "h": 720,
+                  "resize": "fit",
+                  "w": 960
+                },
+                "medium": {
+                  "h": 720,
+                  "resize": "fit",
+                  "w": 960
+                },
+                "small": {
+                  "h": 510,
+                  "resize": "fit",
+                  "w": 680
+                },
+                "thumb": {
+                  "h": 150,
+                  "resize": "crop",
+                  "w": 150
+                }
+              },
+              "source_status_id_str": "2085972870455599564",
+              "source_user_id_str": "1090513571581091840",
+              "type": "video",
+              "url": "https://t.co/AgX2wyb5V2",
+              "video_info": {
+                "aspect_ratio": [
+                  4,
+                  3
+                ],
+                "duration_millis": 26500,
+                "variants": [
+                  {
+                    "content_type": "application/x-mpegURL",
+                    "url": "https://video.twimg.com/amplify_video/2085972841208635392/pl/hYkvOg_Pm-Oy7KeJ.m3u8?tag=29"
+                  },
+                  {
+                    "bitrate": 256000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2085972841208635392/vid/avc1/360x270/6-OOEEKeM0-Udnj3.mp4?tag=29"
+                  },
+                  {
+                    "bitrate": 832000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2085972841208635392/vid/avc1/480x360/KCbNVoAOXR9yYPTH.mp4?tag=29"
+                  },
+                  {
+                    "bitrate": 2176000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2085972841208635392/vid/avc1/960x720/cBgQKtm1nshiRa8J.mp4?tag=29"
+                  }
+                ]
+              }
+            }
+          ],
+          "symbols": [],
+          "timestamps": [],
+          "urls": [],
+          "user_mentions": []
+        },
+        "user_info": {
+          "screen_name": "KeralaBxOffce",
+          "name": "Kerala Box Office",
+          "created_at": "Tue Apr 17 08:25:37 +0000 2018",
+          "description": null,
+          "rest_id": "986158726431227904",
+          "followers_count": 24755,
+          "favorites_count": 3863,
+          "avatar": "https://pbs.twimg.com/profile_images/1857361723239415808/5p2w5yAV_normal.jpg",
+          "url": null,
+          "cover_image": null,
+          "verified_type": null,
+          "verified": true,
+          "friends_count": null,
+          "location": "Angamaly, India"
+        },
+        "media": {
+          "video": [
+            {
+              "media_url_https": "https://pbs.twimg.com/amplify_video_thumb/2085972841208635392/img/BGKJ7fccFXp9LalQ.jpg",
+              "variants": [
+                {
+                  "content_type": "application/x-mpegURL",
+                  "url": "https://video.twimg.com/amplify_video/2085972841208635392/pl/hYkvOg_Pm-Oy7KeJ.m3u8?tag=29"
+                },
+                {
+                  "bitrate": 256000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2085972841208635392/vid/avc1/360x270/6-OOEEKeM0-Udnj3.mp4?tag=29"
+                },
+                {
+                  "bitrate": 832000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2085972841208635392/vid/avc1/480x360/KCbNVoAOXR9yYPTH.mp4?tag=29"
+                },
+                {
+                  "bitrate": 2176000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2085972841208635392/vid/avc1/960x720/cBgQKtm1nshiRa8J.mp4?tag=29"
+                }
+              ],
+              "aspect_ratio": [
+                4,
+                3
+              ],
+              "duration": 26500,
+              "original_info": {
+                "focus_rects": [],
+                "height": 720,
+                "width": 960
+              },
+              "id": "2085972841208635392"
+            }
+          ]
+        }
+      },
+      {
+        "type": "tweet",
+        "tweet_id": "2087023064278282240",
+        "screen_name": "Itsaprank132511",
+        "bookmarks": 3,
+        "favorites": 23,
+        "created_at": "Tue Aug 11 03:47:28 +0000 2026",
+        "text": "#DC a Saaga of Revenge 🔥🔥🔥\nThe First Scene of the movie is Reference to Last scene of the movie. Lokesh, Wamiqa did brilliant Acting. The Anirudh carried out the whole movie with Awesome BGM 📈📈💥 https://t.co/9myVqtNaiq",
+        "lang": "en",
+        "display_text_range": [
+          0,
+          218
+        ],
+        "source": "<a href=\"http://twitter.com/download/android\" rel=\"nofollow\">Twitter for Android</a>",
+        "quotes": 0,
+        "sensitive": false,
+        "replies": 1,
+        "conversation_id": "2087023064278282240",
+        "retweets": 2,
+        "views": "669",
+        "entities": {
+          "hashtags": [
+            {
+              "indices": [
+                0,
+                3
+              ],
+              "text": "DC"
+            }
+          ],
+          "media": [
+            {
+              "additional_media_info": {
+                "monetizable": false,
+                "source_user": {
+                  "user_results": {
+                    "result": {
+                      "__typename": "User",
+                      "action_counts": {
+                        "favorites_count": 14741
+                      },
+                      "affiliates_highlighted_label": [],
+                      "avatar": {
+                        "image_url": "https://pbs.twimg.com/profile_images/1747489816898625536/m4hWxtcO_normal.jpg"
+                      },
+                      "banner": {
+                        "image_url": "https://pbs.twimg.com/profile_banners/1552767463107940352/1784554254"
+                      },
+                      "core": {
+                        "created_at": "Thu Jul 28 21:26:38 +0000 2022",
+                        "name": "Telugu Cult 𝐘𝐓",
+                        "screen_name": "Telugu_Cult"
+                      },
+                      "dm_permissions": {
+                        "can_dm": false
+                      },
+                      "follow_request_sent": false,
+                      "has_graduated_access": true,
+                      "id": "VXNlcjoxNTUyNzY3NDYzMTA3OTQwMzUy",
+                      "is_blue_verified": true,
+                      "location": {
+                        "location": "Hyderabad "
+                      },
+                      "media_permissions": {
+                        "can_media_tag": false
+                      },
+                      "notifications_settings": {
+                        "notifications_enabled": false
+                      },
+                      "parody_commentary_fan_label": "None",
+                      "pinned_items": {
+                        "tweet_ids_str": [
+                          "1805790441125855297"
+                        ]
+                      },
+                      "possibly_sensitive": false,
+                      "privacy": {
+                        "protected": false
+                      },
+                      "professional": {
+                        "category": [
+                          {
+                            "icon_name": "IconBriefcaseStroke",
+                            "id": 15,
+                            "name": "Entertainment & Recreation"
+                          }
+                        ],
+                        "professional_type": "Creator",
+                        "rest_id": "1727597264703815969"
+                      },
+                      "profile_bio": {
+                        "description": "𝐒𝐭𝐚𝐲 𝐓𝐮𝐧𝐧𝐞𝐝 : 𝟐𝟒/𝟕 𝐔𝐩𝐝𝐚𝐭𝐞𝐬 & 𝐅𝐮𝐧 . Film Updates | Movie Reviews | Celebrity News | Movie Interviews",
+                        "entities": {
+                          "description": [],
+                          "url": {
+                            "urls": [
+                              {
+                                "display_url": "youtube.com/@TeluguCult/vi…",
+                                "expanded_url": "http://www.youtube.com/@TeluguCult/videos",
+                                "indices": [
+                                  0,
+                                  23
+                                ],
+                                "url": "https://t.co/MjqmvAHr4u"
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      "profile_description_language": "en",
+                      "profile_image_shape": "Circle",
+                      "profile_metadata": {
+                        "profile_interstitial_type": ""
+                      },
+                      "profile_translation": {
+                        "translator_type": "none"
+                      },
+                      "relationship_counts": {
+                        "followers": 29239,
+                        "following": 99
+                      },
+                      "relationship_perspectives": {
+                        "blocked_by": false,
+                        "blocking": false,
+                        "followed_by": false,
+                        "following": false,
+                        "live_following": false,
+                        "muting": false
+                      },
+                      "rest_id": "1552767463107940352",
+                      "super_follow_eligible": false,
+                      "super_followed_by": false,
+                      "super_following": false,
+                      "tweet_counts": {
+                        "media_tweets": 12629,
+                        "tweets": 20416
+                      },
+                      "verification": {
+                        "verified": false
+                      },
+                      "website": {
+                        "url": "https://t.co/MjqmvAHr4u"
+                      }
+                    }
+                  }
+                }
+              },
+              "allow_download_status": {
+                "allow_download": true
+              },
+              "display_url": "pic.x.com/9myVqtNaiq",
+              "expanded_url": "https://x.com/Telugu_Cult/status/2086305446684766367/video/1",
+              "ext_media_availability": {
+                "status": "Available"
+              },
+              "id_str": "2086305406465499136",
+              "indices": [
+                195,
+                218
+              ],
+              "media_key": "13_2086305406465499136",
+              "media_results": {
+                "result": {
+                  "media_key": "13_2086305406465499136"
+                }
+              },
+              "media_url_https": "https://pbs.twimg.com/amplify_video_thumb/2086305406465499136/img/ZwlTCDgYv9D6kc1l.jpg",
+              "original_info": {
+                "focus_rects": [],
+                "height": 720,
+                "width": 1280
+              },
+              "sizes": {
+                "large": {
+                  "h": 720,
+                  "resize": "fit",
+                  "w": 1280
+                },
+                "medium": {
+                  "h": 675,
+                  "resize": "fit",
+                  "w": 1200
+                },
+                "small": {
+                  "h": 383,
+                  "resize": "fit",
+                  "w": 680
+                },
+                "thumb": {
+                  "h": 150,
+                  "resize": "crop",
+                  "w": 150
+                }
+              },
+              "source_status_id_str": "2086305446684766367",
+              "source_user_id_str": "1552767463107940352",
+              "type": "video",
+              "url": "https://t.co/9myVqtNaiq",
+              "video_info": {
+                "aspect_ratio": [
+                  16,
+                  9
+                ],
+                "duration_millis": 45875,
+                "variants": [
+                  {
+                    "content_type": "application/x-mpegURL",
+                    "url": "https://video.twimg.com/amplify_video/2086305406465499136/pl/v72JxJLuHXJSumni.m3u8?tag=29"
+                  },
+                  {
+                    "bitrate": 256000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2086305406465499136/vid/avc1/480x270/N5-LYgG9SeTLHJaG.mp4?tag=29"
+                  },
+                  {
+                    "bitrate": 832000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2086305406465499136/vid/avc1/640x360/GX9eZt1Zn-0s-Lqp.mp4?tag=29"
+                  },
+                  {
+                    "bitrate": 2176000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2086305406465499136/vid/avc1/1280x720/ks9oFQIdl-mP-oPm.mp4?tag=29"
+                  }
+                ]
+              }
+            }
+          ],
+          "symbols": [],
+          "timestamps": [],
+          "urls": [],
+          "user_mentions": []
+        },
+        "user_info": {
+          "screen_name": "Itsaprank132511",
+          "name": "Prabhas Fan",
+          "created_at": "Sun Feb 25 21:47:23 +0000 2024",
+          "description": null,
+          "rest_id": "1761870251086503937",
+          "followers_count": 6263,
+          "favorites_count": 57721,
+          "avatar": "https://pbs.twimg.com/profile_images/1855908469024362496/3fkAKgjF_normal.jpg",
+          "url": null,
+          "cover_image": null,
+          "verified_type": null,
+          "verified": true,
+          "friends_count": null,
+          "location": "Hyderabad"
+        },
+        "media": {
+          "video": [
+            {
+              "media_url_https": "https://pbs.twimg.com/amplify_video_thumb/2086305406465499136/img/ZwlTCDgYv9D6kc1l.jpg",
+              "variants": [
+                {
+                  "content_type": "application/x-mpegURL",
+                  "url": "https://video.twimg.com/amplify_video/2086305406465499136/pl/v72JxJLuHXJSumni.m3u8?tag=29"
+                },
+                {
+                  "bitrate": 256000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2086305406465499136/vid/avc1/480x270/N5-LYgG9SeTLHJaG.mp4?tag=29"
+                },
+                {
+                  "bitrate": 832000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2086305406465499136/vid/avc1/640x360/GX9eZt1Zn-0s-Lqp.mp4?tag=29"
+                },
+                {
+                  "bitrate": 2176000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2086305406465499136/vid/avc1/1280x720/ks9oFQIdl-mP-oPm.mp4?tag=29"
+                }
+              ],
+              "aspect_ratio": [
+                16,
+                9
+              ],
+              "duration": 45875,
+              "original_info": {
+                "focus_rects": [],
+                "height": 720,
+                "width": 1280
+              },
+              "id": "2086305406465499136"
+            }
+          ]
+        }
+      },
+      {
+        "type": "tweet",
+        "tweet_id": "2085757990565794144",
+        "screen_name": "DSKUPDATES",
+        "bookmarks": 5,
+        "favorites": 8,
+        "created_at": "Fri Aug 07 16:00:31 +0000 2026",
+        "text": "#DC was totally unexpected! Arun Matheswaran cooked up a racy screenplay—this is the first film of his that I've actually liked. Lokesh gave an outstanding performance, but Anirudh completely stole the show. The one and only #anirudh took this movie to the next level! #dcmovie https://t.co/4Lfmc3yaax",
+        "lang": "en",
+        "display_text_range": [
+          0,
+          277
+        ],
+        "source": "<a href=\"http://twitter.com/download/iphone\" rel=\"nofollow\">Twitter for iPhone</a>",
+        "quotes": 0,
+        "sensitive": false,
+        "replies": 0,
+        "conversation_id": "2085757990565794144",
+        "retweets": 0,
+        "views": "12536",
+        "entities": {
+          "hashtags": [
+            {
+              "indices": [
+                0,
+                3
+              ],
+              "text": "DC"
+            },
+            {
+              "indices": [
+                225,
+                233
+              ],
+              "text": "anirudh"
+            },
+            {
+              "indices": [
+                269,
+                277
+              ],
+              "text": "dcmovie"
+            }
+          ],
+          "media": [
+            {
+              "additional_media_info": {
+                "monetizable": false
+              },
+              "allow_download_status": {
+                "allow_download": true
+              },
+              "display_url": "pic.x.com/4Lfmc3yaax",
+              "expanded_url": "https://x.com/DSKUPDATES/status/2085757990565794144/video/1",
+              "ext_media_availability": {
+                "status": "Available"
+              },
+              "id_str": "2085757644179193856",
+              "indices": [
+                278,
+                301
+              ],
+              "media_key": "13_2085757644179193856",
+              "media_results": {
+                "result": {
+                  "media_key": "13_2085757644179193856"
+                }
+              },
+              "media_url_https": "https://pbs.twimg.com/amplify_video_thumb/2085757644179193856/img/2VkE2ytnJmEB0iIV.jpg",
+              "original_info": {
+                "focus_rects": [],
+                "height": 1280,
+                "width": 720
+              },
+              "sizes": {
+                "large": {
+                  "h": 1280,
+                  "resize": "fit",
+                  "w": 720
+                },
+                "medium": {
+                  "h": 1200,
+                  "resize": "fit",
+                  "w": 675
+                },
+                "small": {
+                  "h": 680,
+                  "resize": "fit",
+                  "w": 383
+                },
+                "thumb": {
+                  "h": 150,
+                  "resize": "crop",
+                  "w": 150
+                }
+              },
+              "type": "video",
+              "url": "https://t.co/4Lfmc3yaax",
+              "video_info": {
+                "aspect_ratio": [
+                  9,
+                  16
+                ],
+                "duration_millis": 400,
+                "variants": [
+                  {
+                    "content_type": "application/x-mpegURL",
+                    "url": "https://video.twimg.com/amplify_video/2085757644179193856/pl/F2-T1GvILbgeBObs.m3u8?tag=29"
+                  },
+                  {
+                    "bitrate": 632000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2085757644179193856/vid/avc1/320x568/Qb0ijGAwwoVg-p_8.mp4?tag=29"
+                  },
+                  {
+                    "bitrate": 950000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2085757644179193856/vid/avc1/480x852/pTt6rreilRoAzxuS.mp4?tag=29"
+                  },
+                  {
+                    "bitrate": 2176000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2085757644179193856/vid/avc1/720x1280/bd8QbI3MlNlA9ToU.mp4?tag=29"
+                  }
+                ]
+              }
+            }
+          ],
+          "symbols": [],
+          "timestamps": [],
+          "urls": [],
+          "user_mentions": []
+        },
+        "user_info": {
+          "screen_name": "DSKUPDATES",
+          "name": "DSK WORLD UPDATES",
+          "created_at": "Sun Jan 08 03:53:05 +0000 2023",
+          "description": null,
+          "rest_id": "1611933778313908224",
+          "followers_count": 46,
+          "favorites_count": 85653,
+          "avatar": "https://pbs.twimg.com/profile_images/1689297445321383937/NdHKJ-zx_normal.jpg",
+          "url": null,
+          "cover_image": null,
+          "verified_type": null,
+          "verified": false,
+          "friends_count": null,
+          "location": "India"
+        },
+        "media": {
+          "video": [
+            {
+              "media_url_https": "https://pbs.twimg.com/amplify_video_thumb/2085757644179193856/img/2VkE2ytnJmEB0iIV.jpg",
+              "variants": [
+                {
+                  "content_type": "application/x-mpegURL",
+                  "url": "https://video.twimg.com/amplify_video/2085757644179193856/pl/F2-T1GvILbgeBObs.m3u8?tag=29"
+                },
+                {
+                  "bitrate": 632000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2085757644179193856/vid/avc1/320x568/Qb0ijGAwwoVg-p_8.mp4?tag=29"
+                },
+                {
+                  "bitrate": 950000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2085757644179193856/vid/avc1/480x852/pTt6rreilRoAzxuS.mp4?tag=29"
+                },
+                {
+                  "bitrate": 2176000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2085757644179193856/vid/avc1/720x1280/bd8QbI3MlNlA9ToU.mp4?tag=29"
+                }
+              ],
+              "aspect_ratio": [
+                9,
+                16
+              ],
+              "duration": 400,
+              "original_info": {
+                "focus_rects": [],
+                "height": 1280,
+                "width": 720
+              },
+              "id": "2085757644179193856"
+            }
+          ]
+        }
+      },
+      {
+        "type": "tweet",
+        "tweet_id": "2087153029682516358",
+        "screen_name": "Erishuuu",
+        "bookmarks": 1,
+        "favorites": 22,
+        "created_at": "Tue Aug 11 12:23:54 +0000 2026",
+        "text": "Movie : DC \nStarring Lokesh Kanagraj, Vamika Gabbi https://t.co/CaBv0Ef6tm",
+        "lang": "en",
+        "display_text_range": [
+          0,
+          50
+        ],
+        "source": "<a href=\"http://twitter.com/download/android\" rel=\"nofollow\">Twitter for Android</a>",
+        "quotes": 0,
+        "sensitive": false,
+        "replies": 9,
+        "conversation_id": "2087153029682516358",
+        "retweets": 3,
+        "views": "696",
+        "entities": {
+          "media": [
+            {
+              "additional_media_info": {
+                "monetizable": false
+              },
+              "display_url": "pic.x.com/CaBv0Ef6tm",
+              "expanded_url": "https://x.com/Erishuuu/status/2087153029682516358/video/1",
+              "ext_media_availability": {
+                "status": "Available"
+              },
+              "id_str": "2087152838980087808",
+              "indices": [
+                51,
+                74
+              ],
+              "media_key": "13_2087152838980087808",
+              "media_results": {
+                "result": {
+                  "media_key": "13_2087152838980087808"
+                }
+              },
+              "media_url_https": "https://pbs.twimg.com/amplify_video_thumb/2087152838980087808/img/bgSDechdgOkmjEQw.jpg",
+              "original_info": {
+                "focus_rects": [],
+                "height": 1080,
+                "width": 1920
+              },
+              "sizes": {
+                "large": {
+                  "h": 1080,
+                  "resize": "fit",
+                  "w": 1920
+                },
+                "medium": {
+                  "h": 675,
+                  "resize": "fit",
+                  "w": 1200
+                },
+                "small": {
+                  "h": 383,
+                  "resize": "fit",
+                  "w": 680
+                },
+                "thumb": {
+                  "h": 150,
+                  "resize": "crop",
+                  "w": 150
+                }
+              },
+              "type": "video",
+              "url": "https://t.co/CaBv0Ef6tm",
+              "video_info": {
+                "aspect_ratio": [
+                  16,
+                  9
+                ],
+                "duration_millis": 60371,
+                "variants": [
+                  {
+                    "content_type": "application/x-mpegURL",
+                    "url": "https://video.twimg.com/amplify_video/2087152838980087808/pl/BDp4QRlY51VHr2oV.m3u8?tag=29"
+                  },
+                  {
+                    "bitrate": 256000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2087152838980087808/vid/avc1/480x270/9V2D5wzZpOKelQAe.mp4?tag=29"
+                  },
+                  {
+                    "bitrate": 832000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2087152838980087808/vid/avc1/640x360/8g99I7u5uC1aMBbv.mp4?tag=29"
+                  },
+                  {
+                    "bitrate": 2176000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2087152838980087808/vid/avc1/1280x720/7DuYaZSsrgwfGx1Z.mp4?tag=29"
+                  },
+                  {
+                    "bitrate": 10368000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2087152838980087808/vid/avc1/1920x1080/dpAIixZVjgcDoyvy.mp4?tag=29"
+                  }
+                ]
+              }
+            }
+          ],
+          "hashtags": [],
+          "symbols": [],
+          "timestamps": [],
+          "urls": [],
+          "user_mentions": []
+        },
+        "user_info": {
+          "screen_name": "Erishuuu",
+          "name": "Eri🌻",
+          "created_at": "Thu Feb 06 08:22:03 +0000 2025",
+          "description": null,
+          "rest_id": "1887416008379351040",
+          "followers_count": 6381,
+          "favorites_count": 68895,
+          "avatar": "https://pbs.twimg.com/profile_images/2058799340291010560/KekrIqEJ_normal.jpg",
+          "url": null,
+          "cover_image": null,
+          "verified_type": null,
+          "verified": true,
+          "friends_count": null,
+          "location": ""
+        },
+        "media": {
+          "video": [
+            {
+              "media_url_https": "https://pbs.twimg.com/amplify_video_thumb/2087152838980087808/img/bgSDechdgOkmjEQw.jpg",
+              "variants": [
+                {
+                  "content_type": "application/x-mpegURL",
+                  "url": "https://video.twimg.com/amplify_video/2087152838980087808/pl/BDp4QRlY51VHr2oV.m3u8?tag=29"
+                },
+                {
+                  "bitrate": 256000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2087152838980087808/vid/avc1/480x270/9V2D5wzZpOKelQAe.mp4?tag=29"
+                },
+                {
+                  "bitrate": 832000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2087152838980087808/vid/avc1/640x360/8g99I7u5uC1aMBbv.mp4?tag=29"
+                },
+                {
+                  "bitrate": 2176000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2087152838980087808/vid/avc1/1280x720/7DuYaZSsrgwfGx1Z.mp4?tag=29"
+                },
+                {
+                  "bitrate": 10368000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2087152838980087808/vid/avc1/1920x1080/dpAIixZVjgcDoyvy.mp4?tag=29"
+                }
+              ],
+              "aspect_ratio": [
+                16,
+                9
+              ],
+              "duration": 60371,
+              "original_info": {
+                "focus_rects": [],
+                "height": 1080,
+                "width": 1920
+              },
+              "id": "2087152838980087808"
+            }
+          ]
+        },
+        "quoted": {
+          "tweet_id": "2087134548450845035",
+          "bookmarks": 0,
+          "created_at": "Tue Aug 11 11:10:28 +0000 2026",
+          "favorites": 23,
+          "text": "Guess which movie cooking at theatre today 😅 https://t.co/cfGJOJeROb",
+          "lang": "en",
+          "views": "1349",
+          "quotes": 1,
+          "sensitive": false,
+          "replies": 10,
+          "retweets": 0,
+          "conversation_id": "2087134548450845035",
+          "author": {
+            "rest_id": "1887416008379351040",
+            "created_at": "Thu Feb 06 08:22:03 +0000 2025",
+            "name": "Eri🌻",
+            "screen_name": "Erishuuu",
+            "avatar": "https://pbs.twimg.com/profile_images/2058799340291010560/KekrIqEJ_normal.jpg",
+            "blue_verified": true
+          },
+          "media": {
+            "photo": [
+              {
+                "media_url_https": "https://pbs.twimg.com/media/HPb9uAgboAEZyPE.jpg",
+                "id": "2087134444184641537",
+                "sizes": {
+                  "h": 1536,
+                  "w": 2048
+                }
+              },
+              {
+                "media_url_https": "https://pbs.twimg.com/media/HPb9vAVbEAASFKB.jpg",
+                "id": "2087134461318336512",
+                "sizes": {
+                  "h": 1536,
+                  "w": 2048
+                }
+              }
+            ],
+            "video": [
+              {
+                "media_url_https": "https://pbs.twimg.com/amplify_video_thumb/2087134474429767680/img/pU7X6W7Fj2i8qHHp.jpg",
+                "variants": [
+                  {
+                    "content_type": "application/x-mpegURL",
+                    "url": "https://video.twimg.com/amplify_video/2087134474429767680/pl/zs4qF432o7Ajnhvu.m3u8?tag=29"
+                  },
+                  {
+                    "bitrate": 256000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2087134474429767680/vid/avc1/480x270/vBojieUYMSWZlcVA.mp4?tag=29"
+                  },
+                  {
+                    "bitrate": 832000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2087134474429767680/vid/avc1/640x360/i-mB4HBSOhXdW-3Y.mp4?tag=29"
+                  },
+                  {
+                    "bitrate": 2176000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2087134474429767680/vid/avc1/1280x720/XGJau3nRUb5cyF_9.mp4?tag=29"
+                  },
+                  {
+                    "bitrate": 10368000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2087134474429767680/vid/avc1/1920x1080/e3Tcu68uUxJzV3eN.mp4?tag=29"
+                  }
+                ],
+                "aspect_ratio": [
+                  16,
+                  9
+                ],
+                "duration": 10472,
+                "original_info": {
+                  "focus_rects": [],
+                  "height": 1080,
+                  "width": 1920
+                },
+                "id": "2087134474429767680"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "type": "tweet",
+        "tweet_id": "2087142935796273152",
+        "screen_name": "RANVIJAYANIMAL",
+        "bookmarks": 9,
+        "favorites": 87,
+        "created_at": "Tue Aug 11 11:43:47 +0000 2026",
+        "text": "#DC REVIEW / MY OPINION \n\nA RADIOLUCENT REVENGE SAGA \n\nBefore The frames Shot's and act's they've put Guts infront of everything , while making this film . \n\nFirst the guts came and later everything came .\n \nusually I don’t like Arun Matheshwaran’s work , some of his film's are ick to me , I used to not like the way he depicts the violence for example in captain Miller , but for DC he has outshined himself , so I love the way how the violence arises from the character itself , and the violence depiction was also done in a very very beautiful manner . \n\nI want to appreciate every department that has been involved in making this Film, the set department, art department, the costume designing department, the make-up department, the prosthetic department, and the camera department most importantly.\n\n Anirudh's score and BGM work for this Film has to be inserted in the history books , this was his historical work ever ever ever ever ever ever , I repeat it that’s it he has given  historical Music to this Film.\n\nWamiqa Gabbi , I can’t even express how of a good Actress she is , there is acting in the way she looks , the way she opens or closes her eyes , the way she behaves , the way she stands, the way she walks , the way she runs, the way she holds the gun , every thing she does has acting inserted in it . She's indeed India's best actress no doubt . \n\nLokesh was as usual terrific I didn’t expect the range of acting this guy can pull off, like there is this saying in the filmmaking world, that director's who can inact can also be the best Actors , Lokesh proved it right .\n\nThe pre-interval sequence and the interval fight has given a seat edge thriller experience,  and the interval fight gives the audience a feeling of suffocation , so imagine how well the director has carried audience into the film I loved it terrific. \n\nlike the price I paid for the Film ticket, has been recovered for the first half itself, so I felt the second half and the climax were bonus to me, and I want to say this is the best way to end the film the climax was very very very very very very satisfying. \n\nif you have got time please go and watch this film and make yourself a favour.\n\n4.5/5",
+        "lang": "en",
+        "display_text_range": [
+          0,
+          278
+        ],
+        "source": "<a href=\"http://twitter.com/download/iphone\" rel=\"nofollow\">Twitter for iPhone</a>",
+        "quotes": 0,
+        "sensitive": null,
+        "replies": 2,
+        "conversation_id": "2087142935796273152",
+        "retweets": 8,
+        "views": "6080",
+        "entities": {
+          "hashtags": [
+            {
+              "indices": [
+                0,
+                3
+              ],
+              "text": "DC"
+            }
+          ],
+          "symbols": [],
+          "urls": [],
+          "user_mentions": []
+        },
+        "user_info": {
+          "screen_name": "RANVIJAYANIMAL",
+          "name": "DEVA SALAAR",
+          "created_at": "Wed Apr 13 06:56:14 +0000 2022",
+          "description": null,
+          "rest_id": "1514135229963071494",
+          "followers_count": 7126,
+          "favorites_count": 204652,
+          "avatar": "https://pbs.twimg.com/profile_images/2056749303243423744/lJS55_T0_normal.jpg",
+          "url": null,
+          "cover_image": null,
+          "verified_type": null,
+          "verified": true,
+          "friends_count": null,
+          "location": ""
+        },
+        "media": [],
+        "quoted": {
+          "tweet_id": "2086861781839106511",
+          "bookmarks": 2,
+          "created_at": "Mon Aug 10 17:06:35 +0000 2026",
+          "favorites": 49,
+          "text": "ST : #DC \n\nMYTHRI SCREEN 5 https://t.co/IpjhMPWanB",
+          "lang": "en",
+          "views": "10647",
+          "quotes": 0,
+          "sensitive": false,
+          "replies": 0,
+          "retweets": 0,
+          "conversation_id": "2086861781839106511",
+          "author": {
+            "rest_id": "1514135229963071494",
+            "created_at": "Wed Apr 13 06:56:14 +0000 2022",
+            "name": "DEVA SALAAR",
+            "screen_name": "RANVIJAYANIMAL",
+            "avatar": "https://pbs.twimg.com/profile_images/2056749303243423744/lJS55_T0_normal.jpg",
+            "blue_verified": true
+          },
+          "media": {
+            "photo": [
+              {
+                "media_url_https": "https://pbs.twimg.com/media/HPYFuX9aoAA-kuj.jpg",
+                "id": "2086861771596537856",
+                "sizes": {
+                  "h": 1152,
+                  "w": 2048
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "type": "tweet",
+        "tweet_id": "2087222709822628310",
+        "screen_name": "kaysthetic_",
+        "bookmarks": 1,
+        "favorites": 9,
+        "created_at": "Tue Aug 11 17:00:47 +0000 2026",
+        "text": "also kenathukadavu kanagaraj cooked 😭 idha sona adipinga nenakren but i felt lokesh as an actor &gt;&gt; lokesh as a director",
+        "lang": "in",
+        "display_text_range": [
+          0,
+          125
+        ],
+        "source": "<a href=\"http://twitter.com/download/iphone\" rel=\"nofollow\">Twitter for iPhone</a>",
+        "quotes": 0,
+        "sensitive": null,
+        "replies": 1,
+        "conversation_id": "2087222709822628310",
+        "retweets": 2,
+        "views": "686",
+        "entities": {
+          "hashtags": [],
+          "symbols": [],
+          "timestamps": [],
+          "urls": [],
+          "user_mentions": []
+        },
+        "user_info": {
+          "screen_name": "kaysthetic_",
+          "name": "kaveyy",
+          "created_at": "Wed Jan 18 11:53:09 +0000 2017",
+          "description": null,
+          "rest_id": "821686862632931329",
+          "followers_count": 1,
+          "favorites_count": 10,
+          "avatar": "https://pbs.twimg.com/profile_images/2077246274622062592/aYOmjJrF_normal.jpg",
+          "url": null,
+          "cover_image": null,
+          "verified_type": null,
+          "verified": false,
+          "friends_count": null,
+          "location": "boomi"
+        },
+        "media": [],
+        "quoted": {
+          "tweet_id": "2087216076438503844",
+          "bookmarks": 1,
+          "created_at": "Tue Aug 11 16:34:25 +0000 2026",
+          "favorites": 35,
+          "text": "Dc pathen. anirudh pirichutan ommale😭💥 Never really watched any of Arun Matheeswaran’s movies ’cause I’m not a fan of violence on screen. But apologies, I wasn’t familiar with your game 🔥 https://t.co/syXlh6VJDN",
+          "lang": "en",
+          "views": "1623",
+          "quotes": 1,
+          "sensitive": false,
+          "replies": 1,
+          "retweets": 1,
+          "conversation_id": "2087216076438503844",
+          "author": {
+            "rest_id": "821686862632931329",
+            "created_at": "Wed Jan 18 11:53:09 +0000 2017",
+            "name": "kaveyy",
+            "screen_name": "kaysthetic_",
+            "avatar": "https://pbs.twimg.com/profile_images/2077246274622062592/aYOmjJrF_normal.jpg",
+            "blue_verified": null
+          },
+          "media": {
+            "photo": [
+              {
+                "media_url_https": "https://pbs.twimg.com/media/HPdH8_saAAEbmnH.jpg",
+                "id": "2087216065524924417",
+                "sizes": {
+                  "h": 1326,
+                  "w": 1242
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "type": "tweet",
+        "tweet_id": "2086828353345241313",
+        "screen_name": "kumudamdigi",
+        "bookmarks": 0,
+        "favorites": 0,
+        "created_at": "Mon Aug 10 14:53:45 +0000 2026",
+        "text": "DC Movie-ல நடந்த RAW சம்பவம் 😱🔥 - DC Actor Karuppan Interview | Lokesh Kanagaraj | Wamiqa\nFULL VIDEO LINK : https://t.co/bJfVNPHZxJ\n#dcmovie #DC #Karuppan #KaruppanInterview #LokeshKanagaraj https://t.co/39LWHolOeE",
+        "lang": "in",
+        "display_text_range": [
+          0,
+          190
+        ],
+        "source": "<a href=\"https://mobile.twitter.com\" rel=\"nofollow\">Twitter Web App</a>",
+        "quotes": 0,
+        "sensitive": false,
+        "replies": 0,
+        "conversation_id": "2086828353345241313",
+        "retweets": 0,
+        "views": "916",
+        "entities": {
+          "hashtags": [
+            {
+              "indices": [
+                132,
+                140
+              ],
+              "text": "dcmovie"
+            },
+            {
+              "indices": [
+                141,
+                144
+              ],
+              "text": "DC"
+            },
+            {
+              "indices": [
+                145,
+                154
+              ],
+              "text": "Karuppan"
+            },
+            {
+              "indices": [
+                155,
+                173
+              ],
+              "text": "KaruppanInterview"
+            },
+            {
+              "indices": [
+                174,
+                190
+              ],
+              "text": "LokeshKanagaraj"
+            }
+          ],
+          "media": [
+            {
+              "additional_media_info": {
+                "monetizable": false
+              },
+              "allow_download_status": {
+                "allow_download": true
+              },
+              "display_url": "pic.x.com/39LWHolOeE",
+              "expanded_url": "https://x.com/kumudamdigi/status/2086828353345241313/video/1",
+              "ext_media_availability": {
+                "status": "Available"
+              },
+              "id_str": "2086828238802976768",
+              "indices": [
+                191,
+                214
+              ],
+              "media_key": "13_2086828238802976768",
+              "media_results": {
+                "result": {
+                  "media_key": "13_2086828238802976768"
+                }
+              },
+              "media_url_https": "https://pbs.twimg.com/amplify_video_thumb/2086828238802976768/img/jwimJcd01WJgNMfe.jpg",
+              "original_info": {
+                "focus_rects": [],
+                "height": 1350,
+                "width": 1080
+              },
+              "sizes": {
+                "large": {
+                  "h": 1350,
+                  "resize": "fit",
+                  "w": 1080
+                },
+                "medium": {
+                  "h": 1200,
+                  "resize": "fit",
+                  "w": 960
+                },
+                "small": {
+                  "h": 680,
+                  "resize": "fit",
+                  "w": 544
+                },
+                "thumb": {
+                  "h": 150,
+                  "resize": "crop",
+                  "w": 150
+                }
+              },
+              "type": "video",
+              "url": "https://t.co/39LWHolOeE",
+              "video_info": {
+                "aspect_ratio": [
+                  4,
+                  5
+                ],
+                "duration_millis": 118640,
+                "variants": [
+                  {
+                    "content_type": "application/x-mpegURL",
+                    "url": "https://video.twimg.com/amplify_video/2086828238802976768/pl/_lhym6ilkl_PttBm.m3u8?tag=14"
+                  },
+                  {
+                    "bitrate": 632000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2086828238802976768/vid/avc1/320x400/-x_92MU7kF9G3RHm.mp4?tag=14"
+                  },
+                  {
+                    "bitrate": 950000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2086828238802976768/vid/avc1/480x600/BGc8GhNk-Rfe67lm.mp4?tag=14"
+                  },
+                  {
+                    "bitrate": 2176000,
+                    "content_type": "video/mp4",
+                    "url": "https://video.twimg.com/amplify_video/2086828238802976768/vid/avc1/720x900/w2AOCB1lS4YrTqDo.mp4?tag=14"
+                  }
+                ]
+              }
+            }
+          ],
+          "urls": [
+            {
+              "display_url": "youtu.be/hJ8Rpo3j7Q8",
+              "expanded_url": "https://youtu.be/hJ8Rpo3j7Q8",
+              "indices": [
+                108,
+                131
+              ],
+              "url": "https://t.co/bJfVNPHZxJ"
+            }
+          ],
+          "symbols": [],
+          "timestamps": [],
+          "user_mentions": []
+        },
+        "user_info": {
+          "screen_name": "kumudamdigi",
+          "name": "Kumudam",
+          "created_at": "Tue Dec 10 12:38:01 +0000 2019",
+          "description": null,
+          "rest_id": "1204379660194217985",
+          "followers_count": 46060,
+          "favorites_count": 634,
+          "avatar": "https://pbs.twimg.com/profile_images/1626841959611645952/7_Y5n4QM_normal.jpg",
+          "url": null,
+          "cover_image": null,
+          "verified_type": null,
+          "verified": false,
+          "friends_count": null,
+          "location": "Chennai"
+        },
+        "media": {
+          "video": [
+            {
+              "media_url_https": "https://pbs.twimg.com/amplify_video_thumb/2086828238802976768/img/jwimJcd01WJgNMfe.jpg",
+              "variants": [
+                {
+                  "content_type": "application/x-mpegURL",
+                  "url": "https://video.twimg.com/amplify_video/2086828238802976768/pl/_lhym6ilkl_PttBm.m3u8?tag=14"
+                },
+                {
+                  "bitrate": 632000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2086828238802976768/vid/avc1/320x400/-x_92MU7kF9G3RHm.mp4?tag=14"
+                },
+                {
+                  "bitrate": 950000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2086828238802976768/vid/avc1/480x600/BGc8GhNk-Rfe67lm.mp4?tag=14"
+                },
+                {
+                  "bitrate": 2176000,
+                  "content_type": "video/mp4",
+                  "url": "https://video.twimg.com/amplify_video/2086828238802976768/vid/avc1/720x900/w2AOCB1lS4YrTqDo.mp4?tag=14"
+                }
+              ],
+              "aspect_ratio": [
+                4,
+                5
+              ],
+              "duration": 118640,
+              "original_info": {
+                "focus_rects": [],
+                "height": 1350,
+                "width": 1080
+              },
+              "id": "2086828238802976768"
+            }
+          ]
+        }
+      }
+    ],
+    "next_cursor": "DAACCgACHPdbOpWAJxAKAAMc91s6lX_Y8AgABAAAAAILAAUAAADwRW1QQzZ3QUFBZlEvZ0dKTjB2R3AvQUFBQUJRYzllZFV0RnRBNFJ6MWxKaXNXcEZpSFBjME9iU2FFSFVjOXd1Y2ZOb1JCUnozRzd5c21sSUFIUGNMTEEvYkFkVWM5MDMrK2hzaDFoejNCWEVqbWxBQUhQY09uMDRiVVlZYzhoblhjeHRSWUJ6M1ZPeUNtdUFESFBhWWEyQmFzQUFjOGJ3STFackF2QnozS1I3dFd0QmRIUGRYWmVnYVVMUWM5d01kMXR1dzlCejFJcUtOR2pGS0hQVlpUZFVXNEEwYzliWmZIeHV3VHh6MWlsZ0lXcEFKCAAGAAAAAAgABwAAAAAMAAgKAAEc8bwI1ZrAvAAAAA",
+    "prev_cursor": "DAACCgACHPdbOpWAJxAKAAMc91s6lX_Y8AgABAAAAAELAAUAAADwRW1QQzZ3QUFBZlEvZ0dKTjB2R3AvQUFBQUJRYzllZFV0RnRBNFJ6MWxKaXNXcEZpSFBjME9iU2FFSFVjOXd1Y2ZOb1JCUnozRzd5c21sSUFIUGNMTEEvYkFkVWM5MDMrK2hzaDFoejNCWEVqbWxBQUhQY09uMDRiVVlZYzhoblhjeHRSWUJ6M1ZPeUNtdUFESFBhWWEyQmFzQUFjOGJ3STFackF2QnozS1I3dFd0QmRIUGRYWmVnYVVMUWM5d01kMXR1dzlCejFJcUtOR2pGS0hQVlpUZFVXNEEwYzliWmZIeHV3VHh6MWlsZ0lXcEFKCAAGAAAAAAgABwAAAAAMAAgKAAEc8bwI1ZrAvAAAAA"
+  }
+}

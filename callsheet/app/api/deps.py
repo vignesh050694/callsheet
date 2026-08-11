@@ -10,8 +10,16 @@ from typing import Annotated
 from fastapi import Depends, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import Settings, get_settings
 from app.db.session import get_db_session
 from app.models.user import User
+from app.services.collection.monid_source import (
+    MonidCollectionSource,
+    MonidTransport,
+    UnconfiguredMonidTransport,
+)
+from app.services.collection.source import CollectionSource
+from app.services.collection_service import CollectionService
 from app.services.invitation_notifier import InvitationNotifier
 from app.services.invitation_service import InvitationService
 from app.services.organization_service import OrganizationService
@@ -81,6 +89,45 @@ def get_title_preview_service(
 
 
 TitlePreviewServiceDep = Annotated[TitlePreviewService, Depends(get_title_preview_service)]
+
+
+def get_app_settings() -> Settings:
+    """Settings as a dependency, so a test can point a platform at another endpoint."""
+    return get_settings()
+
+
+AppSettings = Annotated[Settings, Depends(get_app_settings)]
+
+
+def get_monid_transport() -> MonidTransport:
+    """The one seam that leaves the process.
+
+    Unconfigured by default: the real Monid client, with its run polling and spend
+    controls, arrives with E03-S01. Until then collection refuses rather than returning
+    empty pages that would read as silence.
+    """
+    return UnconfiguredMonidTransport()
+
+
+MonidTransportDep = Annotated[MonidTransport, Depends(get_monid_transport)]
+
+
+def get_collection_source(
+    transport: MonidTransportDep, settings: AppSettings
+) -> CollectionSource:
+    return MonidCollectionSource(transport, settings)
+
+
+CollectionSourceDep = Annotated[CollectionSource, Depends(get_collection_source)]
+
+
+def get_collection_service(
+    session: DbSession, source: CollectionSourceDep
+) -> CollectionService:
+    return CollectionService(session, source)
+
+
+CollectionServiceDep = Annotated[CollectionService, Depends(get_collection_service)]
 
 
 async def get_current_user(
