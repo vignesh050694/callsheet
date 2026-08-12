@@ -38,7 +38,7 @@ is unmeasurable without it.
 | E01-S03 | Tag an artist on a title and invite them | 2 | done | c0fd6db |
 | E01-S04 | Artist accepts an invite and links their profile | 2 | done | e431852 |
 | E01-S05 | Grant an agency scoped access to a single title | 3 | done | 3482970 |
-| E01-S06 | Revoke access when an engagement ends | 3 | done | — |
+| E01-S06 | Revoke access when an engagement ends | 3 | done | 959cd3c |
 
 ## Dependencies
 
@@ -183,7 +183,7 @@ this epic — they are access-control work, not title setup — and resume once 
   no export feature yet to exercise it. The agency's own multi-client workspace is E07-S01, out
   of scope here — an agency manager sees shared titles through `/me/titles`. Frontend still has
   no test runner.
-- **E01-S06** — done · `—` · 10 tests · `make check` + `npm run check` + `npm run build` green.
+- **E01-S06** — done · `959cd3c` · 10 tests · `make check` + `npm run check` + `npm run build` green.
 
   Revocation needed almost no new enforcement: every query that resolves access already filters
   on `ACTIVE`, so flipping the status *is* the mechanism. That is also the honest limit of
