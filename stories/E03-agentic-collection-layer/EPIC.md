@@ -33,7 +33,7 @@ raw corpus** — because analysis (E04) is the real budget risk and it must neve
 |---|---|---|---|---|
 | E03-S07 | Keep the collection agent's tool interface provider-agnostic | 1 | done | 8d36606 |
 | E03-S04 | Store raw payloads verbatim and reprocess without re-paying | 1 | done | 475ff34 |
-| E03-S01 | Start collecting automatically on title creation, counting each post once | 1 | done | 4dbbd72 |
+| E03-S01 | Start collecting automatically on title creation, counting each post once | 1 | done | fa67410 |
 | E03-S02 | Shift polling cadence with the campaign phase | 1 | todo | — |
 | E03-S03 | Backfill the conversation from before I signed up | 1 | todo | — |
 | E03-S05 | See per-platform collection health and coverage gaps | 1 | todo | — |
@@ -230,7 +230,7 @@ needs the title identity set that epic delivered)
   - Reprocess re-reads through whichever adapter serves the endpoint *today*. A payload whose
     endpoint has no adapter is reported `unverifiable` rather than silently passed over.
 
-- **E03-S01** — done · `4dbbd72` · 58 tests · 462 backend tests · `make check` + `npm run check` +
+- **E03-S01** — done · `fa67410` · 58 tests · 462 backend tests · `make check` + `npm run check` +
   build green. **Three review rounds**, each finding a real defect in a different area.
 
   What landed: `collection_runs`, a polling queue in the database rather than a timer in a
