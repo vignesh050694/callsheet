@@ -271,7 +271,7 @@ async def test_preview_endpoint_returns_200_with_the_sample(
     assert len(body["posts"]) == 1
 
 
-async def test_preview_query_is_the_single_anchored_phrase(
+async def test_preview_query_pairs_the_anchor_and_the_name_as_separate_phrases(
     preview_client: AsyncClient, fake_search: FakeSearch
 ) -> None:
     """The query the preview actually ran is reported back, so the studio can see what
@@ -284,7 +284,7 @@ async def test_preview_query_is_the_single_anchored_phrase(
         preview_client, organization_id, name="Vaaranam", lead_cast=["Suriya"], hashtags=[]
     )
 
-    assert body["query"] == '"Suriya Vaaranam"'
+    assert body["query"] == '"Suriya" "Vaaranam"'
 
 
 # ---------------------------------------------------------------------------
@@ -794,9 +794,10 @@ async def test_invalid_payload_makes_no_search_call_and_persists_nothing(
 
 
 async def test_preview_with_no_configured_adapter_returns_503(api_client: AsyncClient) -> None:
-    """`api_client` uses the real dependency graph, where `get_preview_search` still
-    defaults to `UnconfiguredPreviewSearch` — this is what a fresh deployment answers
-    with before E03 wires up a real adapter."""
+    """`api_client` uses the real dependency graph, where `get_preview_search` falls back
+    to `UnconfiguredPreviewSearch` whenever no Monid credential is configured — which is
+    what a fresh deployment answers with, and what the test environment always answers
+    with, so this asserts the refusal without paying for a live search to prove it."""
     organization_id = await _create_organization(api_client)
 
     response = await api_client.post(_preview_url(organization_id), json=_preview_payload())

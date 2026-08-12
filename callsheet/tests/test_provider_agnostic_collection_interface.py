@@ -821,12 +821,17 @@ async def test_unconfigured_collection_source_refuses_rather_than_returning_an_e
 
 async def test_default_dependency_bindings_compose_to_the_same_unconfigured_refusal() -> None:
     """`app/api/deps.py`'s `get_monid_transport`/`get_collection_source` are exactly
-    what a fresh deployment gets before a real Monid client is wired up (E03-S01).
-    Composed together they must refuse the same way the standalone pieces do."""
-    transport = get_monid_transport()
+    what a deployment with no Monid credential gets (E03-S01). Composed together they must
+    refuse the same way the standalone pieces do.
+
+    `Settings()` here is the suite's own environment, which `is_collection_configured`
+    treats as unconfigured whatever key happens to sit in a developer's `.env` — so this
+    exercises the refusing path rather than spending money to prove it refuses."""
+    settings = Settings()
+    transport = get_monid_transport(settings)
     assert isinstance(transport, UnconfiguredMonidTransport)
 
-    source = get_collection_source(transport, Settings())
+    source = get_collection_source(transport, settings)
 
     with pytest.raises(ServiceUnavailableError) as exc_info:
         await source.fetch(Platform.X, QUERY, limit=20)

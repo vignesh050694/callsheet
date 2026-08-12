@@ -10,7 +10,18 @@ from collections.abc import AsyncIterator
 
 import pytest
 
-os.environ.setdefault("ENVIRONMENT", "test")
+# Assigned, not `setdefault`. These two decide whether the suite can spend real money, and
+# `setdefault` is first-writer-wins: a developer or a CI job that exports `ENVIRONMENT` for
+# any reason would silently keep their value, `is_collection_configured` would then read a
+# live key out of `.env`, and tests touching the real dependency graph would make billed
+# provider calls. That is not hypothetical — it happened, and cost real money, the first
+# time the Monid transport was wired up.
+#
+# Both are set because they fail independently: one says this process is a test run, the
+# other leaves it with no credential even if something later disagrees about the first.
+os.environ["ENVIRONMENT"] = "test"
+os.environ["MONID_API_KEY"] = ""
+
 os.environ.setdefault("LOG_LEVEL", "warning")
 os.environ.setdefault("LOG_FORMAT", "console")
 os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")

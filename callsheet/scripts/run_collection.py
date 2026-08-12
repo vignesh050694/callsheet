@@ -68,7 +68,7 @@ def _build_run_service(session: AsyncSession, settings: Settings) -> CollectionR
     """
     from app.api.deps import get_monid_transport
 
-    source = MonidCollectionSource(get_monid_transport(), settings)
+    source = MonidCollectionSource(get_monid_transport(settings), settings)
     return CollectionRunService(
         session,
         CollectionService(session, source),

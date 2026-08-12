@@ -29,6 +29,8 @@ from app.services.collection.monid_source import (
     MonidTransport,
     UnconfiguredMonidTransport,
 )
+from app.services.collection.monid_transport import HttpMonidTransport
+from app.services.collection.preview_source import CollectionSourcePreviewSearch
 from app.services.collection.source import CollectionSource
 from app.services.collection.spend_policy import SpendPolicy, UnrestrictedSpendPolicy
 from app.services.collection.volume import MentionVolumeReader
@@ -164,34 +166,17 @@ def get_title_service(
 TitleServiceDep = Annotated[TitleService, Depends(get_title_service)]
 
 
-def get_preview_search() -> PreviewSearch:
-    """The seam the collection layer plugs into.
-
-    Unconfigured by default: until E03 supplies an adapter there is no platform to
-    search, and the preview says so instead of inventing a sample. A test binds a fake
-    here the same way it binds the invitation notifier.
-    """
-    return UnconfiguredPreviewSearch()
-
-
-PreviewSearchDep = Annotated[PreviewSearch, Depends(get_preview_search)]
-
-
-def get_title_preview_service(session: DbSession, search: PreviewSearchDep) -> TitlePreviewService:
-    return TitlePreviewService(session, search)
-
-
-TitlePreviewServiceDep = Annotated[TitlePreviewService, Depends(get_title_preview_service)]
-
-
-def get_monid_transport() -> MonidTransport:
+def get_monid_transport(settings: AppSettings) -> MonidTransport:
     """The one seam that leaves the process.
 
-    Unconfigured by default: the real Monid client, with its run polling and spend
-    controls, arrives with E03-S01. Until then collection refuses rather than returning
-    empty pages that would read as silence.
+    Bound on whether a credential exists and on nothing else. Without one the refusing
+    implementation stays: a deployment with no key must say "not configured on this
+    deployment", which is a true statement someone can act on, rather than failing per
+    call with a vendor's 401 that reads like a bug in the request.
     """
-    return UnconfiguredMonidTransport()
+    if not settings.is_collection_configured:
+        return UnconfiguredMonidTransport()
+    return HttpMonidTransport(settings)
 
 
 MonidTransportDep = Annotated[MonidTransport, Depends(get_monid_transport)]
@@ -202,6 +187,34 @@ def get_collection_source(transport: MonidTransportDep, settings: AppSettings) -
 
 
 CollectionSourceDep = Annotated[CollectionSource, Depends(get_collection_source)]
+
+
+def get_preview_search(source: CollectionSourceDep, settings: AppSettings) -> PreviewSearch:
+    """The setup preview's search, which is collection's search (E02-S03 into E03-S07).
+
+    Bound on the same one question the transport is, so the two cannot disagree. That
+    matters more than the small duplication it looks like: a deployment where the preview
+    was live and collection was not would show a studio real posts and then hand them an
+    empty dashboard, and each half would look correct on its own.
+
+    Unconfigured keeps its *own* refusal rather than inheriting the transport's, because
+    the two messages are for people in different situations. Collection's says nothing can
+    be polled; the preview's adds the thing a studio in the middle of setup needs to hear —
+    that they can save the title anyway and collection starts when it exists.
+    """
+    if not settings.is_collection_configured:
+        return UnconfiguredPreviewSearch()
+    return CollectionSourcePreviewSearch(source)
+
+
+PreviewSearchDep = Annotated[PreviewSearch, Depends(get_preview_search)]
+
+
+def get_title_preview_service(session: DbSession, search: PreviewSearchDep) -> TitlePreviewService:
+    return TitlePreviewService(session, search)
+
+
+TitlePreviewServiceDep = Annotated[TitlePreviewService, Depends(get_title_preview_service)]
 
 
 def get_collection_service(session: DbSession, source: CollectionSourceDep) -> CollectionService:

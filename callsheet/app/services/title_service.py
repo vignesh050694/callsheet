@@ -27,6 +27,7 @@ from app.core.identity_terms import (
     joiner_folded,
     normalize_term,
 )
+from app.db.constraints import describe_integrity_error
 from app.models.membership import Membership
 from app.models.title import (
     MILESTONE_NAME_MAX_LENGTH,
@@ -58,13 +59,10 @@ SELF_EXCLUDING_TERM_MESSAGE = (
     "'{term}' is already part of this title's identity, so excluding it would disqualify "
     "the title's own posts"
 )
-DUPLICATE_ENTRY_MESSAGE = "This title already contains that identity term or campaign milestone"
 
 
 class TitleService:
-    def __init__(
-        self, session: AsyncSession, schedule_service: CollectionScheduleService
-    ) -> None:
+    def __init__(self, session: AsyncSession, schedule_service: CollectionScheduleService) -> None:
         self._session = session
         self._title_repository = TitleRepository(session)
         self._membership_repository = MembershipRepository(session)
@@ -108,17 +106,21 @@ class TitleService:
             # neither does.
             await self._schedule_service.queue_first_run(title)
             await self._session.commit()
-        except IntegrityError:
+        except IntegrityError as error:
             # `_build_identity_terms` and `_build_milestones` already dedupe, so neither
             # unique constraint should fire. They are the backstop for a dedupe bug: a
             # 409 is a survivable answer, a 500 is not. Nothing here reads an ORM
             # attribute — rollback expires them.
-            await self._session.rollback()
-            _logger.warning(
-                "title.create.duplicate_entry",
-                organization_id=str(organization_id),
+            #
+            # Three different rules can land here, though — terms, milestones, and the
+            # first collection run — and answering all three with one sentence naming two
+            # of them sends the studio hunting through a form for a field that may not be
+            # the problem at all. The message is derived from the constraint instead.
+            message = describe_integrity_error(
+                error, operation="title.create", organization_id=str(organization_id)
             )
-            raise ResourceConflictError(DUPLICATE_ENTRY_MESSAGE) from None
+            await self._session.rollback()
+            raise ResourceConflictError(message) from None
 
         created_title = await self._title_repository.get_by_id(title.id)
         if created_title is None:  # pragma: no cover — the row was just committed
@@ -162,12 +164,15 @@ class TitleService:
         release_date = payload.release_date
         try:
             await self._session.commit()
-        except IntegrityError:
+        except IntegrityError as error:
             # Read nothing off `title` after this — rollback expires every attribute, and
             # touching one here would raise inside the handler instead of returning a 409.
+            # The error object is safe: it holds the driver's text, not ORM state.
+            message = describe_integrity_error(
+                error, operation="title.schedule", title_id=str(title_id)
+            )
             await self._session.rollback()
-            _logger.warning("title.schedule.duplicate_milestone", title_id=str(title_id))
-            raise ResourceConflictError(DUPLICATE_ENTRY_MESSAGE) from None
+            raise ResourceConflictError(message) from None
 
         _logger.info(
             "title.schedule.updated",

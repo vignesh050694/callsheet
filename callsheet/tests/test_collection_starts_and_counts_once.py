@@ -1038,7 +1038,7 @@ def test_alias_is_anchored_by_the_leading_anchor_person_when_the_title_has_one()
 
     variants = {variant.key: variant.query for variant in build_query_variants(title, limit=10)}
 
-    assert variants["alias:drug cartel"] == '"Lokesh Kanagaraj Drug Cartel"'
+    assert variants["alias:drug cartel"] == '"Lokesh Kanagaraj" "Drug Cartel"'
 
 
 def test_alias_with_no_anchor_term_falls_back_to_the_same_bare_shape_the_name_gets() -> None:
@@ -1068,8 +1068,8 @@ def test_each_bands_query_style_matches_its_documented_shape_end_to_end() -> Non
     variants = {variant.key: variant.query for variant in build_query_variants(title, limit=10)}
 
     assert variants["hashtag:dcfdfs"] == "#DCFDFS"  # BARE
-    assert variants["alias:drug cartel"] == '"Rukmini Drug Cartel"'  # ANCHORED_TITLE
-    assert variants["director:lokesh kanagaraj"] == '"Lokesh Kanagaraj DC"'  # PERSON_WITH_TITLE
+    assert variants["alias:drug cartel"] == '"Rukmini" "Drug Cartel"'  # ANCHORED_TITLE
+    assert variants["director:lokesh kanagaraj"] == '"Lokesh Kanagaraj" "DC"'  # PERSON_WITH_TITLE
 
 
 def test_query_style_bare_asks_for_the_terms_own_value_with_no_anchor() -> None:
@@ -1087,7 +1087,7 @@ def test_query_style_anchored_title_anchors_the_terms_own_value_not_the_titles_n
 
     query = _query_for_term(term, "DC", ["Lokesh Kanagaraj"], _QueryStyle.ANCHORED_TITLE)
 
-    assert query == '"Lokesh Kanagaraj Drug Cartel"'
+    assert query == '"Lokesh Kanagaraj" "Drug Cartel"'
 
 
 def test_query_style_person_with_title_pairs_the_terms_own_value_with_the_titles_name() -> None:
@@ -1095,7 +1095,7 @@ def test_query_style_person_with_title_pairs_the_terms_own_value_with_the_titles
 
     query = _query_for_term(term, "DC", ["Lokesh Kanagaraj"], _QueryStyle.PERSON_WITH_TITLE)
 
-    assert query == '"Rukmini DC"'
+    assert query == '"Rukmini" "DC"'
 
 
 # ---------------------------------------------------------------------------

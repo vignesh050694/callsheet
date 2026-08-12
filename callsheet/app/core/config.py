@@ -63,7 +63,23 @@ class Settings(BaseSettings):
         default_factory=lambda: ["http://localhost:5173"]
     )
 
+    # The credential the whole collection layer hangs off. Empty is a supported state, not
+    # a broken one: every seam that would spend money stays bound to its refusing
+    # implementation, and both the preview and the poller say so rather than returning
+    # empty results that would read as silence.
     monid_api_key: str = ""
+    monid_base_url: str = "https://api.monid.ai"
+
+    # Monid queues a run and is polled until it finishes, and it bills at the *start*. So
+    # this is a ceiling on waiting rather than a retry budget — giving up early throws away
+    # a result that has already been paid for and may still be seconds away. Set above
+    # Monid's own stated 1-120 second range, because the alternative to waiting is not a
+    # faster answer, it is no answer and the same invoice.
+    monid_run_timeout_seconds: float = Field(default=120.0, gt=0)
+    monid_poll_interval_seconds: float = Field(default=2.0, gt=0)
+    # Per HTTP request, not per run. A single request hanging this long means the API
+    # itself is unreachable, which is a different failure from a slow provider.
+    monid_request_timeout_seconds: float = Field(default=30.0, gt=0)
 
     # Per-platform endpoint routing (E03-S07). Overridden as one JSON object, e.g.
     # COLLECTION_ENDPOINTS={"x":{"primary":"x.tikhub_search_timeline",
@@ -175,6 +191,29 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.environment == "production"
+
+    @property
+    def is_collection_configured(self) -> bool:
+        """Whether anything in this deployment can reach a provider at all.
+
+        One question asked in one place, because two seams turn on it — the collection
+        transport and the setup preview — and a deployment where those disagreed would
+        show a studio live sample posts and then collect nothing, or the reverse.
+
+        **The test environment is never configured, whatever the key says.** A developer's
+        `.env` holds a working key, `pytest` loads that same `.env`, and any test touching
+        the real dependency graph then makes a live, billed call. That is not theoretical:
+        it happened the first time this transport was wired up, and the suite spent real
+        money proving a preview refuses. Checking it here rather than in a fixture is
+        deliberate — a fixture protects the tests that remember to use it, and this has to
+        protect the ones nobody has written yet.
+
+        It is a barrier, not a proof: this trusts `environment`, which is read from the
+        process environment, so it holds only because `tests/conftest.py` *assigns* both
+        that and the key rather than defaulting them. The two together are what make a
+        billed call from the suite hard to reach; neither alone is sufficient.
+        """
+        return bool(self.monid_api_key.strip()) and self.environment != "test"
 
 
 @lru_cache
