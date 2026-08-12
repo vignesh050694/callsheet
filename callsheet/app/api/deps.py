@@ -17,13 +17,18 @@ from app.services.analysis.mention_analyzer import (
     MentionAnalyzer,
     UnconfiguredMentionAnalyzer,
 )
+from app.services.collection.cadence import CadencePolicy, FixedCadencePolicy
 from app.services.collection.monid_source import (
     MonidCollectionSource,
     MonidTransport,
     UnconfiguredMonidTransport,
 )
 from app.services.collection.source import CollectionSource
+from app.services.collection.spend_policy import SpendPolicy, UnrestrictedSpendPolicy
+from app.services.collection_run_service import CollectionRunService
+from app.services.collection_schedule_service import CollectionScheduleService
 from app.services.collection_service import CollectionService
+from app.services.collection_status_service import CollectionStatusService
 from app.services.invitation_notifier import InvitationNotifier
 from app.services.invitation_service import InvitationService
 from app.services.organization_service import OrganizationService
@@ -67,8 +72,49 @@ def get_invitation_service(
 InvitationServiceDep = Annotated[InvitationService, Depends(get_invitation_service)]
 
 
-def get_title_service(session: DbSession) -> TitleService:
-    return TitleService(session)
+def get_app_settings() -> Settings:
+    """Settings as a dependency, so a test can point a platform at another endpoint."""
+    return get_settings()
+
+
+AppSettings = Annotated[Settings, Depends(get_app_settings)]
+
+
+def get_cadence_policy(settings: AppSettings) -> CadencePolicy:
+    """How often titles are polled.
+
+    The single binding E03-S02 replaces with a phase-aware policy. Nothing else in the
+    codebase multiplies a rate by anything, so that swap is this function and no other.
+    """
+    return FixedCadencePolicy(settings.collection_polls_per_day)
+
+
+CadencePolicyDep = Annotated[CadencePolicy, Depends(get_cadence_policy)]
+
+
+def get_collection_schedule_service(
+    session: DbSession, cadence: CadencePolicyDep
+) -> CollectionScheduleService:
+    return CollectionScheduleService(session, cadence)
+
+
+CollectionScheduleServiceDep = Annotated[
+    CollectionScheduleService, Depends(get_collection_schedule_service)
+]
+
+
+def get_title_service(
+    session: DbSession, schedule_service: CollectionScheduleServiceDep
+) -> TitleService:
+    """The scheduler is a required collaborator, not an optional one.
+
+    A title that exists with no collection cycle owed to it is the exact failure E03-S01
+    removes, and it is invisible — the title has an identity set, a dashboard, and no
+    mentions, which is what a film nobody is discussing also looks like. Making the
+    dependency required means that state cannot be reached by forgetting to wire something
+    up; it can only be reached by deleting a queued run.
+    """
+    return TitleService(session, schedule_service)
 
 
 TitleServiceDep = Annotated[TitleService, Depends(get_title_service)]
@@ -94,14 +140,6 @@ def get_title_preview_service(
 
 
 TitlePreviewServiceDep = Annotated[TitlePreviewService, Depends(get_title_preview_service)]
-
-
-def get_app_settings() -> Settings:
-    """Settings as a dependency, so a test can point a platform at another endpoint."""
-    return get_settings()
-
-
-AppSettings = Annotated[Settings, Depends(get_app_settings)]
 
 
 def get_monid_transport() -> MonidTransport:
@@ -133,6 +171,42 @@ def get_collection_service(
 
 
 CollectionServiceDep = Annotated[CollectionService, Depends(get_collection_service)]
+
+
+def get_spend_policy() -> SpendPolicy:
+    """Whether an organization may pay for another cycle. E09 replaces this binding.
+
+    Permissive by default, and it logs that it is being permissive rather than staying
+    silent — an ungoverned deployment must not read as a governed one with generous limits.
+    """
+    return UnrestrictedSpendPolicy()
+
+
+SpendPolicyDep = Annotated[SpendPolicy, Depends(get_spend_policy)]
+
+
+def get_collection_run_service(
+    session: DbSession,
+    collection_service: CollectionServiceDep,
+    schedule_service: CollectionScheduleServiceDep,
+    spend_policy: SpendPolicyDep,
+    settings: AppSettings,
+) -> CollectionRunService:
+    return CollectionRunService(
+        session, collection_service, schedule_service, spend_policy, settings
+    )
+
+
+CollectionRunServiceDep = Annotated[CollectionRunService, Depends(get_collection_run_service)]
+
+
+def get_collection_status_service(session: DbSession) -> CollectionStatusService:
+    return CollectionStatusService(session)
+
+
+CollectionStatusServiceDep = Annotated[
+    CollectionStatusService, Depends(get_collection_status_service)
+]
 
 
 def get_mention_analyzer() -> MentionAnalyzer:

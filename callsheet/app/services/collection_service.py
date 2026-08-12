@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 
 import structlog
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.platforms import Platform
@@ -41,6 +42,11 @@ class CollectionResult:
     already_known: int
     unreadable: int
     next_page: str | None
+    # Every identifiable post this page returned, new and already-held alike. The caller
+    # needs both to credit the query variant that fetched them (E03-S01): a popular post
+    # is stored by the first variant that finds it and is "already known" to the next
+    # three, and those three found it just as genuinely as the first did.
+    seen_external_ids: tuple[str, ...] = ()
 
 
 class CollectionService:
@@ -63,12 +69,7 @@ class CollectionService:
         fetched_page = await self._source.fetch(platform, query, page=page, limit=limit)
         collected_at = datetime.now(UTC)
 
-        result = await self._store(title_id, fetched_page, collected_at)
-        # The service owns the transaction boundary here as everywhere else in this
-        # codebase — `get_db_session` rolls back and never commits on its behalf. Without
-        # this the whole page, including payloads that have already been paid for, is
-        # discarded when the session closes.
-        await self._session.commit()
+        result = await self._store_and_commit(title_id, fetched_page, collected_at)
 
         _logger.info(
             "collection.page.completed",
@@ -81,6 +82,61 @@ class CollectionService:
             already_known=result.already_known,
             unreadable=result.unreadable,
             duration_ms=round((time.perf_counter() - started_at) * 1000, 1),
+        )
+        return result
+
+    async def _store_and_commit(
+        self,
+        title_id: uuid.UUID,
+        page: CollectionPage,
+        collected_at: datetime,
+    ) -> CollectionResult:
+        """Writes the page, retrying once if another poll stored some of it first.
+
+        The retry is what makes a scheduler safe (E03-S01). `_store` decides what is new by
+        reading the ids this title already holds, and between that read and the commit
+        another cycle polling the same title can insert one of them. The unique constraint
+        then rejects the *whole* page — including the posts nobody else had — and a payload
+        that has already been paid for is lost.
+
+        A second pass re-reads what is known, so the row that collided is now recognised
+        and skipped, and the rest of the page lands. One retry is enough by construction:
+        the conflict is only ever "somebody else already stored this post", and after the
+        re-read that post is no longer new. A second failure means something other than an
+        overlapping poll, and is raised rather than absorbed.
+
+        The retry only narrows the window; it does not close it, and it is not the primary
+        defence. Runs are claimed with `SKIP LOCKED` so two workers do not take the same
+        cycle, and a title is never queued twice concurrently. This is what remains for the
+        cases those cannot cover — a manual run started beside a scheduled one.
+        """
+        # `expire_on_commit=False` is set on the session factory, so `result` stays
+        # readable after the commit below.
+        try:
+            result = await self._store(title_id, page, collected_at)
+            # The service owns the transaction boundary here as everywhere else in this
+            # codebase — `get_db_session` rolls back and never commits on its behalf.
+            # Without this the whole page, including payloads that have already been paid
+            # for, is discarded when the session closes.
+            await self._session.commit()
+            return result
+        except IntegrityError:
+            await self._session.rollback()
+            _logger.warning(
+                "collection.page.write_conflict",
+                title_id=str(title_id),
+                platform=str(page.platform),
+                endpoint=page.endpoint.key,
+            )
+
+        result = await self._store(title_id, page, collected_at)
+        await self._session.commit()
+        _logger.info(
+            "collection.page.write_conflict_resolved",
+            title_id=str(title_id),
+            platform=str(page.platform),
+            stored=result.stored,
+            already_known=result.already_known,
         )
         return result
 
@@ -137,7 +193,14 @@ class CollectionService:
             already_known=already_known,
             unreadable=unreadable,
             next_page=page.next_page,
+            # Order preserved and deduped, so a provider echoing one post twice in a page
+            # credits the variant once.
+            seen_external_ids=tuple(dict.fromkeys(self._identifiable_ids(page))),
         )
+
+    @staticmethod
+    def _identifiable_ids(page: CollectionPage) -> list[str]:
+        return [item.external_id for item in page.items if item.external_id is not None]
 
     async def _known_external_ids(self, title_id: uuid.UUID, page: CollectionPage) -> set[str]:
         """Ids this title already holds as a mention or as a stored payload.
@@ -146,9 +209,7 @@ class CollectionService:
         normalise has a payload and no mention, and re-collecting it must be recognised by
         the payload alone.
         """
-        external_ids = [
-            item.external_id for item in page.items if item.external_id is not None
-        ]
+        external_ids = self._identifiable_ids(page)
         if not external_ids:
             return set()
 

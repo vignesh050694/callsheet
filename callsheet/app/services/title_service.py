@@ -36,11 +36,13 @@ from app.models.title import (
     TitleMilestone,
     TitleTerm,
     TitleTermType,
+    identity_term_sort_key,
 )
 from app.models.user import User
 from app.repositories.membership_repository import MembershipRepository
 from app.repositories.title_repository import TitleRepository
 from app.schemas.title import TitleCreate, TitleMilestoneCreate, TitleScheduleUpdate
+from app.services.collection_schedule_service import CollectionScheduleService
 from app.services.identity_rules import ensure_fits, ensure_name_is_collectable
 
 _logger = structlog.get_logger(__name__)
@@ -59,10 +61,13 @@ DUPLICATE_ENTRY_MESSAGE = "This title already contains that identity term or cam
 
 
 class TitleService:
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(
+        self, session: AsyncSession, schedule_service: CollectionScheduleService
+    ) -> None:
         self._session = session
         self._title_repository = TitleRepository(session)
         self._membership_repository = MembershipRepository(session)
+        self._schedule_service = schedule_service
 
     async def create_title(
         self, organization_id: uuid.UUID, payload: TitleCreate, caller: User
@@ -94,6 +99,12 @@ class TitleService:
 
         try:
             await self._title_repository.add(title)
+            # Queued inside the same transaction that creates the title (E03-S01). The
+            # studio's promise is that collection starts on its own, and a title committed
+            # without a cycle owed to it would keep looking correct forever — full identity
+            # set, empty dashboard, nothing scheduled to fill it. Either both rows land or
+            # neither does.
+            await self._schedule_service.queue_first_run(title)
             await self._session.commit()
         except IntegrityError:
             # `_build_identity_terms` and `_build_milestones` already dedupe, so neither
@@ -224,6 +235,24 @@ class TitleService:
     @staticmethod
     def has_anchor_term(title: Title) -> bool:
         return any(term.term_type.is_anchor for term in title.terms)
+
+    @staticmethod
+    def terms_in_order(title: Title) -> list[TitleTerm]:
+        """The identity set in its canonical order, sorted here rather than trusted.
+
+        Exactly the reasoning `milestones_in_order` documents below, and it became load
+        bearing for the same reason: `Title.terms` declares an `order_by`, but that only
+        applies when the query actually loads the collection. On the write path it does
+        not — the response to a POST is built from the same session that just created the
+        terms, so SQLAlchemy hands back the in-memory insertion order while any later,
+        independent read comes back sorted. The identity set would appear to reorder itself
+        between creating a title and looking at it again.
+
+        Exclusions are included. This is the whole set as the API reports it, unlike
+        `ordered_identity_terms`, which drops them because a query must never be built from
+        a term whose purpose is to disqualify a post.
+        """
+        return sorted(title.terms, key=identity_term_sort_key)
 
     @staticmethod
     def milestones_in_order(title: Title) -> list[TitleMilestone]:

@@ -97,6 +97,12 @@ from app.core.exceptions import (
     ValidationFailedError,
 )
 from app.core.platforms import Platform
+
+# Moved to `app.core.timestamps` in E03-S01, where the rule about reading stored
+# timestamps is findable by the next caller who needs it. Aliased rather than renamed
+# throughout, so what this section asserts stays word for word what it asserted when the
+# defect it covers was found.
+from app.core.timestamps import as_utc as _as_utc
 from app.models import Base
 from app.models.mention import Mention, MentionRawPayload
 from app.models.mention_analysis import MentionAnalysis
@@ -120,7 +126,6 @@ from app.services.reprocess_service import (
     REPROCESS_BATCH_SIZE,
     TITLE_NOT_FOUND_MESSAGE,
     ReprocessService,
-    _as_utc,
     _differs,
     _RemapOutcome,
 )

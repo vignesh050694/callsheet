@@ -5,7 +5,7 @@ from collections.abc import Sequence
 from datetime import datetime
 
 import structlog
-from sqlalchemy import select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.platforms import Platform
@@ -108,35 +108,104 @@ class MentionRepository:
         posted_from: datetime | None = None,
         posted_until: datetime | None = None,
         limit: int,
+        after_collected_at: datetime | None = None,
         after_id: uuid.UUID | None = None,
     ) -> list[Mention]:
-        """A page of one title's corpus within a date window, paged by primary key.
+        """A page of one title's corpus within a date window, paged by arrival order.
 
         Keyset-paged rather than OFFSET-paged, because a reprocess walks a six-week
         corpus in batches while collection keeps inserting into it, and an OFFSET walk
         over a table growing underneath it skips rows.
 
-        Ordered by `id` and not by `posted_at`, even though `posted_at` is the axis the
-        window filters on and chronological order would read more naturally. The reason is
-        that a reprocess *rewrites* `posted_at` when it repairs a mention from its stored
-        payload — correcting a timestamp is one of the things it exists to do. Paging by a
-        column the walk itself mutates means a repaired row can jump across the cursor:
-        forward, and it gets visited a second time; backward, and every row between the
-        old and new position is skipped with no error and no count. `id` is assigned once
-        and never changes, so the walk stays a total order no matter what the walk does to
-        the rows it has already passed.
+        Two things decide the ordering, and each one rules out an obvious alternative.
+
+        **Not `posted_at`**, even though that is the axis the window filters on and
+        chronological order would read more naturally, because a reprocess *rewrites*
+        `posted_at` when it repairs a mention from its stored payload — correcting a
+        timestamp is one of the things it exists to do. Paging by a column the walk itself
+        mutates lets a repaired row jump across the cursor: forward, and it is visited
+        twice; backward, and every row between its old and new position is skipped with no
+        error and no count. Both were observed (E03-S04).
+
+        **Not `id` alone**, which is immutable and was what this walked by first, but is a
+        random UUIDv4 and therefore carries no order at all. A mention inserted by a
+        concurrent poll sorts uniformly at random relative to the cursor, so roughly half
+        of everything collected during a long walk fell behind it and was never seen by
+        that run. That was theoretical until E03-S01 put a scheduler in the product; it is
+        not any more.
+
+        **Not `created_at`**, the obvious arrival column, because it is a *server* default.
+        Postgres `now()` is transaction-start time, so a page whose transaction began
+        before the cursor reached its timestamp still lands behind it; and SQLite's
+        `CURRENT_TIMESTAMP` has one-second resolution and no fractional part at all, so the
+        stored text never matches a bound Python datetime and the walk stops after its
+        first batch. Both were observed.
+
+        `collected_at` is set by the application at the moment the page was fetched, with
+        microsecond precision and the same format in every database. It is written once and
+        no code path updates it — a reprocess rewrites what the post *says*, never when it
+        arrived — so `(collected_at, id)` is immutable in both components and ordered by
+        arrival in the first.
         """
         statement = select(Mention).where(Mention.title_id == title_id)
         if posted_from is not None:
             statement = statement.where(Mention.posted_at >= posted_from)
         if posted_until is not None:
             statement = statement.where(Mention.posted_at <= posted_until)
-        if after_id is not None:
-            statement = statement.where(Mention.id > after_id)
+        if after_collected_at is not None and after_id is not None:
+            # Written out rather than as a row comparison: SQLAlchemy does not compile a
+            # Python tuple comparison on ORM columns into the SQL row constructor, so
+            # `(a, b) > (x, y)` silently becomes something else entirely.
+            statement = statement.where(
+                or_(
+                    Mention.collected_at > after_collected_at,
+                    and_(
+                        Mention.collected_at == after_collected_at,
+                        Mention.id > after_id,
+                    ),
+                )
+            )
         result = await self._session.execute(
-            statement.order_by(Mention.id).limit(limit)
+            statement.order_by(Mention.collected_at, Mention.id).limit(limit)
         )
         return list(result.scalars().all())
+
+    async def ids_by_external_id(
+        self,
+        title_id: uuid.UUID,
+        platform: Platform,
+        external_ids: Sequence[str],
+    ) -> dict[str, uuid.UUID]:
+        """Maps this title's post ids to mention ids, for attributing a query variant.
+
+        The read behind "which mention did this variant just find". It has to cover posts
+        the cycle did *not* store as well as the ones it did: a popular post is stored by
+        the first variant that returns it and is already known to the next three, and those
+        three earned their credit just as much as the first.
+        """
+        if not external_ids:
+            return {}
+        result = await self._session.execute(
+            select(Mention.external_id, Mention.id).where(
+                Mention.title_id == title_id,
+                Mention.platform == platform,
+                Mention.external_id.in_(external_ids),
+            )
+        )
+        return {external_id: mention_id for external_id, mention_id in result.all()}
+
+    async def count_for_title(self, title_id: uuid.UUID) -> int:
+        """How many posts this title holds. Unsegmented — account typing is E04-S03."""
+        result = await self._session.execute(
+            select(func.count()).select_from(Mention).where(Mention.title_id == title_id)
+        )
+        return int(result.scalar_one())
+
+    async def latest_posted_at_for_title(self, title_id: uuid.UUID) -> datetime | None:
+        result = await self._session.execute(
+            select(func.max(Mention.posted_at)).where(Mention.title_id == title_id)
+        )
+        return result.scalar_one_or_none()
 
     async def payloads_for_mentions(
         self, mention_ids: Sequence[uuid.UUID]

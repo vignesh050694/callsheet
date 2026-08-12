@@ -45,7 +45,11 @@ def _to_title_read(title: Title) -> TitleRead:
             for milestone in TitleService.milestones_in_order(title)
         ],
         poster_url=title.poster_url,
-        terms=[TitleTermRead.model_validate(term) for term in title.terms],
+        # Sorted here rather than trusted from the ORM, for the same reason the milestones
+        # above are: the relationship's `order_by` does not apply when the collection is
+        # already loaded, so a POST response would come back in insertion order while an
+        # independent GET of the same title came back sorted.
+        terms=[TitleTermRead.model_validate(term) for term in TitleService.terms_in_order(title)],
         collection_terms=TitleService.collection_terms_for(title),
         excluded_terms=TitleService.excluded_terms_for(title),
         has_anchor_term=TitleService.has_anchor_term(title),

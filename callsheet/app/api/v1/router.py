@@ -3,6 +3,7 @@
 from fastapi import APIRouter
 
 from app.api.v1.routes import (
+    collection,
     health,
     invitations,
     me,
@@ -18,3 +19,4 @@ api_v1_router.include_router(organizations.router)
 api_v1_router.include_router(invitations.router)
 api_v1_router.include_router(titles.router)
 api_v1_router.include_router(title_previews.router)
+api_v1_router.include_router(collection.router)

@@ -114,6 +114,39 @@ export interface Title {
   updated_at: string
 }
 
+export type CollectionRunStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'skipped'
+
+/**
+ * Whether a title is collecting, and when it last did (E03-S01).
+ *
+ * There is no field here that starts collection, because nothing starts it — a title
+ * begins collecting because it exists. The only question this answers is whether an empty
+ * screen means *nothing yet* or *nothing working*, which look identical and need different
+ * things from the person reading them.
+ */
+export interface TitleCollectionStatus {
+  title_id: string
+  /**
+   * Every post collected, with **no account-type segmentation applied** — organic, trade,
+   * owned media and promotional counted together. Segmentation is E04-S03. Until then this
+   * is a measure of activity and must never be rendered as one of public conversation.
+   */
+  unsegmented_mention_count: number
+  finished_run_count: number
+  /** ISO instant, or null before the first cycle finishes. */
+  last_finished_at: string | null
+  last_run_status: CollectionRunStatus | null
+  /** Only ever set for a genuine failure — a skipped cycle is an explanation, not a fault. */
+  last_run_failure_reason: string | null
+  next_run_at: string | null
+  polls_per_day: number | null
+  latest_mention_posted_at: string | null
+  /** Set up, scheduled, and nothing has landed yet — the honest empty state. */
+  is_awaiting_first_results: boolean
+  /** Nothing is queued. This title will never collect again without intervention. */
+  is_stalled: boolean
+}
+
 export interface TitleCreate {
   name: string
   release_date: string

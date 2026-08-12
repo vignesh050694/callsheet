@@ -33,7 +33,7 @@ raw corpus** — because analysis (E04) is the real budget risk and it must neve
 |---|---|---|---|---|
 | E03-S07 | Keep the collection agent's tool interface provider-agnostic | 1 | done | 8d36606 |
 | E03-S04 | Store raw payloads verbatim and reprocess without re-paying | 1 | done | 475ff34 |
-| E03-S01 | Start collecting automatically on title creation, counting each post once | 1 | todo | — |
+| E03-S01 | Start collecting automatically on title creation, counting each post once | 1 | done | 4dbbd72 |
 | E03-S02 | Shift polling cadence with the campaign phase | 1 | todo | — |
 | E03-S03 | Backfill the conversation from before I signed up | 1 | todo | — |
 | E03-S05 | See per-platform collection health and coverage gaps | 1 | todo | — |
@@ -229,3 +229,86 @@ needs the title identity set that epic delivered)
     **E04**, and the refusal is clean — remap has run, nothing is left half-persisted.
   - Reprocess re-reads through whichever adapter serves the endpoint *today*. A payload whose
     endpoint has no adapter is reported `unverifiable` rather than silently passed over.
+
+- **E03-S01** — done · `4dbbd72` · 58 tests · 462 backend tests · `make check` + `npm run check` +
+  build green. **Three review rounds**, each finding a real defect in a different area.
+
+  What landed: `collection_runs`, a polling queue in the database rather than a timer in a
+  process, because a title whose next poll vanished with a deploy looks exactly like a title
+  nobody is talking about. The first cycle is queued **inside the transaction that creates
+  the title** — enqueuing after the commit leaves a window in which a title exists with
+  nothing owed to it, and that state is not visibly broken: full identity set, empty
+  dashboard, nothing scheduled to fill it. `TitleService` now takes the scheduler as a
+  required constructor argument, so that state cannot be reached by forgetting to wire
+  something up. Alongside it, `mention_query_matches` keeps the half of the fan-out that
+  deduplication destroys — crucially crediting a variant for posts it found that were
+  *already known*, since a popular post is stored by whichever query ran first and the other
+  three found it just as genuinely. Cadence sits behind a `CadencePolicy` with one binding in
+  `deps.py`; nothing else multiplies a rate by anything, which is the seam E03-S02 needs.
+
+  **The query plan was wrong twice, in ways no acceptance criterion named.** Aliases were
+  built unanchored — a bare `"Drug Cartel"` collects posts about actual drug cartels, the
+  exact namesake problem the anchor rule exists to prevent, against an epic whose gate is
+  entity-match precision. The cause was the query shape being *inferred from the term type*
+  inside a helper whose caller silently omitted an argument; an alias and a cast member are
+  both "not the title", so the type alone could never separate them. Replaced with an
+  explicit `_QueryStyle` per band. Then the plan turned out not to be deterministic at all:
+  `Title.terms` had no `order_by`, so DB row order decided which anchor led the query and,
+  because the plan is capped, which variants existed. A reviewer reproduced a variant set
+  changing with nothing changed by the studio — which E02-S04 would read as terms
+  spontaneously starting and stopping working. This is the same defect E02-S02 already fixed
+  on `milestones`; `terms` never got the treatment, and this story is what made it matter.
+  The fix needed two layers, because a relationship's `order_by` does not apply when the
+  collection is already loaded — the write path assigns `title.terms` in memory. Fixing that
+  then broke an E02-S02 test that asserts the identity set is byte-identical across a
+  schedule edit: the API had been serialising insertion order. `identity_term_sort_key` is
+  now defined once and used by the relationship, the API response, and the query plan.
+
+  **Four bugs of one class, in one file.** After `session.rollback()` every ORM instance is
+  expired, and reading an attribute is synchronous Python that must issue a query — which an
+  async session cannot do. Each occurrence turned a handled failure into an unhandled
+  `MissingGreenlet`: in the log line reporting a cycle's failure; in the result built after
+  the successor-queuing rollback; in the loop variable of the *next* run in the batch, whose
+  instance a neighbour's rollback had expired. The last one is the general lesson — a
+  rollback anywhere poisons every object in the session, including ones the failing code
+  never touched — and it is why `run_due_cycles` now iterates ids and reloads each run inside
+  its own iteration. Isolation had to re-establish state, not merely catch.
+
+  Review round 1 also found a run could be left `RUNNING` forever, which is the worst state
+  in this table because all three of its readers lie: `claim_due` only selects `QUEUED` so
+  nothing revisits it, `has_pending_for_title` counts it as owed so no successor is queued,
+  and `is_stalled` reads `False` so the dashboard reports the title as healthy. One
+  misconfigured title stranded a healthy one that never ran. `_finish` now commits the closed
+  run *before* queuing its successor — an ordering the new partial unique index forces, since
+  a `RUNNING` row occupies its title's slot, and also the safer failure mode: closed with no
+  successor is visibly stalled, which is true, whereas the atomic version rolls back into
+  invisible. Round 1 also found the "one pending cycle per title" guarantee was a check
+  followed by an insert, which two processes both win;
+  `uq_collection_run_one_pending_per_title` now enforces it, verified on SQLite and Postgres.
+
+  **The suite could not detect a missing commit.** A reviewer deleted every `commit()` from
+  `CollectionRunService` and all 40 tests still passed — the same defect class the E03-S07
+  entry above records, and for the same reason: `conftest`'s `db_session` hands every call one
+  open session, so a read-after-write succeeds whether or not anything committed. Section 2's
+  core assertion is now durable over two independent sessions, and deleting the commits fails
+  it.
+
+  Round 3 passed, having reset a local Postgres and run all eight migrations from scratch
+  (`alembic check` clean), tested the partial index with raw SQL independent of the suite, and
+  run the whole suite in reverse file order to prove the structlog-manipulating test leaks no
+  global state.
+
+  Known limits, recorded rather than hidden:
+  - **`CollectionService._store_and_commit`'s single `IntegrityError` retry — the code that
+    closes this epic's named concurrent-double-poll risk — has no test.** Round 3 verified it
+    correct by direct reproduction and declined to block. Coverage was commissioned and the
+    run was stopped before it landed, so this ships as a known hole and is the first thing
+    E03-S02 should close, given it is the story where surge cadence makes overlap routine.
+  - Only X has adapters, so a cycle polls one platform. The other three are configured and
+    refuse loudly rather than collecting nothing.
+  - The worker is a CLI (`make collect`), not a supervised service. Nothing restarts it.
+  - `is_awaiting_first_results` cannot distinguish "announced before anyone is talking" from
+    "querying the wrong thing". Collection health is E03-S05.
+  - The Title Dashboard the story names is E05 and does not exist; the collection line lives
+    on the titles list, which is the screen a studio is actually on after setup. Its mention
+    count is labelled unsegmented because account typing is E04-S03.

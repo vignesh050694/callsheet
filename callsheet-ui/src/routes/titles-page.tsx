@@ -5,13 +5,20 @@
  * because a title that looks fine by name can still be collecting the wrong film — the
  * term count is the thing worth seeing at a glance.
  *
- * UI invariants: no aggregate, no mention text, no outbound action, nothing encoded by
- * colour, so none of the four platform invariants apply.
+ * Since E03-S01 each row also carries a collection line. This is the screen a studio is on
+ * in the minutes after finishing setup, so it is where "collection started on its own" has
+ * to be visible; the Title Dashboard the story names is E05 and does not exist yet.
+ *
+ * UI invariants: the mention count is an aggregate, and it is labelled unsegmented in
+ * `collection-status.tsx` because account typing does not arrive until E04-S03. No mention
+ * text, no outbound action, and nothing encoded by colour.
  */
 
 import { Link } from 'react-router-dom'
 
+import { TitleCollectionStatusLine } from '@/components/ui/collection-status'
 import { ErrorState, LoadingState } from '@/components/ui/status-message'
+import { useCollectionStatus } from '@/hooks/use-collection-status'
 import { useCurrentUser } from '@/hooks/use-current-user'
 import { useTitles } from '@/hooks/use-titles'
 import { formatDay } from '@/lib/release-phase'
@@ -72,6 +79,49 @@ function EmptyTitleList({ canCreate }: { canCreate: boolean }) {
   )
 }
 
+/**
+ * One title, with its own collection status query.
+ *
+ * Per row rather than one batched call for the list. The endpoint is title-scoped, the
+ * lists here are a page of twenty at most, and each row's status polls on its own schedule
+ * — a title still waiting for its first mentions refetches while its settled neighbours
+ * sit still, which a single shared query could not express.
+ */
+function TitleRow({ title, isOwner }: { title: Title; isOwner: boolean }) {
+  const collectionStatus = useCollectionStatus(title.id)
+
+  return (
+    <li className="border-ink-200 rounded-lg border bg-white px-4 py-3">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-sm font-medium">{title.name}</span>
+        <span className="text-ink-400 text-xs">
+          {title.collection_terms.length} identity terms
+          {!title.has_anchor_term && ' · no anchor term'}
+        </span>
+      </div>
+      <div className="text-ink-600 mt-1 flex flex-wrap items-baseline gap-x-2 text-xs">
+        <span>Releasing {formatDay(title.release_date)}</span>
+        {title.milestones.length > 0 && (
+          <span className="text-ink-400">
+            · {title.milestones.length} {title.milestones.length === 1 ? 'milestone' : 'milestones'}
+          </span>
+        )}
+        <Link
+          to={`/titles/${title.id}/schedule`}
+          className="text-ink-400 hover:text-ink-900 underline underline-offset-2"
+        >
+          {isOwner ? 'Edit schedule' : 'View schedule'}
+        </Link>
+      </div>
+      <TitleCollectionStatusLine
+        status={collectionStatus.data}
+        isPending={collectionStatus.isPending}
+      />
+      <IdentityPreview title={title} />
+    </li>
+  )
+}
+
 export function TitlesPage() {
   const currentUser = useCurrentUser()
   const membership = currentUser.data?.memberships[0]
@@ -106,31 +156,7 @@ export function TitlesPage() {
         ) : (
           <ul className="space-y-3">
             {titles.data.items.map((title) => (
-              <li key={title.id} className="border-ink-200 rounded-lg border bg-white px-4 py-3">
-                <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-sm font-medium">{title.name}</span>
-                  <span className="text-ink-400 text-xs">
-                    {title.collection_terms.length} identity terms
-                    {!title.has_anchor_term && ' · no anchor term'}
-                  </span>
-                </div>
-                <div className="text-ink-600 mt-1 flex flex-wrap items-baseline gap-x-2 text-xs">
-                  <span>Releasing {formatDay(title.release_date)}</span>
-                  {title.milestones.length > 0 && (
-                    <span className="text-ink-400">
-                      · {title.milestones.length}{' '}
-                      {title.milestones.length === 1 ? 'milestone' : 'milestones'}
-                    </span>
-                  )}
-                  <Link
-                    to={`/titles/${title.id}/schedule`}
-                    className="text-ink-400 hover:text-ink-900 underline underline-offset-2"
-                  >
-                    {isOwner ? 'Edit schedule' : 'View schedule'}
-                  </Link>
-                </div>
-                <IdentityPreview title={title} />
-              </li>
+              <TitleRow key={title.id} title={title} isOwner={isOwner} />
             ))}
           </ul>
         ))}

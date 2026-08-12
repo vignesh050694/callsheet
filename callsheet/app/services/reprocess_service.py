@@ -29,6 +29,7 @@ import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ResourceNotFoundError, ValidationFailedError
+from app.core.timestamps import same_instant
 from app.models.mention import Mention, MentionRawPayload
 from app.models.mention_analysis import MentionAnalysis
 from app.repositories.mention_analysis_repository import MentionAnalysisRepository
@@ -154,12 +155,18 @@ class ReprocessService:
         posted_from: datetime | None,
         posted_until: datetime | None,
     ) -> AsyncIterator[list[Mention]]:
-        """Yields the corpus in keyset-paged batches, ordered by primary key.
+        """Yields the corpus in keyset-paged batches, in arrival order.
 
-        The cursor is a mention id, which nothing in this walk can change — see
-        `MentionRepository.list_for_title_in_window` for why paging by `posted_at` would
-        be unsafe here even though that is the column the window filters on.
+        The cursor is `(collected_at, id)` — both immutable, so nothing this walk does to a
+        row can move it across the cursor, and the leading component is ordered by arrival,
+        so a mention inserted by a concurrent poll lands ahead of the cursor rather than at
+        a random position relative to it. See `MentionRepository.list_for_title_in_window`
+        for why neither `posted_at`, nor the bare id, nor `created_at` would do.
+
+        The cursor is captured *before* the batch is yielded. The consumer mutates these
+        rows, so reading it back afterwards would read repaired values.
         """
+        cursor_collected_at: datetime | None = None
         cursor_id: uuid.UUID | None = None
         while True:
             batch = await self._mention_repository.list_for_title_in_window(
@@ -167,10 +174,12 @@ class ReprocessService:
                 posted_from=posted_from,
                 posted_until=posted_until,
                 limit=REPROCESS_BATCH_SIZE,
+                after_collected_at=cursor_collected_at,
                 after_id=cursor_id,
             )
             if not batch:
                 return
+            cursor_collected_at = batch[-1].collected_at
             cursor_id = batch[-1].id
             yield batch
 
@@ -365,15 +374,8 @@ def _differs(stored: object, remapped: object) -> bool:
     relying on it to tell them whether a mapping fix did anything.
     """
     if isinstance(stored, datetime) and isinstance(remapped, datetime):
-        return _as_utc(stored) != _as_utc(remapped)
+        return not same_instant(stored, remapped)
     return stored != remapped
-
-
-def _as_utc(value: datetime) -> datetime:
-    """A naive value is stored UTC — that is the only thing this application writes."""
-    if value.tzinfo is None:
-        return value.replace(tzinfo=UTC)
-    return value.astimezone(UTC)
 
 
 @dataclass

@@ -10,6 +10,14 @@ from app.core.platforms import Platform
 
 EndpointChoice = Literal["primary", "alternative"]
 
+# The range a polling rate has to fall in to describe a schedule at all (E03-S01). Below
+# one, a title is never polled; above roughly one poll every five minutes, "per day" stops
+# describing a schedule and starts describing a continuous load. Defined here rather than
+# in the cadence policy so configuration can be rejected at startup and the policy can
+# enforce the same bound at runtime, without two different numbers.
+MIN_POLLS_PER_DAY = 1
+MAX_POLLS_PER_DAY = 288
+
 
 class PlatformEndpoints(BaseModel):
     """Which endpoints a platform may be served by, and which one is live.
@@ -88,12 +96,48 @@ class Settings(BaseSettings):
     # One page of the size the live run returned (concept note §7 rule 2).
     collection_page_size: int = 20
 
+    # Which platforms a cycle actually polls (E03-S01). Only X ships with adapters, and a
+    # platform listed here without one is refused loudly rather than collecting nothing —
+    # so this is the list that grows as adapters land, not `collection_endpoints`, which
+    # describes routing for every platform whether or not it can be read yet.
+    collection_platforms: Annotated[list[Platform], NoDecode] = Field(
+        default_factory=lambda: [Platform.X]
+    )
+
+    # How many overlapping queries one cycle runs per platform (E03-S01). A cycle costs
+    # variants x platforms calls, so this is the sharpest cost lever in the layer after
+    # cadence. Five matches the story's worked example and the identity set the live run
+    # was measured on.
+    collection_variants_per_title: int = 5
+
+    # The single default polling rate (E03-S01), in polls per day. This is the concept
+    # note's *campaign* rate; E03-S02 replaces the whole policy with a phase-driven one
+    # rather than changing this number.
+    #
+    # Bounded here so an unusable value fails at startup rather than per title per cycle.
+    # Without it a typo is only caught when a finished cycle tries to queue its successor,
+    # where it is swallowed and logged — leaving every title quietly stalled one cycle in,
+    # which is a long way from the typo that caused it.
+    collection_polls_per_day: int = Field(default=12, ge=MIN_POLLS_PER_DAY, le=MAX_POLLS_PER_DAY)
+
+    # How many due cycles one worker tick claims, and how long it waits between ticks.
+    collection_worker_batch_size: int = 5
+    collection_worker_interval_seconds: int = 60
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def split_comma_separated_origins(cls, raw_value: object) -> object:
         """Accept `A,B` from the environment as well as a JSON list."""
         if isinstance(raw_value, str) and not raw_value.strip().startswith("["):
             return [origin.strip() for origin in raw_value.split(",") if origin.strip()]
+        return raw_value
+
+    @field_validator("collection_platforms", mode="before")
+    @classmethod
+    def split_comma_separated_platforms(cls, raw_value: object) -> object:
+        """`COLLECTION_PLATFORMS=x,reddit` is the form anyone will actually type."""
+        if isinstance(raw_value, str) and not raw_value.strip().startswith("["):
+            return [name.strip() for name in raw_value.split(",") if name.strip()]
         return raw_value
 
     @property

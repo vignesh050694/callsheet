@@ -56,6 +56,22 @@ _ANCHOR_TERM_TYPES = frozenset(
 )
 
 
+def identity_term_sort_key(term: "TitleTerm") -> tuple[str, str]:
+    """The one canonical order for a title's identity terms.
+
+    Defined once and used everywhere the list is produced, because there are three places
+    that produce it — the relationship's `order_by`, the API response, and the collection
+    query plan — and any two of them disagreeing is a bug that shows up as terms moving
+    around on screen or a title's query set churning on its own.
+
+    `term_type` leads and sorts on its *stored* form, which is the enum member name, so
+    CAST precedes DIRECTOR precedes MUSIC_DIRECTOR — the anchor precedence the setup
+    preview showed the studio. `uq_title_term_normalized` makes the pair unique per title,
+    so this never ties.
+    """
+    return (term.term_type.name, term.normalized_value)
+
+
 class Title(Base, UuidPrimaryKeyMixin, TimestampMixin):
     __tablename__ = "titles"
 
@@ -80,6 +96,23 @@ class Title(Base, UuidPrimaryKeyMixin, TimestampMixin):
         back_populates="title",
         lazy="raise",
         cascade="all, delete-orphan",
+        # A total order, for the same reason the milestones below have one, and with the
+        # same consequence when it is missing: SQL returns rows in no defined order, so
+        # two reads of an unchanged identity set can hand them back differently.
+        #
+        # This became load-bearing with E03-S01. Collection builds its query variants from
+        # this list — the first anchor term in it becomes the person who anchors the title's
+        # own query, and the plan is capped, so row order decides both *what* is asked and
+        # *which* variants exist at all. Attribution keys are then stored against every
+        # mention found. Unordered, a title's variant set could churn between cycles with
+        # nothing changed by the studio, and alias discovery (E02-S04) would read that churn
+        # as terms starting and stopping working.
+        #
+        # `uq_title_term_normalized` makes (term_type, normalized_value) unique per title,
+        # so this can never tie. Term type leads, and its stored form sorts CAST before
+        # DIRECTOR before MUSIC_DIRECTOR — the same precedence the setup preview used when
+        # it showed the studio which anchor their sample was collected with (E02-S03).
+        order_by="TitleTerm.term_type, TitleTerm.normalized_value",
     )
     milestones: Mapped[list["TitleMilestone"]] = relationship(
         back_populates="title",
