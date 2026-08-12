@@ -16,10 +16,11 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Uuid, text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Uuid, false, text
 from sqlalchemy import Enum as SqlEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.cadence_phase import CadencePhase
 from app.models.base import Base, TimestampMixin, UuidPrimaryKeyMixin
 from app.models.title import Title
 
@@ -116,8 +117,23 @@ class CollectionRun(Base, UuidPrimaryKeyMixin, TimestampMixin):
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    # The cadence this cycle was scheduled at, as it stood when it was queued.
+    # The cadence this cycle was scheduled at, as it stood when it was queued, and the
+    # phase that produced it (E03-S02). Stamped rather than derived on read: the phase is a
+    # function of the release date, and a studio correcting that date after the fact would
+    # otherwise rewrite the history of what was actually paid for. `is_volume_escalated`
+    # separates "we polled hard because the calendar said release week" from "we polled hard
+    # because something unexpected happened", which are the same rate and a different
+    # conversation with whoever is reconciling the bill.
     polls_per_day: Mapped[int] = mapped_column(Integer, nullable=False)
+    cadence_phase: Mapped[CadencePhase] = mapped_column(
+        SqlEnum(CadencePhase, name="cadence_phase", native_enum=False),
+        nullable=False,
+        default=CadencePhase.CAMPAIGN,
+        server_default=CadencePhase.CAMPAIGN.name,
+    )
+    is_volume_escalated: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=false()
+    )
 
     # What the cycle did. Every one of these is a count of items, not of provider calls;
     # `pages_fetched` is the count that maps to spend.

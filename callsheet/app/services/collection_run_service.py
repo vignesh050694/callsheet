@@ -113,6 +113,11 @@ class CollectionRunService:
         claimed_at = now or datetime.now(UTC)
         batch_size = limit or self._settings.collection_worker_batch_size
 
+        # Before claiming, not after. A title whose cadence has just escalated may have a
+        # cycle that is not due at its old rate but is at its new one, and reconciling first
+        # is what lets that cycle be claimed in this same tick rather than the next.
+        await self._reconcile_cadence(claimed_at)
+
         runs = await self._run_repository.claim_due(claimed_at, limit=batch_size)
         # Committed before any polling starts. The claim has to be visible to other
         # workers immediately, and holding the transaction open across a minutes-long
@@ -146,6 +151,26 @@ class CollectionRunService:
                 _logger.exception("collection.worker.run_abandoned", run_id=str(run_id))
                 await self._abandon(run_id)
         return results
+
+    async def _reconcile_cadence(self, now: datetime) -> None:
+        """Brings queued cycles into line with their titles' current cadence (E03-S02).
+
+        Isolated from the rest of the tick on purpose. Reconciliation is an optimisation —
+        every cycle it touches would eventually run at the right rate anyway, one interval
+        later — so a failure here must not stop cycles that are already due from being
+        claimed. Logged at error rather than swallowed silently, because a title stuck at
+        dormant rates through its release week is a real product failure even though nothing
+        crashed.
+        """
+        try:
+            advanced = await self._schedule_service.reconcile_pending_cadence(
+                now=now, limit=self._settings.collection_cadence_reconcile_batch_size
+            )
+            if advanced:
+                await self._session.commit()
+        except Exception:
+            _logger.exception("collection.worker.cadence_reconcile_failed")
+            await self._session.rollback()
 
     async def _abandon(self, run_id: uuid.UUID) -> None:
         """Last resort: close a run whose own completion path failed.

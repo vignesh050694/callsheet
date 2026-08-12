@@ -7,9 +7,19 @@
  * shorter than the collection cadence: it costs one cheap local request and it is what
  * turns "wait and refresh" into "watch it happen".
  *
- * Polling stops once the title has mentions and is not stalled. At that point the answer
- * only moves once every couple of hours, and a tab left open overnight should not spend
- * the night asking.
+ * Two intervals since E03-S02, where before there was one and then nothing.
+ *
+ * A settled title used to stop polling entirely, on the reasoning that its answer only
+ * moved once every couple of hours. That reasoning no longer holds: the cadence phase can
+ * change under a reader who is doing nothing — that is the entire point of the story — and
+ * `refetchOnWindowFocus` is off, so a tab left open through a title's crossing into release
+ * week would go on describing it as a quiet campaign until somebody reloaded. "With no
+ * action required from me" has to include not reloading the page.
+ *
+ * So a settled title keeps asking, slowly. Once every few minutes against a phase boundary
+ * that moves once or twice in a title's life is a rounding error next to the fifteen-second
+ * poll a starting-up title already does, and it is the difference between the escalation
+ * being visible and being merely true.
  */
 
 import { useQuery } from '@tanstack/react-query'
@@ -18,6 +28,7 @@ import { apiClient } from '@/lib/api-client'
 import type { TitleCollectionStatus } from '@/types/api'
 
 const AWAITING_REFETCH_INTERVAL_MS = 15_000
+const SETTLED_REFETCH_INTERVAL_MS = 300_000
 
 export const collectionKeys = {
   all: ['collection'] as const,
@@ -40,7 +51,9 @@ export function useCollectionStatus(titleId: string | undefined) {
       // forever would be a request that can only ever return the same thing, and the
       // screen already tells the reader it needs a human.
       if (status.is_stalled) return false
-      return status.is_awaiting_first_results ? AWAITING_REFETCH_INTERVAL_MS : false
+      return status.is_awaiting_first_results
+        ? AWAITING_REFETCH_INTERVAL_MS
+        : SETTLED_REFETCH_INTERVAL_MS
     },
   })
 }

@@ -14,22 +14,29 @@ The mention count here is **unsegmented**. Organic, trade, owned-media and promo
 accounts are not distinguished until E04-S03, so anything reading this number is reading
 activity rather than public conversation, and it says so rather than passing for the
 organic figure a viewer would assume.
+
+Since E03-S02 it also carries the **cadence phase**, which is what makes an automatic
+escalation visible rather than merely true. That one field is asked of the policy live
+rather than read off the queued run, for the reason in `_current_cadence` below.
 """
 
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 
 import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.cadence_phase import CadencePhase
 from app.core.exceptions import ResourceNotFoundError
 from app.models.collection_run import CollectionRun, CollectionRunStatus
+from app.models.title import Title
 from app.models.user import User
 from app.repositories.collection_run_repository import CollectionRunRepository
 from app.repositories.membership_repository import MembershipRepository
 from app.repositories.mention_repository import MentionRepository
 from app.repositories.title_repository import TitleRepository
+from app.services.collection.cadence import CadenceDecision, CadencePolicy
 
 _logger = structlog.get_logger(__name__)
 
@@ -47,7 +54,11 @@ class CollectionStatus:
     last_run_status: CollectionRunStatus | None
     last_run_failure_reason: str | None
     next_run_at: datetime | None
-    polls_per_day: int | None
+    # Always present since E03-S02: the rate is a property of the title's phase, which every
+    # title has, rather than of whichever run happened to be lying around.
+    polls_per_day: int
+    cadence_phase: CadencePhase
+    is_volume_escalated: bool
     latest_mention_posted_at: datetime | None
 
     @property
@@ -78,12 +89,13 @@ class CollectionStatus:
 
 
 class CollectionStatusService:
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(self, session: AsyncSession, cadence: CadencePolicy) -> None:
         self._session = session
         self._title_repository = TitleRepository(session)
         self._membership_repository = MembershipRepository(session)
         self._run_repository = CollectionRunRepository(session)
         self._mention_repository = MentionRepository(session)
+        self._cadence = cadence
 
     async def status_for_title(self, title_id: uuid.UUID, caller: User) -> CollectionStatus:
         """Visible to any member of the owning organization, as the title itself is."""
@@ -106,6 +118,7 @@ class CollectionStatusService:
 
         pending = await self._run_repository.next_pending_for_title(title_id)
         latest = await self._run_repository.latest_finished_for_title(title_id)
+        cadence = await self._current_cadence(title)
 
         return CollectionStatus(
             title_id=title_id,
@@ -115,11 +128,33 @@ class CollectionStatusService:
             last_run_status=latest.status if latest else None,
             last_run_failure_reason=self._failure_reason_of(latest),
             next_run_at=pending.scheduled_for if pending else None,
-            polls_per_day=self._current_rate(pending, latest),
+            polls_per_day=cadence.polls_per_day,
+            cadence_phase=cadence.phase,
+            is_volume_escalated=cadence.is_volume_escalated,
             latest_mention_posted_at=(
                 await self._mention_repository.latest_posted_at_for_title(title_id)
             ),
         )
+
+    async def _current_cadence(self, title: Title) -> CadenceDecision:
+        """The rate and phase this title is on **now**, asked of the policy directly.
+
+        Not read off the queued run, which is the obvious alternative and is wrong here. The
+        run carries the decision made when it was queued, and the whole point of the story is
+        that a title crossing into its release-surge window steps up *without anyone doing
+        anything* — including without waiting for the queued cycle to run. Reading the stamp
+        would show the studio the old phase for up to one full interval after the change, and
+        at dormant rates that is twelve hours of a screen saying "quiet period" about a title
+        that is already surging.
+
+        The stamped value keeps its own job: it is the history of what each cycle was
+        actually scheduled at, and nothing here overwrites it.
+
+        The cost of the live read is that `next_run_at` can lag the rate shown beside it by
+        up to one worker tick, until `reconcile_pending_cadence` pulls the queued cycle
+        forward. Showing the change late is the worse of the two.
+        """
+        return await self._cadence.decide(title, now=datetime.now(UTC))
 
     @staticmethod
     def _failure_reason_of(run: CollectionRun | None) -> str | None:
@@ -132,12 +167,3 @@ class CollectionStatusService:
         if run is None or run.status is not CollectionRunStatus.FAILED:
             return None
         return run.failure_reason
-
-    @staticmethod
-    def _current_rate(pending: CollectionRun | None, latest: CollectionRun | None) -> int | None:
-        """The rate the title is on now, preferring what is queued over what already ran."""
-        if pending is not None:
-            return pending.polls_per_day
-        if latest is not None:
-            return latest.polls_per_day
-        return None

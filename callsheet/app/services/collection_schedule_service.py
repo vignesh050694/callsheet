@@ -11,7 +11,11 @@ dashboard, an identity set, and no mentions, which is indistinguishable from a f
 is talking about. The cost of the stricter coupling is that a failure to queue fails the
 title creation, which is the error anyone would rather have.
 
-*How often* is not decided here. That is the `CadencePolicy`, which E03-S02 replaces.
+*How often* is not decided here. That is the `CadencePolicy` — since E03-S02, a phase-driven
+one. What this service adds on top of it is **reconciliation**: a cadence decision made when
+a cycle was queued can be twelve hours stale by the time that cycle runs, and a dormant title
+that becomes newsworthy cannot wait out its own interval to find out it should be polling
+harder. `reconcile_pending_cadence` re-asks the policy about cycles that are already queued.
 """
 
 import uuid
@@ -23,7 +27,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.collection_run import CollectionRun, CollectionRunStatus, CollectionRunTrigger
 from app.models.title import Title
 from app.repositories.collection_run_repository import CollectionRunRepository
-from app.services.collection.cadence import CadencePolicy
+from app.repositories.title_repository import TitleRepository
+from app.services.collection.cadence import CadenceDecision, CadencePolicy, interval_for_rate
 
 _logger = structlog.get_logger(__name__)
 
@@ -32,6 +37,7 @@ class CollectionScheduleService:
     def __init__(self, session: AsyncSession, cadence: CadencePolicy) -> None:
         self._session = session
         self._run_repository = CollectionRunRepository(session)
+        self._title_repository = TitleRepository(session)
         self._cadence = cadence
 
     async def queue_first_run(self, title: Title, *, now: datetime | None = None) -> CollectionRun:
@@ -50,6 +56,7 @@ class CollectionScheduleService:
             title,
             trigger=CollectionRunTrigger.TITLE_CREATED,
             scheduled_for=queued_at,
+            decision=await self._cadence.decide(title, now=queued_at),
         )
         self._run_repository.add(run)
         _logger.info(
@@ -57,6 +64,7 @@ class CollectionScheduleService:
             title_id=str(title.id),
             scheduled_for=queued_at.isoformat(),
             polls_per_day=run.polls_per_day,
+            cadence_phase=str(run.cadence_phase),
         )
         return run
 
@@ -80,11 +88,16 @@ class CollectionScheduleService:
             _logger.debug("collection.schedule.already_pending", title_id=str(title.id))
             return None
 
-        scheduled_for = self._cadence.next_run_at(title, after=after)
+        # Decided once and used for both the schedule and the stamp. Asking twice would let
+        # a title be scheduled at one rate and recorded at another, which is the kind of
+        # disagreement nobody finds until they are reconciling an invoice against a chart.
+        decision = await self._cadence.decide(title, now=after)
+        scheduled_for = decision.next_run_at(after=after)
         run = self._build_run(
             title,
             trigger=trigger or CollectionRunTrigger.SCHEDULED,
             scheduled_for=scheduled_for,
+            decision=decision,
         )
         self._run_repository.add(run)
         _logger.info(
@@ -92,6 +105,8 @@ class CollectionScheduleService:
             title_id=str(title.id),
             scheduled_for=scheduled_for.isoformat(),
             polls_per_day=run.polls_per_day,
+            cadence_phase=str(run.cadence_phase),
+            is_volume_escalated=run.is_volume_escalated,
         )
         return run
 
@@ -114,6 +129,7 @@ class CollectionScheduleService:
             title,
             trigger=CollectionRunTrigger.MANUAL,
             scheduled_for=queued_at,
+            decision=await self._cadence.decide(title, now=queued_at),
         )
         self._run_repository.add(run)
         _logger.info("collection.schedule.manual_run_queued", title_id=str(title.id))
@@ -122,12 +138,92 @@ class CollectionScheduleService:
     async def pending_run_for_title(self, title_id: uuid.UUID) -> CollectionRun | None:
         return await self._run_repository.next_pending_for_title(title_id)
 
+    async def reconcile_pending_cadence(
+        self, *, now: datetime | None = None, limit: int
+    ) -> int:
+        """Re-asks the cadence policy about cycles that are already queued (E03-S02).
+
+        Without this, a cadence decision only ever changes when a cycle *finishes*, so the
+        speed at which a title can react to its own escalation is capped by the rate it is
+        escalating away from. A dormant title on 2/day takes up to twelve hours to notice
+        that it should be on 12/day, which is most of a news cycle. Run from the worker tick,
+        the reaction is bounded by the tick instead.
+
+        **One-directional: this can only ever make a title poll sooner.** A de-escalation is
+        left to take effect when the current cycle queues its successor, costing at most one
+        poll at the old rate. Rescheduling in both directions would let a policy that
+        oscillates keep pushing a due cycle away from itself, and a title that never polls is
+        a far worse outcome than a title that polls once more than it needed to.
+
+        Does not commit. The caller owns the transaction, as everywhere else in this service.
+        """
+        moment = now or datetime.now(UTC)
+        if limit <= 0:
+            return 0
+
+        runs = await self._run_repository.list_queued_scheduled_furthest_first(
+            moment, limit=limit
+        )
+        advanced = 0
+        for run in runs:
+            if await self._advance_if_escalated(run, now=moment):
+                advanced += 1
+
+        if advanced:
+            _logger.info(
+                "collection.schedule.cadence_reconciled",
+                examined=len(runs),
+                advanced=advanced,
+            )
+        return advanced
+
+    async def _advance_if_escalated(self, run: CollectionRun, *, now: datetime) -> bool:
+        """Pulls one queued cycle forward if its title's cadence has risen since it was set.
+
+        The anchor — the instant the current schedule was measured from — is recovered as
+        `scheduled_for` minus the interval implied by the rate stamped on the run, because
+        that is exactly the arithmetic that produced `scheduled_for`. Recomputing from the
+        anchor rather than from `now` is what makes this idempotent: reconciling the same run
+        on ten consecutive ticks gives the same answer as reconciling it once, whereas
+        `now + interval` would push the cycle a tick further out every time it ran.
+        """
+        title = await self._title_repository.get_by_id(run.title_id)
+        if title is None:  # pragma: no cover — a deleted title cascades its runs away
+            return False
+
+        decision = await self._cadence.decide(title, now=now)
+        if decision.polls_per_day <= run.polls_per_day:
+            return False
+
+        anchor = run.scheduled_for - interval_for_rate(run.polls_per_day)
+        rescheduled_for = decision.next_run_at(after=anchor)
+        if rescheduled_for >= run.scheduled_for:  # pragma: no cover — a faster rate is sooner
+            return False
+
+        _logger.info(
+            "collection.schedule.cadence_advanced",
+            title_id=str(title.id),
+            run_id=str(run.id),
+            from_polls_per_day=run.polls_per_day,
+            to_polls_per_day=decision.polls_per_day,
+            cadence_phase=str(decision.phase),
+            is_volume_escalated=decision.is_volume_escalated,
+            was_scheduled_for=run.scheduled_for.isoformat(),
+            now_scheduled_for=rescheduled_for.isoformat(),
+        )
+        run.scheduled_for = rescheduled_for
+        run.polls_per_day = decision.polls_per_day
+        run.cadence_phase = decision.phase
+        run.is_volume_escalated = decision.is_volume_escalated
+        return True
+
     def _build_run(
         self,
         title: Title,
         *,
         trigger: CollectionRunTrigger,
         scheduled_for: datetime,
+        decision: CadenceDecision,
     ) -> CollectionRun:
         return CollectionRun(
             title_id=title.id,
@@ -137,5 +233,7 @@ class CollectionScheduleService:
             # Stamped from the policy at queue time rather than read back from settings
             # when the run executes, so a rate changed mid-campaign leaves a history of
             # what each cycle was actually scheduled at.
-            polls_per_day=self._cadence.polls_per_day(title),
+            polls_per_day=decision.polls_per_day,
+            cadence_phase=decision.phase,
+            is_volume_escalated=decision.is_volume_escalated,
         )

@@ -1,5 +1,7 @@
 /** Types mirroring the backend's Pydantic schemas. Keep in sync with `app/schemas/`. */
 
+import type { CadencePhase } from '@/lib/cadence-phase'
+
 export interface Page<TItem> {
   items: TItem[]
   total: number
@@ -139,7 +141,15 @@ export interface TitleCollectionStatus {
   /** Only ever set for a genuine failure — a skipped cycle is an explanation, not a fault. */
   last_run_failure_reason: string | null
   next_run_at: string | null
-  polls_per_day: number | null
+  /**
+   * The rate this title is on **now**, from its cadence phase (E03-S02) — not the rate the
+   * queued cycle was stamped with. A title that has just crossed into its release-surge
+   * window reads as surging on the next render rather than after the next poll.
+   */
+  polls_per_day: number
+  cadence_phase: CadencePhase
+  /** True when observed volume, not the calendar, is what raised this title's rate. */
+  is_volume_escalated: boolean
   latest_mention_posted_at: string | null
   /** Set up, scheduled, and nothing has landed yet — the honest empty state. */
   is_awaiting_first_results: boolean

@@ -18,12 +18,20 @@
  *   deliberately no "collect now" control: collection is not something anyone triggers.
  * * **D — colour budget.** Entirely greyscale. The sentiment scale owns saturated colour
  *   and nothing on this line competes with it; the stalled state is distinguished by an
- *   icon and its words, never by hue alone.
+ *   icon and its words, never by hue alone. Since E03-S02 the same rule binds the cadence
+ *   phase: release week is *not* a red chip. Three phases rendered as a traffic light
+ *   would be the single loudest thing on a screen whose loudest thing has to be sentiment,
+ *   and it would encode by hue something that is already written in words.
  *
  * Freshness is shown because this is polled data — the "last checked" half is as much a
  * part of the reading as the count.
+ *
+ * The cadence phase is here rather than on a settings screen because it is the answer to
+ * "why is this number moving faster than it was yesterday" (E03-S02), which is a question
+ * asked while looking at the number.
  */
 
+import { describeCadencePhase, describePollingRate } from '@/lib/cadence-phase'
 import type { TitleCollectionStatus } from '@/types/api'
 
 const MILLISECONDS_PER_MINUTE = 60_000
@@ -124,13 +132,29 @@ export function CollectionStatusLine({
       {status.next_run_at && (
         <span className="text-ink-400">· next {describeUpcoming(status.next_run_at, now)}</span>
       )}
-      {status.polls_per_day && (
-        <span className="text-ink-400">
-          · {status.polls_per_day}
-          {'×'} a day
-        </span>
-      )}
+      <CadenceLine status={status} />
     </p>
+  )
+}
+
+/**
+ * The phase, the rate it implies, and — only when it applies — what raised it.
+ *
+ * The escalation note is written out rather than shown as a badge because it is the one
+ * thing on this line a studio did not ask for and would be billed for. "Stepped up on
+ * unusual volume" is a sentence someone can act on; a chip is something they learn to
+ * ignore.
+ */
+function CadenceLine({ status }: { status: TitleCollectionStatus }) {
+  return (
+    <>
+      <span className="text-ink-400">
+        · {describeCadencePhase(status.cadence_phase)} · {describePollingRate(status.polls_per_day)}
+      </span>
+      {status.is_volume_escalated && (
+        <span className="text-ink-600">· stepped up on unusual volume</span>
+      )}
+    </>
   )
 }
 

@@ -26,6 +26,8 @@ def _to_status_read(status: CollectionStatus) -> TitleCollectionStatusRead:
         last_run_failure_reason=status.last_run_failure_reason,
         next_run_at=status.next_run_at,
         polls_per_day=status.polls_per_day,
+        cadence_phase=status.cadence_phase,
+        is_volume_escalated=status.is_volume_escalated,
         latest_mention_posted_at=status.latest_mention_posted_at,
         is_awaiting_first_results=status.is_awaiting_first_results,
         is_stalled=status.is_stalled,

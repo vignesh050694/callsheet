@@ -207,6 +207,32 @@ class MentionRepository:
         )
         return result.scalar_one_or_none()
 
+    async def earliest_posted_at_for_title(self, title_id: uuid.UUID) -> datetime | None:
+        result = await self._session.execute(
+            select(func.min(Mention.posted_at)).where(Mention.title_id == title_id)
+        )
+        return result.scalar_one_or_none()
+
+    async def count_for_title_posted_between(
+        self, title_id: uuid.UUID, *, start: datetime, end: datetime
+    ) -> int:
+        """Posts made in a window, by when they were *posted* rather than collected.
+
+        Half-open — `start` inclusive, `end` exclusive — so consecutive windows tile without
+        counting a mention on the boundary twice. The cadence baseline (E03-S02) sits
+        immediately behind the recent window and would otherwise double-count it.
+        """
+        result = await self._session.execute(
+            select(func.count())
+            .select_from(Mention)
+            .where(
+                Mention.title_id == title_id,
+                Mention.posted_at >= start,
+                Mention.posted_at < end,
+            )
+        )
+        return int(result.scalar_one())
+
     async def payloads_for_mentions(
         self, mention_ids: Sequence[uuid.UUID]
     ) -> dict[uuid.UUID, MentionRawPayload]:

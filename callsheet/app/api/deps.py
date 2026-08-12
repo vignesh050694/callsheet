@@ -17,7 +17,13 @@ from app.services.analysis.mention_analyzer import (
     MentionAnalyzer,
     UnconfiguredMentionAnalyzer,
 )
-from app.services.collection.cadence import CadencePolicy, FixedCadencePolicy
+from app.services.collection.cadence import (
+    CadencePolicy,
+    CadenceRates,
+    FixedCadencePolicy,
+    PhaseCadencePolicy,
+    VolumeEscalationRule,
+)
 from app.services.collection.monid_source import (
     MonidCollectionSource,
     MonidTransport,
@@ -25,6 +31,7 @@ from app.services.collection.monid_source import (
 )
 from app.services.collection.source import CollectionSource
 from app.services.collection.spend_policy import SpendPolicy, UnrestrictedSpendPolicy
+from app.services.collection.volume import MentionVolumeReader
 from app.services.collection_run_service import CollectionRunService
 from app.services.collection_schedule_service import CollectionScheduleService
 from app.services.collection_service import CollectionService
@@ -80,13 +87,21 @@ def get_app_settings() -> Settings:
 AppSettings = Annotated[Settings, Depends(get_app_settings)]
 
 
-def get_cadence_policy(settings: AppSettings) -> CadencePolicy:
-    """How often titles are polled.
+def get_cadence_policy(session: DbSession, settings: AppSettings) -> CadencePolicy:
+    """How often titles are polled (E03-S02).
 
-    The single binding E03-S02 replaces with a phase-aware policy. Nothing else in the
-    codebase multiplies a rate by anything, so that swap is this function and no other.
+    The single binding the whole cadence question resolves through — nothing else in the
+    codebase multiplies a rate by anything. `COLLECTION_ADAPTIVE_CADENCE=false` swaps the
+    phase-driven policy for the flat one, which is the escape hatch for a deployment where
+    adaptive cadence is the code path suspected of costing money.
     """
-    return FixedCadencePolicy(settings.collection_polls_per_day)
+    if not settings.collection_adaptive_cadence:
+        return FixedCadencePolicy(settings.collection_polls_per_day)
+    return PhaseCadencePolicy(
+        CadenceRates.from_settings(settings),
+        MentionVolumeReader(session),
+        VolumeEscalationRule.from_settings(settings),
+    )
 
 
 CadencePolicyDep = Annotated[CadencePolicy, Depends(get_cadence_policy)]
@@ -200,8 +215,10 @@ def get_collection_run_service(
 CollectionRunServiceDep = Annotated[CollectionRunService, Depends(get_collection_run_service)]
 
 
-def get_collection_status_service(session: DbSession) -> CollectionStatusService:
-    return CollectionStatusService(session)
+def get_collection_status_service(
+    session: DbSession, cadence: CadencePolicyDep
+) -> CollectionStatusService:
+    return CollectionStatusService(session, cadence)
 
 
 CollectionStatusServiceDep = Annotated[

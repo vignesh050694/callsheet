@@ -8,7 +8,11 @@ import structlog
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.collection_run import CollectionRun, CollectionRunStatus
+from app.models.collection_run import (
+    CollectionRun,
+    CollectionRunStatus,
+    CollectionRunTrigger,
+)
 
 _logger = structlog.get_logger(__name__)
 
@@ -123,6 +127,35 @@ class CollectionRunRepository:
         result = await self._session.execute(
             select(CollectionRun)
             .where(CollectionRun.title_id == title_id)
+            .order_by(CollectionRun.scheduled_for.desc(), CollectionRun.id)
+            .limit(limit)
+        )
+        return list(result.scalars().all())
+
+    async def list_queued_scheduled_furthest_first(
+        self, now: datetime, *, limit: int
+    ) -> Sequence[CollectionRun]:
+        """Not-yet-due scheduled cycles, the furthest out first (E03-S02).
+
+        The read behind cadence reconciliation. Furthest-first is the ordering that matters:
+        a run due in twelve hours is on a dormant title, and it is precisely the one that
+        needs pulling forward when something starts happening. A run due in two minutes
+        needs no help — it is about to execute and re-derive its successor's cadence anyway.
+
+        Already-due rows are excluded rather than merely sorted last. They are what
+        `claim_due` is competing for in the same tick, and a cycle that is due cannot be made
+        due any sooner.
+
+        `TITLE_CREATED` and `MANUAL` runs are excluded because they are due immediately by
+        construction; there is no cadence in them to reconsider.
+        """
+        result = await self._session.execute(
+            select(CollectionRun)
+            .where(
+                CollectionRun.status == CollectionRunStatus.QUEUED,
+                CollectionRun.trigger == CollectionRunTrigger.SCHEDULED,
+                CollectionRun.scheduled_for > now,
+            )
             .order_by(CollectionRun.scheduled_for.desc(), CollectionRun.id)
             .limit(limit)
         )

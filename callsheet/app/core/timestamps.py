@@ -11,10 +11,12 @@ changed on every run). It lives here rather than in the module that found it bec
 rule is about *reading stored timestamps*, not about reprocessing, and the next caller to
 need it should find it rather than rediscover the trap.
 
-Only `reprocess_service` uses it today. The polling queue deliberately does not: `claim_due`
-asks the database which cycles are due, so the comparison happens in SQL against a bound
-parameter and never becomes a Python comparison between a stored value and a fresh one.
-That is the better pattern where it is available, and this module is for where it is not.
+`reprocess_service` and the cadence volume reader use it. The polling queue deliberately does
+not: `claim_due` asks the database which cycles are due, so the comparison happens in SQL
+against a bound parameter and never becomes a Python comparison between a stored value and a
+fresh one. That is the better pattern where it is available, and this module is for where it
+is not — the volume reader needs the *earliest* stored mention as a Python value in order to
+divide by it, which no query can hand back already reconciled.
 """
 
 from datetime import UTC, datetime

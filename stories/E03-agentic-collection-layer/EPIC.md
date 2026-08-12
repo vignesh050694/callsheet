@@ -34,7 +34,7 @@ raw corpus** — because analysis (E04) is the real budget risk and it must neve
 | E03-S07 | Keep the collection agent's tool interface provider-agnostic | 1 | done | 8d36606 |
 | E03-S04 | Store raw payloads verbatim and reprocess without re-paying | 1 | done | 475ff34 |
 | E03-S01 | Start collecting automatically on title creation, counting each post once | 1 | done | fa67410 |
-| E03-S02 | Shift polling cadence with the campaign phase | 1 | todo | — |
+| E03-S02 | Shift polling cadence with the campaign phase | 1 | done | 8945ceb |
 | E03-S03 | Backfill the conversation from before I signed up | 1 | todo | — |
 | E03-S05 | See per-platform collection health and coverage gaps | 1 | todo | — |
 
@@ -312,3 +312,73 @@ needs the title identity set that epic delivered)
   - The Title Dashboard the story names is E05 and does not exist; the collection line lives
     on the titles list, which is the screen a studio is actually on after setup. Its mention
     count is labelled unsegmented because account typing is E04-S03.
+
+- **E03-S02** — done · `8945ceb` · 8 tests · 470 backend tests · `make check` + `npm run check` +
+  build green. Two review rounds.
+
+  What landed: `CadencePhase` and `phase_for_day` in `app/core/cadence_phase.py`, replacing
+  S01's single rate with dormant 2/day, campaign 12/day and release surge 48/day. **The
+  windows are derived, not chosen.** The concept note fixes the three rates and the ~$273
+  total but never says how long each phase lasts; working backwards over its six-month
+  campaign gives surge at release −2…+4 and campaign at −30…+28, which is 124 dormant + 52
+  campaign + 7 surge days = 1,208 polls × $0.225 = **$271.80**. `cadence_cost.py` computes
+  exactly that by walking the same `phase_for_day` the scheduler polls by, so a window moved
+  here moves the number E09-S04 reads in the same commit rather than silently invalidating
+  the epic's gate. A test asserts the figure and says in its failure message to update the
+  concept note rather than the assertion.
+
+  **Escalation had to be able to outrun the rate it was escalating away from.** A cadence
+  decision made when a cycle was queued is only revisited when that cycle *finishes*, so a
+  dormant title at 2/day would take twelve hours to act on a controversy — most of a news
+  cycle. `reconcile_pending_cadence` re-asks the policy about cycles that are already queued,
+  from the worker tick, bounding the reaction at one tick instead. It recovers each run's
+  anchor as `scheduled_for` minus the interval implied by its *stamped* rate, which is
+  precisely the arithmetic that produced `scheduled_for`, so reconciling ten times running
+  gives the same answer as reconciling once — `now + interval` would push the cycle a tick
+  further out on every pass. It is **one-directional**: de-escalation waits for the next
+  successor, costing at most one poll at the old rate, because a policy that oscillated could
+  otherwise keep pushing a due cycle away from itself and a title that never polls is far
+  worse than one that polls once too often.
+
+  The phase is stamped on `collection_runs` as history but the dashboard reads it **live**.
+  Reading the stamp is the obvious choice and it is wrong here: it would show a studio "quiet
+  period" for up to a full interval after their title started surging, which is the exact lag
+  the story exists to remove. The cost is that `next_run_at` can trail the rate beside it by
+  one worker tick; showing the change late is the worse of the two.
+
+  **The one-step escalation rule was documented and not implemented — round 1 caught it.**
+  `PhaseCadencePolicy` claimed "the worst a volume heuristic can do to a bill is move a title
+  from 2/day to 12/day; surge rates stay the calendar's to grant", but the guard only skipped
+  titles *already* at surge, so a campaign title with a spike went straight to 48/day. That is
+  not a corner: campaign is the widest window this product has, and a trailer drop or song
+  release routinely clears a 3× baseline, so titles would have sat at release-week rates for
+  weeks against a model that budgets surge for seven days. The ceiling is now a named constant
+  (`HIGHEST_VOLUME_ESCALATED_PHASE`) that `is_volume_escalatable` derives from, so the rule and
+  the docstring asserting it are one fact rather than two that drifted. Round 2 verified the
+  fix by reintroducing the old guard and watching the new regression test fail.
+
+  **The epic's outstanding test hole from E03-S01 is closed.**
+  `CollectionService._store_and_commit`'s single `IntegrityError` retry — the code that closes
+  the concurrent-double-poll risk — shipped untested and was recorded as this story's to cover.
+  It now has one, built over a file-backed database with two independent sessions and a rival
+  insert landing between `_store`'s read of known ids and its commit. Confirmed sensitive by
+  both the tester and the reviewer independently: with the retry removed the whole page is
+  rejected, including the post nobody collided on.
+
+  Known limits, recorded rather than hidden:
+  - Volume escalation is deliberately **not** modelled in the cost projection. It responds to
+    something unplanned, and a projection budgeting for the average controversy would be a
+    projection of a title that does not exist. It surfaces as an overrun instead, which is
+    what E09 needs to alert on.
+  - Reconciliation scans queued runs furthest-due-first, capped at
+    `COLLECTION_CADENCE_RECONCILE_BATCH_SIZE` (50). Runs due soonest are excluded on purpose —
+    they re-derive their cadence by executing — but a deployment with far more than 50 active
+    titles on slow cadences would reconcile them across several ticks rather than one.
+  - The escalation heuristic compares a title only against its own past, so it cannot
+    distinguish a genuine controversy from a bot burst. It is capped at campaign rates for
+    that reason, and every escalation logs at `warning` so an unexpected bill has a line to
+    find.
+  - `COLLECTION_ADAPTIVE_CADENCE=false` restores S01's flat policy. That is the escape hatch
+    for a deployment where adaptive cadence is the code path suspected of costing money.
+  - Per-platform cadences, customer-editable cadence and staleness detection are all out of
+    scope and none were built.

@@ -93,6 +93,7 @@ from sqlalchemy.orm import Session as SyncSession
 
 import app.services.collection.spend_policy as spend_policy_module
 import app.services.reprocess_service as reprocess_service_module
+from app.core.cadence_phase import CadencePhase
 from app.core.collection_endpoints import get_endpoint
 from app.core.config import MAX_POLLS_PER_DAY, MIN_POLLS_PER_DAY, Settings
 from app.core.exceptions import ServiceUnavailableError
@@ -120,7 +121,11 @@ from app.services.analysis.mention_analyzer import (
     MentionAnalyzer,
 )
 from app.services.collection.adapters.base import ProviderRequest
-from app.services.collection.cadence import CadencePolicy, FixedCadencePolicy
+from app.services.collection.cadence import (
+    CadenceDecision,
+    CadencePolicy,
+    FixedCadencePolicy,
+)
 from app.services.collection.mention_shape import MentionEngagement, NormalizedMention
 from app.services.collection.monid_source import MonidCollectionSource, MonidTransport
 from app.services.collection.query_plan import (
@@ -1445,16 +1450,35 @@ async def test_reprocess_walk_picks_up_a_mention_inserted_concurrently_mid_walk(
 
 class _PerTitleCadencePolicy(CadencePolicy):
     """A `CadencePolicy` double that returns a different rate per title id — the seam
-    needed to make exactly one title in a batch trip `CadencePolicy._validated_rate`
+    needed to make exactly one title in a batch trip the rate validation
     (`polls_per_day=0` is outside its supported range) while its neighbour stays on an
-    ordinary rate."""
+    ordinary rate.
+
+    Armed rather than broken from construction. E03-S02 moved that validation into
+    `CadenceDecision`, which is built on *every* enqueue including the first — so a
+    permanently broken double would now fail while seeding the queue, before the tick
+    these tests are about has even started. The failure under test here is a cadence that
+    raises as a *finished* cycle queues its successor, so the double stays healthy until
+    the queue is seeded and is armed immediately afterwards."""
 
     def __init__(self, rates: dict[uuid.UUID, int], *, default_rate: int = 12) -> None:
         self._rates = rates
         self._default_rate = default_rate
+        self._is_armed = False
 
-    def polls_per_day(self, title: Title) -> int:
-        return self._rates.get(title.id, self._default_rate)
+    def arm(self) -> None:
+        self._is_armed = True
+
+    async def decide(self, title: Title, *, now: datetime | None = None) -> CadenceDecision:
+        rate = self._default_rate
+        if self._is_armed:
+            rate = self._rates.get(title.id, self._default_rate)
+        return CadenceDecision(
+            phase=CadencePhase.CAMPAIGN,
+            calendar_phase=CadencePhase.CAMPAIGN,
+            polls_per_day=rate,
+            is_volume_escalated=False,
+        )
 
 
 async def _make_title(
@@ -1501,6 +1525,7 @@ async def _queue_two_titles_one_with_a_broken_cadence(
     await schedule_service.queue_first_run(broken_title, now=now - timedelta(seconds=5))
     await schedule_service.queue_first_run(healthy_title, now=now)
     await session.commit()
+    cadence.arm()
 
     transport = SequencedTikhubTransport([_tikhub_response()])
     settings = Settings(collection_platforms=[Platform.X])
@@ -1651,7 +1676,9 @@ async def test_a_cycle_whose_successor_cannot_be_queued_still_leaves_the_run_clo
     # equivalent of that inside a single shared session, not a workaround for a bug in
     # the service under test.
     await db_session.refresh(pilot_user)
-    status = await CollectionStatusService(db_session).status_for_title(broken_title_id, pilot_user)
+    status = await CollectionStatusService(db_session, FixedCadencePolicy(12)).status_for_title(
+        broken_title_id, pilot_user
+    )
     assert status.is_stalled is True
 
 

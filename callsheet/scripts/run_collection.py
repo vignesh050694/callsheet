@@ -33,7 +33,7 @@ from app.core.exceptions import DomainError
 from app.core.logging_config import configure_logging
 from app.db.session import engine, session_factory
 from app.repositories.title_repository import TitleRepository
-from app.services.collection.cadence import FixedCadencePolicy
+from app.services.collection.cadence import CadencePolicy
 from app.services.collection.monid_source import MonidCollectionSource
 from app.services.collection.spend_policy import UnrestrictedSpendPolicy
 from app.services.collection_run_service import CollectionCycleResult, CollectionRunService
@@ -43,6 +43,19 @@ from app.services.collection_service import CollectionService
 _logger = structlog.get_logger(__name__)
 
 TITLE_NOT_FOUND_MESSAGE = "Title {id} was not found"
+
+
+def _build_cadence_policy(session: AsyncSession, settings: Settings) -> CadencePolicy:
+    """Resolved through `deps.py`, never rebuilt here.
+
+    The worker is the process that *acts* on cadence and the API is the one that *reports*
+    it, so a second copy of this wiring is a copy that can disagree — a screen showing a
+    title at surge rates while the worker polls it at dormant ones, with nothing anywhere
+    to say which is lying.
+    """
+    from app.api.deps import get_cadence_policy
+
+    return get_cadence_policy(session, settings)
 
 
 def _build_run_service(session: AsyncSession, settings: Settings) -> CollectionRunService:
@@ -59,7 +72,7 @@ def _build_run_service(session: AsyncSession, settings: Settings) -> CollectionR
     return CollectionRunService(
         session,
         CollectionService(session, source),
-        CollectionScheduleService(session, FixedCadencePolicy(settings.collection_polls_per_day)),
+        CollectionScheduleService(session, _build_cadence_policy(session, settings)),
         UnrestrictedSpendPolicy(),
         settings,
     )
@@ -80,7 +93,7 @@ async def _queue_manual_cycle(title_id: uuid.UUID, settings: Settings) -> bool:
             raise DomainError(TITLE_NOT_FOUND_MESSAGE.format(id=title_id))
 
         schedule_service = CollectionScheduleService(
-            session, FixedCadencePolicy(settings.collection_polls_per_day)
+            session, _build_cadence_policy(session, settings)
         )
         run = await schedule_service.queue_manual_run(title)
         try:

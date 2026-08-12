@@ -110,19 +110,51 @@ class Settings(BaseSettings):
     # was measured on.
     collection_variants_per_title: int = 5
 
-    # The single default polling rate (E03-S01), in polls per day. This is the concept
-    # note's *campaign* rate; E03-S02 replaces the whole policy with a phase-driven one
-    # rather than changing this number.
-    #
-    # Bounded here so an unusable value fails at startup rather than per title per cycle.
-    # Without it a typo is only caught when a finished cycle tries to queue its successor,
-    # where it is swallowed and logged — leaving every title quietly stalled one cycle in,
-    # which is a long way from the typo that caused it.
-    collection_polls_per_day: int = Field(default=12, ge=MIN_POLLS_PER_DAY, le=MAX_POLLS_PER_DAY)
+    # Whether a title's rate follows its campaign phase (E03-S02). False binds the flat
+    # policy at `collection_polls_per_day` instead — the escape hatch for a deployment
+    # where adaptive cadence is the code path suspected of costing money, which has to be
+    # one environment variable rather than a redeploy.
+    collection_adaptive_cadence: bool = True
 
-    # How many due cycles one worker tick claims, and how long it waits between ticks.
+    # The three phase rates the concept note's §7 cost model is built on (E03-S02), and the
+    # flat rate the opt-out above uses (E03-S01). All in polls per day.
+    #
+    # Bounded so an unusable value fails at startup rather than per title per cycle. Without
+    # it a typo is only caught when a finished cycle tries to queue its successor, where it
+    # is swallowed and logged — leaving every title quietly stalled one cycle in, which is a
+    # long way from the typo that caused it.
+    collection_polls_per_day: int = Field(default=12, ge=MIN_POLLS_PER_DAY, le=MAX_POLLS_PER_DAY)
+    collection_dormant_polls_per_day: int = Field(
+        default=2, ge=MIN_POLLS_PER_DAY, le=MAX_POLLS_PER_DAY
+    )
+    collection_campaign_polls_per_day: int = Field(
+        default=12, ge=MIN_POLLS_PER_DAY, le=MAX_POLLS_PER_DAY
+    )
+    collection_surge_polls_per_day: int = Field(
+        default=48, ge=MIN_POLLS_PER_DAY, le=MAX_POLLS_PER_DAY
+    )
+
+    # When observed volume overrides the calendar (E03-S02). A title escalates one phase
+    # when its last `recent_hours` carry at least `minimum_mentions` posts *and* that is at
+    # least `spike_multiplier` times its own daily mean over the `baseline_days` before.
+    #
+    # The floor is what stops a title going from one mention a day to four from buying surge
+    # rates; the multiplier is what stops an ordinary campaign volume escalating permanently.
+    collection_volume_spike_multiplier: float = Field(default=3.0, gt=1.0)
+    collection_volume_spike_minimum_mentions: int = Field(default=25, ge=1)
+    collection_volume_baseline_days: int = Field(default=14, ge=1)
+    collection_volume_recent_hours: int = Field(default=24, ge=1)
+
+    # What one poll costs, in USD (concept note §7: 5 variants x 5 pages across four
+    # platforms). Configuration rather than a constant because it is a vendor price, and it
+    # is the multiplier in every projection E09 shows.
+    collection_cost_per_poll_usd: float = Field(default=0.225, gt=0)
+
+    # How many due cycles one worker tick claims, how long it waits between ticks, and how
+    # many queued cycles it re-checks against the current cadence per tick (E03-S02).
     collection_worker_batch_size: int = 5
     collection_worker_interval_seconds: int = 60
+    collection_cadence_reconcile_batch_size: int = Field(default=50, ge=0)
 
     @field_validator("cors_origins", mode="before")
     @classmethod

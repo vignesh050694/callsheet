@@ -1,10 +1,11 @@
-"""Response shapes for collection status (E03-S01)."""
+"""Response shapes for collection status (E03-S01, cadence phase added by E03-S02)."""
 
 import uuid
 from datetime import datetime
 
 from pydantic import BaseModel, Field
 
+from app.core.cadence_phase import CadencePhase
 from app.models.collection_run import CollectionRunStatus
 
 
@@ -25,7 +26,20 @@ class TitleCollectionStatusRead(BaseModel):
     last_run_status: CollectionRunStatus | None
     last_run_failure_reason: str | None
     next_run_at: datetime | None
-    polls_per_day: int | None
+
+    # The rate and the phase that set it (E03-S02). Both describe the title *now* rather
+    # than the queued cycle, so a title that has just crossed into its release-surge window
+    # reads as surging on the next render rather than after the next poll.
+    polls_per_day: int = Field(
+        description="Polls per day this title is currently on, from its cadence phase."
+    )
+    cadence_phase: CadencePhase
+    is_volume_escalated: bool = Field(
+        description=(
+            "True when observed volume, not the calendar, is what raised this title's rate."
+        )
+    )
+
     latest_mention_posted_at: datetime | None
 
     # Derived server-side rather than left to each client. Two screens computing "is this
