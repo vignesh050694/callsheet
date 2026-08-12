@@ -13,6 +13,7 @@ watching the film.
 """
 
 import uuid
+from datetime import UTC, datetime
 
 import structlog
 from sqlalchemy.exc import IntegrityError
@@ -44,6 +45,9 @@ NOT_AN_AGENCY_MESSAGE = (
 )
 SELF_SHARE_MESSAGE = "This title already belongs to that organization"
 ALREADY_SHARED_MESSAGE = "'{name}' already has access to this title"
+MEMBERSHIP_NOT_FOUND_MESSAGE = "Membership {id} was not found"
+ALREADY_REVOKED_MESSAGE = "This access has already been revoked"
+UNKNOWN_SUBJECT_NAME = "Unknown subject"
 
 
 class TitleSharingService:
@@ -63,6 +67,16 @@ class TitleSharingService:
         agency = await self._require_agency(agency_organization_id)
         if agency.id == title.organization_id:
             raise ValidationFailedError(SELF_SHARE_MESSAGE)
+
+        existing = await self._membership_repository.get_for_title_and_organization(
+            title_id, agency.id
+        )
+        if existing is not None:
+            # A revoked grant still occupies `uq_title_membership_organization`, so a
+            # client returning for a second engagement would otherwise be refused as a
+            # duplicate. Reactivating the row keeps both of its audit entries pointing at
+            # one history rather than splitting it across two rows.
+            return await self._reactivate(existing, agency, caller)
 
         membership = TitleMembership(
             title_id=title_id,
@@ -102,6 +116,55 @@ class TitleSharingService:
         )
         return await self._reload(membership.id)
 
+    async def revoke_access(
+        self, title_id: uuid.UUID, membership_id: uuid.UUID, caller: User
+    ) -> TitleMembership:
+        """Ends a grant, with effect on the partner's very next request (E01-S06).
+
+        Nothing has to be pushed or invalidated for that to be true: every query that
+        resolves access filters on `ACTIVE`, so flipping the status is the whole
+        enforcement. An agency with the dashboard open keeps whatever is already painted
+        on their screen — this cannot reach into a browser — and fails on the next call
+        they make, which is what "immediate" can honestly mean here.
+
+        The row is tombstoned rather than deleted, unlike untagging. An engagement that
+        ended is exactly the thing someone reconstructs later, and a deleted row takes its
+        history with it. `share_with_agency` reactivates this row if the client comes back.
+        """
+        await self._access_policy.require_administrable(title_id, caller)
+        membership = await self._require_membership_on_title(title_id, membership_id)
+        if membership.status is TitleMembershipStatus.REVOKED:
+            raise ValidationFailedError(ALREADY_REVOKED_MESSAGE)
+
+        subject_name = self._subject_name_of(membership)
+        membership.status = TitleMembershipStatus.REVOKED
+        membership.revoked_at = datetime.now(UTC)
+        # A pending invitation must not stay redeemable after it is revoked — otherwise
+        # the link already in someone's inbox still lets them in.
+        membership.token_hash = None
+
+        await self._audit_repository.add(
+            AccessAuditEvent(
+                title_id=title_id,
+                action=AccessAuditAction.REVOKED,
+                role=membership.role,
+                actor_user_id=caller.id,
+                subject_organization_id=membership.subject_organization_id,
+                subject_user_id=membership.subject_user_id,
+                subject_name=subject_name,
+            )
+        )
+        await self._session.commit()
+
+        _logger.info(
+            "title_sharing.revoked",
+            membership_id=str(membership_id),
+            title_id=str(title_id),
+            role=str(membership.role),
+            revoked_by_user_id=str(caller.id),
+        )
+        return await self._reload(membership_id)
+
     async def list_audit_events(self, title_id: uuid.UUID, caller: User) -> list[AccessAuditEvent]:
         """Who has been let in and out of this title. The owning organization only.
 
@@ -125,6 +188,50 @@ class TitleSharingService:
                 subject_name=agency.name,
             )
         )
+
+    async def _reactivate(
+        self, membership: TitleMembership, agency: Organization, caller: User
+    ) -> TitleMembership:
+        """Re-grants a previously revoked share. A live one is a conflict, not a no-op."""
+        if membership.status is not TitleMembershipStatus.REVOKED:
+            raise ResourceConflictError(ALREADY_SHARED_MESSAGE.format(name=agency.name))
+
+        membership.status = TitleMembershipStatus.ACTIVE
+        membership.revoked_at = None
+        membership.invited_by_user_id = caller.id
+        await self._record_grant(membership.title_id, agency, caller)
+        await self._session.commit()
+
+        _logger.info(
+            "title_sharing.regranted",
+            membership_id=str(membership.id),
+            title_id=str(membership.title_id),
+            agency_organization_id=str(agency.id),
+            granted_by_user_id=str(caller.id),
+        )
+        return await self._reload(membership.id)
+
+    async def _require_membership_on_title(
+        self, title_id: uuid.UUID, membership_id: uuid.UUID
+    ) -> TitleMembership:
+        """A membership id from another title is a 404, not someone else's grant to end."""
+        membership = await self._membership_repository.get_by_id(membership_id)
+        if membership is None or membership.title_id != title_id:
+            raise ResourceNotFoundError(MEMBERSHIP_NOT_FOUND_MESSAGE.format(id=membership_id))
+        return membership
+
+    @staticmethod
+    def _subject_name_of(membership: TitleMembership) -> str:
+        """Read before the write, and denormalised into the audit row.
+
+        A membership names an organization or a person, never both, and the audit log has
+        to still read after either is deleted.
+        """
+        if membership.subject_organization is not None:
+            return membership.subject_organization.name
+        if membership.artist is not None:
+            return membership.artist.display_name
+        return UNKNOWN_SUBJECT_NAME
 
     async def _require_agency(self, organization_id: uuid.UUID) -> Organization:
         """The grantee has to be an agency, and it has to exist.

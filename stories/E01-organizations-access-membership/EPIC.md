@@ -38,7 +38,7 @@ is unmeasurable without it.
 | E01-S03 | Tag an artist on a title and invite them | 2 | done | c0fd6db |
 | E01-S04 | Artist accepts an invite and links their profile | 2 | done | e431852 |
 | E01-S05 | Grant an agency scoped access to a single title | 3 | done | 3482970 |
-| E01-S06 | Revoke access when an engagement ends | 3 | blocked | — |
+| E01-S06 | Revoke access when an engagement ends | 3 | done | — |
 
 ## Dependencies
 
@@ -183,13 +183,64 @@ this epic — they are access-control work, not title setup — and resume once 
   no export feature yet to exercise it. The agency's own multi-client workspace is E07-S01, out
   of scope here — an agency manager sees shared titles through `/me/titles`. Frontend still has
   no test runner.
-- **E01-S06** — blocked · needs E01-S05 ("Given: an agency organization currently has manager
-  access to one of my titles"). The Notes say revocation "applies identically to tagged artists
-  and internal viewers" — the internal-viewer half is buildable today, but the story's scenario
-  is agency-scoped, so it moves as one piece rather than being split.
+- **E01-S06** — done · `—` · 10 tests · `make check` + `npm run check` + `npm run build` green.
 
-**Epic status:** phase 1 complete, phases 2 and 3 in delivery — 2/6 stories done on
-`epic/E01-organizations-access-membership`. The E02 dependency that blocked S03–S06 is resolved;
-the branch now carries titles and the collection layer. The epic's hypothesis becomes measurable
-once a pilot title has an owner plus one accepted non-owner member — S03 creates the tag, S04 is
-where the artist accepts.
+  Revocation needed almost no new enforcement: every query that resolves access already filters
+  on `ACTIVE`, so flipping the status *is* the mechanism. That is also the honest limit of
+  "immediate" — nothing reaches into an open browser, so a partner keeps whatever is already
+  painted on their screen and fails on their next request. The row is tombstoned rather than
+  deleted, because an engagement that ended is exactly what someone reconstructs later.
+
+  Two review rounds. Round 1 found two real bugs, both reproduced. `_retag` — the path that
+  revives a revoked tag — ran *before* the contact and length validation, so re-tagging a
+  previously revoked artist accepted a handle that fresh tagging correctly refuses; that is the
+  fourth instance of the NFKC-expansion class in this epic, and the fix extracts one validator
+  both paths share. Worse, `untag` had no status guard: `DELETE` on an *accepted* membership
+  returned 204, the artist's access vanished, and the access log recorded nothing — a silent,
+  unaudited bypass of the very requirement this story adds, reachable by any API client even
+  though the UI hid the button. Untagging is now restricted to pending invitations; ending
+  accepted access must go through the audited revoke. Round 2 passed, having mutation-tested
+  both fixes and enumerated every write path onto `title_memberships` to confirm which are
+  audited.
+
+  A third bug surfaced during implementation, before review: the audit log misreported its own
+  order. `created_at` carries a server default — `now()` is transaction-start time on Postgres,
+  whole seconds on SQLite — so grant → revoke → grant inside one second tied and fell back to a
+  random UUID tiebreak, reading back as revoke → grant → grant. An audit log that gets its own
+  sequence wrong is worse than none, because the wrong story is still a confident one. Events now
+  carry `occurred_at`, set in Python at microsecond resolution, and that is the log's sort key.
+
+  Also fixed here: a revoked row still occupied its unique constraint, so a client returning for
+  a second engagement would have been refused as a duplicate. Sharing and tagging now reactivate
+  the existing row, which keeps one history rather than splitting it across two.
+
+  Carried limitations: the Notes say revocation "applies identically to tagged artists and
+  internal viewers". The tagged-artist half is delivered — `revoke_access` is role-agnostic. The
+  **internal-viewer half is not**: organization viewers live in `memberships`, a different table
+  with no title to scope an audit row against, and the story's own scenario is agency-scoped.
+  Removing an org member belongs with E01-S02's membership management and is deliberately not
+  built here. Revocation is also not scheduled or expiring (explicitly out of scope), and
+  exported reports are not recalled — stated in the confirmation dialog so the owner is not
+  misled about what revocation reaches.
+
+**Epic status:** complete — 6/6 stories done on `epic/E01-organizations-access-membership`.
+Phase 1 (S01–S02) was already merged to `main` via PR #1; phases 2 and 3 (S03–S06) landed after
+the E02 dependency cleared and the branch was fast-forwarded onto the E02/E03 stack.
+
+The access model the concept note fixes is now real end to end: an organization owns titles, a
+title can be shared with an artist or an agency, and every grant and revocation is recorded.
+Enforcement lives in one place — `TitleAccessPolicy` — which every route taking a title id
+resolves through, so a title nobody shared with you is indistinguishable from one that does not
+exist.
+
+**The hypothesis is now measurable but not yet measured.** It asks for a pilot title with an
+owner plus one non-owner member who each viewed the dashboard in the same week. The membership
+half exists; the *viewing* half does not, because there is no Title Dashboard until E05. Nothing
+in this epic can close that, and no story here should be read as having done so.
+
+**Sequencing note for whoever picks this up:** four of the ten bugs found across S03–S06 were the
+same defect — a value reaching a length-bounded column without `ensure_fits` after NFKC
+normalisation, which SQLite cannot catch because it does not enforce VARCHAR limits. It recurred
+because each new write path had to remember the rule independently. A shared "clean and bound
+this value" helper, or a test-suite switch to Postgres, would end the class rather than the
+instance.

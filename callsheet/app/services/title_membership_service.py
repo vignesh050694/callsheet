@@ -67,6 +67,10 @@ NOT_IN_CAST_MESSAGE = (
 ALREADY_TAGGED_MESSAGE = "'{name}' is already tagged on this title"
 NO_CONTACT_MESSAGE = "Tagging an artist needs a way to reach them — an email address or a handle"
 NOT_PENDING_MESSAGE = "Membership {id} is {status}, not pending — there is nothing to resend"
+NOT_UNTAGGABLE_MESSAGE = (
+    "Membership {id} is {status}, not pending — end accepted access by revoking it, "
+    "which is recorded in the access log"
+)
 
 
 class TitleMembershipService:
@@ -96,23 +100,20 @@ class TitleMembershipService:
         artist = await self._resolve_artist(title.organization_id, display_name, normalized_name)
         self._merge_identity_terms(artist, display_name, normalized_name, payload)
 
-        invited_handle = _clean_optional(payload.contact_handle)
-        # The schema rejects a contactless tag, but this is the layer that decides what
-        # reaches the column, and cleaning can empty a handle the schema accepted. Checked
-        # here so an unreachable invitation is a 422 that names the problem rather than an
-        # IntegrityError surfacing through `_persist_tag` as "already tagged".
-        if payload.contact_email is None and invited_handle is None:
-            raise ValidationFailedError(NO_CONTACT_MESSAGE)
-        if invited_handle is not None:
-            # Bounded after normalisation, like every other value here that reaches a
-            # length-limited column. `clean_display_value` applies NFKC, which *expands*:
-            # 150 copies of the ligature "ﬃ" clear the schema's 300-character limit and
-            # become 450 on the way to a String(300). Postgres answers that with a
-            # `DataError` — a sibling of `IntegrityError`, so `_persist_tag` does not
-            # catch it either, and an otherwise valid tag becomes a 500. SQLite, which
-            # the tests run on, does not enforce VARCHAR limits at all, so nothing else
-            # would catch this before production.
-            ensure_fits(invited_handle, TITLE_MEMBERSHIP_HANDLE_MAX_LENGTH, "A contact handle")
+        # Validated before the re-tag branch below, not after it. Both paths write the same
+        # value to the same column, so a check that only guards one of them is not a check —
+        # re-tagging a previously revoked artist used to skip both of these and store a
+        # handle that fresh tagging correctly refuses.
+        invited_handle = self._validated_contact_handle(payload)
+
+        # A revoked tag still occupies `uq_title_membership_artist`, so re-tagging someone
+        # whose access was ended (E01-S06) would otherwise be refused as a duplicate.
+        # Reactivating keeps the artist's history on one row instead of splitting it.
+        revoked = await self._title_membership_repository.get_for_title_and_artist(
+            title_id, artist.id
+        )
+        if revoked is not None and revoked.status is TitleMembershipStatus.REVOKED:
+            return await self._retag(revoked, title, display_name, invited_handle, payload, caller)
 
         raw_token = generate_invitation_token()
         membership = TitleMembership(
@@ -195,6 +196,15 @@ class TitleMembershipService:
         """
         title = await self._require_title_owner(title_id, caller)
         membership = await self._require_membership_on_title(title_id, membership_id)
+        if not membership.is_pending:
+            # Untagging is undoing an offer nobody took up, and it is deliberately not
+            # audited — no access ever existed to record the end of. Ending access that
+            # *was* accepted is revocation: it leaves a tombstone and an audit row, and
+            # the two must not be interchangeable, or the access log would have a silent
+            # bypass any API client could take (E01-S06).
+            raise ValidationFailedError(
+                NOT_UNTAGGABLE_MESSAGE.format(id=membership_id, status=membership.status)
+            )
 
         artist_id = str(membership.artist_id)
         await self._title_membership_repository.delete(membership)
@@ -207,6 +217,68 @@ class TitleMembershipService:
             artist_id=artist_id,
             removed_by_user_id=str(caller.id),
         )
+
+    @staticmethod
+    def _validated_contact_handle(payload: TaggedArtistCreate) -> str | None:
+        """The cleaned handle, or a 422 — the one place either tag path may get it from.
+
+        The schema rejects a contactless tag, but this is the layer that decides what
+        reaches the column, and cleaning can empty a handle the schema accepted. Checked
+        here so an unreachable invitation is a 422 that names the problem rather than an
+        IntegrityError surfacing through `_persist_tag` as "already tagged".
+
+        The length bound is applied after normalisation, like every other value here that
+        reaches a length-limited column. `clean_display_value` applies NFKC, which
+        *expands*: 150 copies of the ligature "ﬃ" clear the schema's 300-character limit
+        and become 450 on the way to a `String(300)`. Postgres answers that with a
+        `DataError` — a sibling of `IntegrityError`, so the conflict handlers do not catch
+        it either, and an otherwise valid tag becomes a 500. SQLite, which the tests run
+        on, does not enforce VARCHAR limits at all, so nothing else would catch this
+        before production.
+        """
+        invited_handle = _clean_optional(payload.contact_handle)
+        if payload.contact_email is None and invited_handle is None:
+            raise ValidationFailedError(NO_CONTACT_MESSAGE)
+        if invited_handle is not None:
+            ensure_fits(invited_handle, TITLE_MEMBERSHIP_HANDLE_MAX_LENGTH, "A contact handle")
+        return invited_handle
+
+    async def _retag(
+        self,
+        membership: TitleMembership,
+        title: Title,
+        display_name: str,
+        invited_handle: str | None,
+        payload: TaggedArtistCreate,
+        caller: User,
+    ) -> tuple[TitleMembership, str]:
+        """Re-offers a tag whose access was revoked, on the row that already exists.
+
+        A fresh token, because the old one was spent when the access ended, and back to
+        `pending`: re-tagging is a new offer, not a silent restoration of access the
+        artist has to accept again.
+        """
+        raw_token = generate_invitation_token()
+        membership.status = TitleMembershipStatus.PENDING
+        membership.revoked_at = None
+        membership.accepted_at = None
+        membership.subject_user_id = None
+        membership.invited_email = payload.contact_email
+        membership.invited_handle = invited_handle
+        membership.token_hash = hash_invitation_token(raw_token)
+        membership.invited_by_user_id = caller.id
+        membership.last_sent_at = datetime.now(UTC)
+        await self._session.commit()
+
+        reloaded = await self._reload(membership.id)
+        await self._notifier.send_title_invitation(reloaded, title.name, display_name)
+        _logger.info(
+            "title_membership.artist_retagged",
+            membership_id=str(membership.id),
+            title_id=str(title.id),
+            invited_by_user_id=str(caller.id),
+        )
+        return reloaded, raw_token
 
     async def _persist_tag(self, membership: TitleMembership, display_name: str) -> None:
         """Commits the tag, letting the unique constraint arbitrate a double-submit."""

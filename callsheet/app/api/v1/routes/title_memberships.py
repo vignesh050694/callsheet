@@ -162,10 +162,31 @@ async def resend_title_invitation(
     )
 
 
+@router.post(
+    "/titles/{title_id}/memberships/{membership_id}/revoke",
+    response_model=TitleMembershipRead,
+    summary="Revoke this membership's access, with immediate effect",
+)
+async def revoke_title_access(
+    title_id: uuid.UUID,
+    membership_id: uuid.UUID,
+    sharing_service: TitleSharingServiceDep,
+    current_user: CurrentUser,
+) -> TitleMembershipRead:
+    """POST rather than DELETE: the membership is not removed, it is tombstoned.
+
+    The row survives so the access log can still explain what happened, and so a client
+    returning for a second engagement reactivates one history rather than starting a new
+    one. DELETE on this path is untagging, which is a different act — see `untag_artist`.
+    """
+    membership = await sharing_service.revoke_access(title_id, membership_id, current_user)
+    return to_membership_read(membership)
+
+
 @router.delete(
     "/titles/{title_id}/memberships/{membership_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Untag an artist, revoking their access immediately",
+    summary="Untag an artist whose invitation is still pending",
 )
 async def untag_artist(
     title_id: uuid.UUID,

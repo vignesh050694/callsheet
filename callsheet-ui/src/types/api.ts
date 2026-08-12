@@ -168,7 +168,12 @@ export interface AccessAuditEvent {
   subject_user_id: string | null
   /** Denormalised, so the row still reads after the organization or artist is gone. */
   subject_name: string
-  created_at: string
+  /**
+   * The event's own timestamp and sort key. Split from `created_at` because that column's
+   * server default resolves to whole seconds, so several changes to one title could tie
+   * and read back out of order.
+   */
+  occurred_at: string
 }
 
 export interface AgencyShareCreate {

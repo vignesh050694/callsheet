@@ -17,9 +17,10 @@ refers to is gone.
 
 import enum
 import uuid
+from datetime import UTC, datetime
 
+from sqlalchemy import DateTime, ForeignKey, String, Uuid
 from sqlalchemy import Enum as SqlEnum
-from sqlalchemy import ForeignKey, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, TimestampMixin, UuidPrimaryKeyMixin
@@ -34,14 +35,27 @@ class AccessAuditAction(enum.StrEnum):
 
 
 class AccessAuditEvent(Base, UuidPrimaryKeyMixin, TimestampMixin):
-    """One change to who can see a title.
-
-    `created_at` from `TimestampMixin` is the timestamp the story asks for; there is no
-    separate `occurred_at`, because the row is written in the same transaction as the
-    change it records and two clocks would only ever drift apart.
-    """
+    """One change to who can see a title."""
 
     __tablename__ = "access_audit_events"
+
+    # The timestamp the story asks for, and the log's sort key — deliberately its own
+    # column rather than `created_at` from `TimestampMixin`.
+    #
+    # `created_at` carries a *server* default. On Postgres that is `now()`, which is
+    # transaction-start time, and on SQLite it resolves to whole seconds. Three changes to
+    # one title inside the same second therefore tie, and the tiebreak falls to a random
+    # UUID — so a title granted, revoked, and granted again can read back as revoked,
+    # granted, granted. An audit log that misreports its own order is worse than none,
+    # because the wrong story is still a confident one.
+    #
+    # Set in Python, at microsecond resolution, at the moment the event is constructed.
+    occurred_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+        index=True,
+    )
 
     title_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True),

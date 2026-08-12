@@ -65,6 +65,8 @@ export function TitleMembershipList({
   isUntagging,
   onResend,
   isResending,
+  onRevoke,
+  isRevoking,
 }: {
   memberships: TitleMembership[]
   canManage: boolean
@@ -72,6 +74,8 @@ export function TitleMembershipList({
   isUntagging: boolean
   onResend: (membership: TitleMembership) => void
   isResending: boolean
+  onRevoke: (membership: TitleMembership) => void
+  isRevoking: boolean
 }) {
   if (memberships.length === 0) {
     return (
@@ -111,16 +115,28 @@ export function TitleMembershipList({
                   Get link
                 </button>
               )}
-            {canManage && membership.role === 'tagged_artist' && (
+            {canManage && membership.status === 'active' && (
               <button
                 type="button"
-                onClick={() => onUntag(membership)}
-                disabled={isUntagging}
+                onClick={() => onRevoke(membership)}
+                disabled={isRevoking}
                 className="border-ink-200 hover:border-ink-400 rounded-md border px-2 py-1 text-xs disabled:opacity-40"
               >
-                Untag
+                Revoke access
               </button>
             )}
+            {canManage &&
+              membership.role === 'tagged_artist' &&
+              membership.status === 'pending' && (
+                <button
+                  type="button"
+                  onClick={() => onUntag(membership)}
+                  disabled={isUntagging}
+                  className="border-ink-200 hover:border-ink-400 rounded-md border px-2 py-1 text-xs disabled:opacity-40"
+                >
+                  Untag
+                </button>
+              )}
           </div>
         </li>
       ))}

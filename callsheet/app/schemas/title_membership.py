@@ -183,7 +183,9 @@ class AccessAuditEventRead(BaseModel):
     subject_organization_id: uuid.UUID | None
     subject_user_id: uuid.UUID | None
     subject_name: str
-    created_at: datetime
+    # The event's own timestamp and sort key — see the model's note on why this is not
+    # `created_at`.
+    occurred_at: datetime
 
 
 class TitleInvitationToken(BaseModel):

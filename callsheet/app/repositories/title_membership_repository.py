@@ -65,6 +65,30 @@ class TitleMembershipRepository:
         )
         return result.scalar_one_or_none()
 
+    async def get_for_title_and_organization(
+        self, title_id: uuid.UUID, organization_id: uuid.UUID
+    ) -> TitleMembership | None:
+        """Any grant to this organization on this title, live or revoked.
+
+        Deliberately not filtered on status: the caller needs to see a revoked row, which
+        still occupies `uq_title_membership_organization` and is what a returning client
+        reactivates rather than duplicates.
+        """
+        _logger.debug(
+            "title_membership.query.get_for_title_and_organization",
+            title_id=str(title_id),
+            organization_id=str(organization_id),
+        )
+        result = await self._session.execute(
+            select(TitleMembership)
+            .options(selectinload(TitleMembership.subject_organization))
+            .where(
+                TitleMembership.title_id == title_id,
+                TitleMembership.subject_organization_id == organization_id,
+            )
+        )
+        return result.scalar_one_or_none()
+
     async def get_pending_by_token_hash(self, token_hash: str) -> TitleMembership | None:
         """Looks a live invitation up by the hash of the token its holder presents.
 

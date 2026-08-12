@@ -25,7 +25,7 @@ import { TitleMembershipList } from '@/components/ui/title-membership-list'
 import { useCurrentUser } from '@/hooks/use-current-user'
 import { useResendTitleInvitation } from '@/hooks/use-title-invitations'
 import { useTagArtist, useTitleMemberships, useUntagArtist } from '@/hooks/use-title-memberships'
-import { useTitleAccessLog } from '@/hooks/use-title-sharing'
+import { useRevokeTitleAccess, useTitleAccessLog } from '@/hooks/use-title-sharing'
 import { useTitle } from '@/hooks/use-titles'
 import { buildTitleAcceptanceUrl } from '@/lib/invitations'
 import { formatDay } from '@/lib/release-phase'
@@ -204,6 +204,7 @@ export function TitleCastPage() {
   const memberships = useTitleMemberships(titleId)
   const untagArtist = useUntagArtist(titleId)
   const resendInvitation = useResendTitleInvitation(titleId)
+  const revokeAccess = useRevokeTitleAccess(titleId)
   const [issuedLink, setIssuedLink] = useState<{ url: string; recipient: string } | null>(null)
 
   function handleResend(membership: TitleMembership) {
@@ -215,6 +216,20 @@ export function TitleCastPage() {
         })
       },
     })
+  }
+
+  function handleRevoke(membership: TitleMembership) {
+    const name =
+      membership.subject_organization?.name ?? membership.artist?.display_name ?? 'this partner'
+    // The story requires the dialog to name the organization losing access, and to say
+    // that already-downloaded exports are not recalled — so the owner is not misled about
+    // what revocation actually reaches.
+    const isConfirmed = globalThis.confirm(
+      `Revoke ${name}'s access to this title?\n\n` +
+        `They lose access on their next request. Reports they have already exported are ` +
+        `not recalled — revoking cannot reach files they have downloaded.`,
+    )
+    if (isConfirmed) revokeAccess.mutate(membership.id)
   }
 
   function handleUntag(membership: TitleMembership) {
@@ -268,6 +283,8 @@ export function TitleCastPage() {
             isUntagging={untagArtist.isPending}
             onResend={handleResend}
             isResending={resendInvitation.isPending}
+            onRevoke={handleRevoke}
+            isRevoking={revokeAccess.isPending}
           />
         )}
         {resendInvitation.isError && <ErrorState error={resendInvitation.error} />}
@@ -284,6 +301,7 @@ export function TitleCastPage() {
           </div>
         )}
         {untagArtist.isError && <ErrorState error={untagArtist.error} />}
+        {revokeAccess.isError && <ErrorState error={revokeAccess.error} />}
       </div>
 
       {isOwner && (
@@ -323,7 +341,7 @@ function AccessLogPanel({ titleId }: { titleId: string }) {
                 <span className="text-ink-600">
                   {event.action === 'granted' ? 'was granted' : 'lost'} {event.role} access
                 </span>
-                <span className="text-ink-400"> · {formatDay(event.created_at.slice(0, 10))}</span>
+                <span className="text-ink-400"> · {formatDay(event.occurred_at.slice(0, 10))}</span>
               </li>
             ))}
           </ul>

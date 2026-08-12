@@ -350,7 +350,9 @@ async def test_sharing_writes_an_access_audit_event_with_actor_subject_and_times
     assert event["subject_organization_id"] == agency_organization_id
     assert event["subject_user_id"] is None
     # Timestamp: when the change happened.
-    assert event["created_at"] is not None
+    # The story's "timestamp" is `occurred_at`, which E01-S06 split out from `created_at`
+    # so the log can order its own entries — see `app/models/access_audit.py`.
+    assert event["occurred_at"] is not None
 
 
 # ---------------------------------------------------------------------------
