@@ -32,12 +32,23 @@ raw corpus** — because analysis (E04) is the real budget risk and it must neve
 | ID | Summary | Phase | Status | Commit |
 |---|---|---|---|---|
 | E03-S07 | Keep the collection agent's tool interface provider-agnostic | 1 | done | 8d36606 |
-| E03-S04 | Store raw payloads verbatim and reprocess without re-paying | 1 | todo | — |
-| E03-S01 | Start collecting automatically the moment a title is created | 1 | todo | — |
+| E03-S04 | Store raw payloads verbatim and reprocess without re-paying | 1 | in-review | — |
+| E03-S01 | Start collecting automatically on title creation, counting each post once | 1 | todo | — |
 | E03-S02 | Shift polling cadence with the campaign phase | 1 | todo | — |
 | E03-S03 | Backfill the conversation from before I signed up | 1 | todo | — |
 | E03-S05 | See per-platform collection health and coverage gaps | 1 | todo | — |
-| E03-S06 | Deduplicate reposts and cross-platform repeats | 1 | todo | — |
+
+**S06 was merged into S01** and its file deleted; its content lives on as S01's second scenario.
+S01 already required a poll that spans every configured query variant, which is the exact condition
+that makes deduplication load-bearing from the first poll — and with the dedupe key already built
+in S07, what remained of S06 was a matched-variant list plus that fan-out, not a story on its own.
+
+**S02, S03 and S05 stay separate**, each carrying value S01 does not. S02 is the cost lever
+(release-week rates for release week only) and replaces S01's single default rate rather than
+duplicating it. S03 is a different trigger with its own screen, cost estimate, and page-depth
+honesty. S05 depends on S02's phases to define "stale", but that is a dependency, not shared work.
+The seam between S01 and S02 is deliberately by user outcome, not by layer — each keeps the
+dashboard surface it earns, since a UI-only "show the phase" story would deliver nothing alone.
 
 **Delivery order deviates from the concept note's listing order.** S07 runs first because it *is* the
 mention shape and the port: S01 ("collection starts on its own") has nothing to start without them,
@@ -146,8 +157,9 @@ needs the title identity set that epic delivered)
     human rather than a retry. Collection health (E03-S05) is where it should surface.
   - A page commits as one transaction, so a genuinely concurrent double-poll of the same
     title could hit the `mentions` unique constraint and roll back a whole page including
-    its new items. Not reachable today — no scheduler exists — but it is **E03-S02's to
-    handle** when one does.
+    its new items. Not reachable today — no scheduler exists — but it is **E03-S01's to
+    handle** when one does (recorded against E03-S02 before the scheduler was placed in S01;
+    S02's surge cadence is where it stops being theoretical).
   - `longest_text` is exercised on synthetic divergent input. The real diverging item was
     excluded from the committed fixture for size; the fixture says so in its own
     `_capture.note`.
