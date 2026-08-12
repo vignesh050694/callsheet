@@ -36,8 +36,8 @@ bleed), which is why exclusion terms are a first-class setup control, not a supp
 | E02-S01 | Create a title with a rich identity set | 1 | done | 7c4777c |
 | E02-S02 | Anchor the title to a release date and campaign milestones | 1 | done | 1b91add |
 | E02-S03 | Preview live sample results before committing setup | 1 | done | dcca668 |
-| E02-S04 | Review and approve discovered alias suggestions | 1 | done | — |
-| E02-S05 | Exclude a contaminating term from a title's results | 1 | todo | — |
+| E02-S04 | Review and approve discovered alias suggestions | 1 | done | 109dd56 |
+| E02-S05 | Exclude a contaminating term from a title's results | 1 | in-progress | — |
 | E02-S06 | Reject invisible characters as anchor terms | 1 | todo | — |
 | E02-S07 | Measure title length by grapheme, not code point | 1 | todo | — |
 
@@ -140,7 +140,7 @@ the organizations and memberships that epic delivered)
   `TitlePreviewService._build_draft` dedupes on the bare normalised form while the save path folds,
   a drift between the two paths that downstream folding currently masks.
 
-- **E02-S04** — done · 9 tests · 538 backend tests · `make check` + `npm run check` + build green.
+- **E02-S04** — done · `109dd56` · 9 tests · 538 backend tests · `make check` + `npm run check` + build green.
   Two review rounds. What landed: a corpus miner (`app/core/alias_candidates.py`) that reads a
   title's own stored mentions and returns two kinds of candidate — hashtags the identity set does
   not claim, and near-miss spellings of terms it does — ranked by post count with a total-order
