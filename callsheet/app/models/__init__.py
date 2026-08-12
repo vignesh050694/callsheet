@@ -4,6 +4,7 @@ from app.models.base import Base
 from app.models.invitation import Invitation, InvitationStatus
 from app.models.membership import Membership, MembershipRole
 from app.models.mention import Mention, MentionRawPayload
+from app.models.mention_analysis import MentionAnalysis
 from app.models.organization import Organization, OrganizationType
 from app.models.title import Title, TitleMilestone, TitleTerm, TitleTermType
 from app.models.user import User
@@ -15,6 +16,7 @@ __all__ = [
     "Membership",
     "MembershipRole",
     "Mention",
+    "MentionAnalysis",
     "MentionRawPayload",
     "Organization",
     "OrganizationType",

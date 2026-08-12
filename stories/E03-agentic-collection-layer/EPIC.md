@@ -32,7 +32,7 @@ raw corpus** — because analysis (E04) is the real budget risk and it must neve
 | ID | Summary | Phase | Status | Commit |
 |---|---|---|---|---|
 | E03-S07 | Keep the collection agent's tool interface provider-agnostic | 1 | done | 8d36606 |
-| E03-S04 | Store raw payloads verbatim and reprocess without re-paying | 1 | in-review | — |
+| E03-S04 | Store raw payloads verbatim and reprocess without re-paying | 1 | done | PENDING |
 | E03-S01 | Start collecting automatically on title creation, counting each post once | 1 | todo | — |
 | E03-S02 | Shift polling cadence with the campaign phase | 1 | todo | — |
 | E03-S03 | Backfill the conversation from before I signed up | 1 | todo | — |
@@ -165,3 +165,67 @@ needs the title identity set that epic delivered)
     `_capture.note`.
   - Only X has adapters. Instagram, Reddit and YouTube are catalogued, priced, and routed
     in configuration, and resolving them fails loudly rather than collecting nothing.
+
+- **E03-S04** — done · `PENDING` · 40 tests · 404 backend tests · `make check` green.
+  Two review rounds. Nothing in `callsheet-ui/` was touched.
+
+  What landed: `mention_analyses`, keyed `(mention_id, pipeline_version)` so a re-run is
+  **additive** — the previous version's verdicts survive, the dashboard keeps reading the
+  version it trusts while a long re-run proceeds, and rolling back a bad model is a change
+  of which version is read rather than another pass over the corpus; a `MentionAnalyzer`
+  port whose default binding refuses (E04 owns what analysis *says*, this story owns when
+  it runs and how its output is versioned); a reprocess that re-reads each mention from its
+  stored payload through today's adapter, making a mapping fix retroactive; and
+  `make reprocess title=<uuid> [from=] [until=]`.
+
+  **The zero-spend guarantee is structural, not a policy.** `ReprocessService` is
+  constructed with no `CollectionSource` and no transport, so there is no path from it to a
+  provider — a guarantee that survives people who never read the docstring. Verified end to
+  end by deliberately breaking the adapter, collecting (20 payloads stored, 0 mentions),
+  then recovering all 20 into mentions with **zero new provider calls**.
+
+  Found in Stage 1 before review: the first reprocess reported `remapped=20` when nothing
+  had changed. SQLite returns `posted_at` naive while adapters produce tz-aware datetimes,
+  and `!=` between them is silently unequal — unlike `<`, which would at least raise. Every
+  run would have dirtied every row and made the count noise, exactly where someone relies
+  on it to tell them whether a mapping fix did anything.
+
+  Stage 2 found the `unreadable` counter was **unreachable**. It keyed off
+  `payload.normalization_error`, which collection only sets when a payload has no mention —
+  and a reprocess walks the mentions table, so every payload it sees starts with that field
+  null. A payload that went bad was neither remapped nor counted; it vanished into
+  `examined`. Root cause was a boolean return collapsing "nothing moved" and "cannot be read
+  at all". Now a four-way outcome.
+
+  Review round 1 found five, of which one was serious: **the corpus walk could silently skip
+  rows.** It read its keyset cursor from `batch[-1].posted_at` *after* `_remap` had rewritten
+  that field — and correcting a timestamp is precisely what a reprocess exists to do. A run
+  examined 5 of 10 mentions and reported success. The first fix (capture the cursor before
+  yielding) stopped the skip and revealed `examined=11 of 10`: a *repeat*, because a shifted
+  row now sorted past the cursor. The real defect was one level down — **the walk was ordered
+  by a column the walk itself mutates.** It now pages by `Mention.id`, assigned once and never
+  changed. The existing multi-batch test could not have caught this: it built payload-less
+  mentions, so `_remap` never ran. Batching and remapping were each tested, never together.
+  Also fixed: the no-adapter path collapsed back into `UNCHANGED` (now `UNVERIFIABLE`, its own
+  counter — a configuration problem, not a data problem, and the fix differs); a single commit
+  at the end of a six-week run discarded every repair and verdict on a late failure (now
+  per batch, so a crash resumes); `spent_nothing` renamed for the boolean-naming convention;
+  and `delete_for_title_and_version`, "the undo for a bad model run", was untested.
+  **The no-route call from S07 did not transfer, and the reviewer was right to say so:** S07's
+  persona changes a config value and needs no invocation path, whereas this persona must
+  *trigger* a parametrised action. Hence the CLI.
+  Round 2 passed, verifying the fixes by mutation — disabling the per-batch commit made the
+  resumability test fail, confirming it is genuinely sensitive — and confirming model/migration
+  agreement with `alembic check` against real Postgres.
+
+  Known limits, recorded rather than hidden:
+  - The id cursor is a random UUIDv4, so it is not time-ordered. A mention inserted by a
+    *concurrent* process mid-walk, with a UUID sorting below the advanced cursor, would be
+    missed by that run and picked up by the next one. Unreachable today — there is no poller
+    until **E03-S01** — and it is that story's to consider alongside the concurrent
+    double-poll defect it already inherited.
+  - The story's "the dashboard reflects the new results" cannot complete end to end yet:
+    with the shipped default binding a real trigger refuses at the analysis step. That is
+    **E04**, and the refusal is clean — remap has run, nothing is left half-persisted.
+  - Reprocess re-reads through whichever adapter serves the endpoint *today*. A payload whose
+    endpoint has no adapter is reported `unverifiable` rather than silently passed over.

@@ -2,6 +2,7 @@
 
 import uuid
 from collections.abc import Sequence
+from datetime import datetime
 
 import structlog
 from sqlalchemy import select
@@ -99,6 +100,63 @@ class MentionRepository:
             .offset(offset)
         )
         return list(result.scalars().all())
+
+    async def list_for_title_in_window(
+        self,
+        title_id: uuid.UUID,
+        *,
+        posted_from: datetime | None = None,
+        posted_until: datetime | None = None,
+        limit: int,
+        after_id: uuid.UUID | None = None,
+    ) -> list[Mention]:
+        """A page of one title's corpus within a date window, paged by primary key.
+
+        Keyset-paged rather than OFFSET-paged, because a reprocess walks a six-week
+        corpus in batches while collection keeps inserting into it, and an OFFSET walk
+        over a table growing underneath it skips rows.
+
+        Ordered by `id` and not by `posted_at`, even though `posted_at` is the axis the
+        window filters on and chronological order would read more naturally. The reason is
+        that a reprocess *rewrites* `posted_at` when it repairs a mention from its stored
+        payload — correcting a timestamp is one of the things it exists to do. Paging by a
+        column the walk itself mutates means a repaired row can jump across the cursor:
+        forward, and it gets visited a second time; backward, and every row between the
+        old and new position is skipped with no error and no count. `id` is assigned once
+        and never changes, so the walk stays a total order no matter what the walk does to
+        the rows it has already passed.
+        """
+        statement = select(Mention).where(Mention.title_id == title_id)
+        if posted_from is not None:
+            statement = statement.where(Mention.posted_at >= posted_from)
+        if posted_until is not None:
+            statement = statement.where(Mention.posted_at <= posted_until)
+        if after_id is not None:
+            statement = statement.where(Mention.id > after_id)
+        result = await self._session.execute(
+            statement.order_by(Mention.id).limit(limit)
+        )
+        return list(result.scalars().all())
+
+    async def payloads_for_mentions(
+        self, mention_ids: Sequence[uuid.UUID]
+    ) -> dict[uuid.UUID, MentionRawPayload]:
+        """The stored payloads behind these mentions, keyed by mention id.
+
+        The read a reprocess runs on: it re-derives from what was paid for, never from the
+        normalised row, so a mapping that was wrong when the post arrived can be corrected
+        without another call.
+        """
+        if not mention_ids:
+            return {}
+        result = await self._session.execute(
+            select(MentionRawPayload).where(MentionRawPayload.mention_id.in_(mention_ids))
+        )
+        return {
+            payload.mention_id: payload
+            for payload in result.scalars().all()
+            if payload.mention_id is not None
+        }
 
     async def get_payload_for_mention(self, mention_id: uuid.UUID) -> MentionRawPayload | None:
         result = await self._session.execute(

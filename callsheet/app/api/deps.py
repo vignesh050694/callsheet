@@ -13,6 +13,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import Settings, get_settings
 from app.db.session import get_db_session
 from app.models.user import User
+from app.services.analysis.mention_analyzer import (
+    MentionAnalyzer,
+    UnconfiguredMentionAnalyzer,
+)
 from app.services.collection.monid_source import (
     MonidCollectionSource,
     MonidTransport,
@@ -24,6 +28,7 @@ from app.services.invitation_notifier import InvitationNotifier
 from app.services.invitation_service import InvitationService
 from app.services.organization_service import OrganizationService
 from app.services.preview_search import PreviewSearch, UnconfiguredPreviewSearch
+from app.services.reprocess_service import ReprocessService
 from app.services.title_preview_service import TitlePreviewService
 from app.services.title_service import TitleService
 from app.services.user_service import UserService
@@ -128,6 +133,29 @@ def get_collection_service(
 
 
 CollectionServiceDep = Annotated[CollectionService, Depends(get_collection_service)]
+
+
+def get_mention_analyzer() -> MentionAnalyzer:
+    """The analysis seam. E04 supplies a real pipeline; until then this refuses."""
+    return UnconfiguredMentionAnalyzer()
+
+
+MentionAnalyzerDep = Annotated[MentionAnalyzer, Depends(get_mention_analyzer)]
+
+
+def get_reprocess_service(
+    session: DbSession, analyzer: MentionAnalyzerDep
+) -> ReprocessService:
+    """Deliberately assembled without a collection source.
+
+    A reprocess re-derives from stored payloads and must never be able to spend. Not
+    passing it anything that can call a provider is a stronger guarantee than any check
+    inside it, because it survives changes made by people who have not read why.
+    """
+    return ReprocessService(session, analyzer)
+
+
+ReprocessServiceDep = Annotated[ReprocessService, Depends(get_reprocess_service)]
 
 
 async def get_current_user(
