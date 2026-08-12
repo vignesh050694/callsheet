@@ -37,7 +37,7 @@ is unmeasurable without it.
 | E01-S02 | Invite a teammate into the organization with a role | 1 | done | 331ba42 |
 | E01-S03 | Tag an artist on a title and invite them | 2 | done | c0fd6db |
 | E01-S04 | Artist accepts an invite and links their profile | 2 | done | e431852 |
-| E01-S05 | Grant an agency scoped access to a single title | 3 | done | — |
+| E01-S05 | Grant an agency scoped access to a single title | 3 | done | 3482970 |
 | E01-S06 | Revoke access when an engagement ends | 3 | blocked | — |
 
 ## Dependencies
@@ -146,7 +146,7 @@ this epic — they are access-control work, not title setup — and resume once 
   **Note on the working tree:** this story was delivered alongside unrelated in-flight E03 work
   (a live Monid HTTP transport) that shares `app/api/deps.py`. Only this story's changes were
   staged; that work remains uncommitted and untouched.
-- **E01-S05** — done · `—` · 8 tests · `make check` + `npm run check` + `npm run build` green.
+- **E01-S05** — done · `3482970` · 8 tests · `make check` + `npm run check` + `npm run build` green.
 
   The story's real requirement is the one in its Notes — *enforcement at the query layer* — and
   the work that mattered was consolidation rather than the grant itself. Three services each held
