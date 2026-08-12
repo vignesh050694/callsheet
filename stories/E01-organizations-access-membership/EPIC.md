@@ -35,7 +35,7 @@ is unmeasurable without it.
 |---|---|---|---|---|
 | E01-S01 | Create a production house organization and workspace | 1 | done | a708c43 |
 | E01-S02 | Invite a teammate into the organization with a role | 1 | done | 331ba42 |
-| E01-S03 | Tag an artist on a title and invite them | 2 | done | 3a94096 |
+| E01-S03 | Tag an artist on a title and invite them | 2 | done | c0fd6db |
 | E01-S04 | Artist accepts an invite and links their profile | 2 | blocked | — |
 | E01-S05 | Grant an agency scoped access to a single title | 3 | blocked | — |
 | E01-S06 | Revoke access when an engagement ends | 3 | blocked | — |
@@ -75,7 +75,7 @@ this epic — they are access-control work, not title setup — and resume once 
   emailed); invitations never expire; frontend has no test runner, so all screens are unverified
   by automation. The story's "sees my organization's titles" clause is verified against
   organization PATCH/DELETE as a proxy — titles arrive in E02.
-- **E01-S03** — done · `3a94096` · 12 tests · `make check` + `npm run check` + `npm run build` green.
+- **E01-S03** — done · `c0fd6db` · 12 tests · `make check` + `npm run check` + `npm run build` green.
   The blocker cleared when E02-S01 (create a title) and E03-S01 (collection starts on title
   creation) both landed, so the branch was fast-forwarded onto the E02/E03 stack — `epic/E01` was
   a strict ancestor of `epic/E03`, so no merge was needed and the history stays linear.
