@@ -51,7 +51,7 @@ def _is_word_character(character: str) -> bool:
     return unicodedata.category(character) in _MARK_CATEGORIES
 
 
-def _comparable(value: str) -> str:
+def comparable_text(value: str) -> str:
     """The form matching happens in: composed, casefolded, single-spaced, joiners dropped.
 
     Mirrors `normalize_term` minus the hash-stripping, which would be wrong here — the
@@ -92,7 +92,7 @@ def _occurs_in(haystack: str, normalized_term: str) -> bool:
     return False
 
 
-def _iter_hashtags(text: str) -> Iterator[str]:
+def iter_hashtags(text: str) -> Iterator[str]:
     """Yields each hashtag's body, in the order it appears, hash excluded.
 
     `##DC` yields `DC` once: the first hash is followed by another hash rather than a word
@@ -113,6 +113,37 @@ def _iter_hashtags(text: str) -> Iterator[str]:
             index += 1
 
 
+def iter_words(text: str) -> Iterator[str]:
+    """Yields each run of word characters, in order — the corpus's own alphabet.
+
+    Shares `_is_word_character` with hashtag extraction rather than reimplementing word
+    boundaries, because the two have to agree: `#DCFDFS` must yield the tag body `DCFDFS`
+    to one and the word `DCFDFS` to the other, and a script where they disagreed would
+    have alias discovery (E02-S04) offering a truncated Tamil word back as a name variant.
+    """
+    start: int | None = None
+    for index, character in enumerate(text):
+        if _is_word_character(character):
+            if start is None:
+                start = index
+            continue
+        if start is not None:
+            yield text[start:index]
+            start = None
+    if start is not None:
+        yield text[start:]
+
+
+def term_occurs_in(haystacks: Sequence[str], normalized_term: str) -> bool:
+    """Whether one already-normalised term appears as a whole word anywhere in a post.
+
+    The single-term form of `find_matching_terms`, exposed because retroactive matching
+    (E02-S04) asks this question of one newly approved term against a whole stored corpus,
+    and building a one-element pair list per mention to ask it would be noise.
+    """
+    return _occurs_in(comparable_text(" \n".join(haystacks)), joiner_folded(normalized_term))
+
+
 def find_matching_terms(
     haystacks: Sequence[str],
     terms: Sequence[tuple[str, str]],
@@ -123,7 +154,7 @@ def find_matching_terms(
     normalised form, and the display form is what gets shown back, because the studio
     should see the term the way they typed it.
     """
-    combined = _comparable(" \n".join(haystacks))
+    combined = comparable_text(" \n".join(haystacks))
     matched: list[str] = []
     seen: set[str] = set()
     for display_value, normalized_value in terms:
@@ -151,8 +182,8 @@ def suggest_exclusion_terms(text: str, known_terms: Iterable[str], limit: int) -
     known = {joiner_folded(term) for term in known_terms if term}
     suggestions: list[str] = []
     seen: set[str] = set()
-    for tag in _iter_hashtags(text):
-        comparable = _comparable(tag)
+    for tag in iter_hashtags(text):
+        comparable = comparable_text(tag)
         if not comparable or comparable in known or comparable in seen:
             continue
         seen.add(comparable)

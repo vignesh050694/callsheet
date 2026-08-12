@@ -16,6 +16,7 @@ mentions did this variant find" is the question both consumers ask, and it is a 
 here versus unnesting every row's array there.
 """
 
+import enum
 import uuid
 from datetime import datetime
 
@@ -28,6 +29,24 @@ from app.models.base import Base, TimestampMixin, UuidPrimaryKeyMixin
 from app.models.mention import Mention
 
 QUERY_VARIANT_KEY_MAX_LENGTH = 320
+
+
+class MatchSource(enum.StrEnum):
+    """How this variant came to be credited with this post.
+
+    The two are not interchangeable and must never be added together without saying so.
+    `COLLECTION` means the variant ran as a query and the provider returned this post — it
+    was paid for, and it is evidence the term finds conversation. `RETROACTIVE` means an
+    alias approved after the fact (E02-S04) was checked against a post already in the
+    corpus and matched it. That is worth recording, because it is what "previously
+    collected posts carrying it are re-matched without paying to re-collect them" means,
+    and because it tells the studio immediately how much a term they just approved is
+    worth. But no query ran and nothing was spent, so counting it as a collection hit
+    would credit a term with finding posts it never fetched.
+    """
+
+    COLLECTION = "collection"
+    RETROACTIVE = "retroactive"
 
 
 class MentionQueryMatch(Base, UuidPrimaryKeyMixin, TimestampMixin):
@@ -70,13 +89,27 @@ class MentionQueryMatch(Base, UuidPrimaryKeyMixin, TimestampMixin):
     # the provider. The query string carries quoting and anchor placement that may change
     # as the query builder improves; the key is what a studio's term is called, so
     # attribution survives a change in how the query is phrased.
-    query_variant: Mapped[str] = mapped_column(
-        String(QUERY_VARIANT_KEY_MAX_LENGTH), nullable=False
-    )
+    query_variant: Mapped[str] = mapped_column(String(QUERY_VARIANT_KEY_MAX_LENGTH), nullable=False)
 
-    # When this variant *first* returned this post. Not updated on later cycles: the
-    # question worth answering is when a term started working, not when it last ran.
+    # When this variant was first *credited* with this post. Not updated on later cycles:
+    # the question worth answering is when a term started working, not when it last ran.
+    #
+    # "Credited" rather than "returned", because a term approved from the suggestion list
+    # is matched against posts already collected before it has run once (E02-S04). That
+    # scan is what establishes the term matches the post, so it is what this timestamp
+    # records — and it is left alone when a later real cycle upgrades `match_source`,
+    # which would otherwise move a term's history forward for no reason a reader could see.
     first_matched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    # Defaulted to COLLECTION at the database, not only in Python: every row written
+    # before this column existed was a collection hit, and a backfill that had to be
+    # remembered is a backfill someone eventually forgets.
+    match_source: Mapped[MatchSource] = mapped_column(
+        SqlEnum(MatchSource, name="mention_query_match_source", native_enum=False),
+        nullable=False,
+        default=MatchSource.COLLECTION,
+        server_default=MatchSource.COLLECTION.name,
+    )
 
     mention: Mapped[Mention] = relationship(lazy="raise")
 

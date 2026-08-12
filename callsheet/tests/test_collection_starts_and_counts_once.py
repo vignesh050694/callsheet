@@ -86,7 +86,7 @@ import structlog
 import structlog.testing
 from httpx import ASGITransport, AsyncClient
 from pydantic import ValidationError
-from sqlalchemy import create_engine, event, select
+from sqlalchemy import create_engine, event, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import Session as SyncSession
@@ -106,7 +106,7 @@ from app.models import Base
 from app.models.collection_run import CollectionRun, CollectionRunStatus, CollectionRunTrigger
 from app.models.membership import Membership, MembershipRole
 from app.models.mention import Mention, MentionRawPayload
-from app.models.mention_query_match import MentionQueryMatch
+from app.models.mention_query_match import MatchSource, MentionQueryMatch
 from app.models.organization import Organization, OrganizationType
 from app.models.title import Title, TitleTerm, TitleTermType
 from app.models.user import User
@@ -887,6 +887,94 @@ async def test_a_post_stored_in_an_earlier_cycle_gains_attribution_from_a_new_va
 
     assert set(matched_variants) == {"name", "hashtag:nova"}
     assert await mention_repository.count_for_title(five_variant_title_id) == 1
+
+
+# ---------------------------------------------------------------------------
+# Section 3b — E02-S04 review round 2, finding 1: a term approved from the alias
+# suggestion list credits posts already in the corpus as `MatchSource.RETROACTIVE`
+# (`AliasDiscoveryService._rematch_corpus`). Once that term genuinely runs as a query on a
+# real cycle and the provider returns the very same post, the credit must be upgraded to
+# `MatchSource.COLLECTION` — `MentionQueryMatchRepository.promote_retroactive_to_collection`,
+# called from `CollectionRunService._attribute` before the `existing_pairs` check. Driven
+# through a real cycle with `SequencedTikhubTransport` (this file's own harness) rather
+# than unit-testing the repository method in isolation, because the bug the finding
+# describes was specifically in how approval and a later cycle interact across a title's
+# real lifecycle.
+# ---------------------------------------------------------------------------
+
+
+async def test_a_retroactively_matched_post_is_promoted_to_collection_once_the_term_genuinely_runs(
+    db_session: AsyncSession, api_client: AsyncClient, title_id: uuid.UUID
+) -> None:
+    # A post already sits in the corpus carrying an organic hashtag the title has not yet
+    # declared — exactly what a poll run would leave behind before anyone reviews the
+    # alias suggestion list.
+    mention = Mention(
+        title_id=title_id,
+        platform=Platform.X,
+        external_id="pop-1",
+        author_handle="@fan1",
+        author_display_name="Fan",
+        text="best FDFS of the year, no words",
+        hashtags=["DCFDFS"],
+        posted_at=datetime(2026, 8, 1, 12, 0, tzinfo=UTC),
+        permalink="https://x.com/fan1/status/1",
+        platform_reported_language="en",
+        collected_at=datetime(2026, 8, 1, 12, 0, tzinfo=UTC),
+    )
+    db_session.add(mention)
+    await db_session.commit()
+
+    approval_response = await api_client.post(
+        f"/api/v1/titles/{title_id}/alias-suggestions/approvals",
+        json={"value": "#DCFDFS", "term_type": "hashtag"},
+    )
+    assert approval_response.status_code == 201, approval_response.text
+    assert approval_response.json()["rematched_mentions"] == 1
+
+    match_repository = MentionQueryMatchRepository(db_session)
+    match_row = (
+        await db_session.execute(
+            select(MentionQueryMatch).where(
+                MentionQueryMatch.title_id == title_id,
+                MentionQueryMatch.query_variant == "hashtag:dcfdfs",
+            )
+        )
+    ).scalar_one()
+    assert match_row.match_source == MatchSource.RETROACTIVE
+    assert (
+        await match_repository.mention_counts_by_variant(title_id, source=MatchSource.COLLECTION)
+    ).get("hashtag:dcfdfs", 0) == 0
+
+    # The next real cycle runs both variants the title now has — its own name, and the
+    # newly approved hashtag — and the hashtag variant genuinely returns the same post.
+    transport = SequencedTikhubTransport(
+        [_tikhub_response("other-name-1"), _tikhub_response("pop-1")]
+    )
+    service = _build_run_service(db_session, transport)
+    run = await _pending_run(db_session, title_id)
+
+    result = await service.execute_run(run)
+
+    assert result.status is CollectionRunStatus.SUCCEEDED
+
+    await db_session.refresh(match_row)
+    assert match_row.match_source == MatchSource.COLLECTION
+    assert (
+        await match_repository.mention_counts_by_variant(title_id, source=MatchSource.COLLECTION)
+    ).get("hashtag:dcfdfs") == 1
+    # Only one row for the pair — promotion is an UPDATE, not a second credit alongside it.
+    assert (
+        await db_session.execute(
+            select(func.count())
+            .select_from(MentionQueryMatch)
+            .where(
+                MentionQueryMatch.title_id == title_id,
+                MentionQueryMatch.mention_id == mention.id,
+                MentionQueryMatch.query_variant == "hashtag:dcfdfs",
+            )
+        )
+    ).scalar_one() == 1
 
 
 # ---------------------------------------------------------------------------

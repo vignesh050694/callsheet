@@ -362,3 +362,69 @@ export interface CurrentUser {
   user: User
   memberships: Membership[]
 }
+
+/** Terms the corpus uses that a title's identity set does not claim (E02-S04). */
+export type AliasCandidateKind = 'hashtag' | 'name_variant'
+
+/**
+ * One post carrying a candidate, quoted so the term can be judged in context.
+ *
+ * Nothing here has been through the analysis pipeline — the language tag is the
+ * platform's own claim and is never used to filter.
+ */
+export interface AliasSamplePost {
+  id: string
+  author_handle: string
+  author_display_name: string
+  text: string
+  posted_at: string
+  permalink: string | null
+  platform_reported_language: string | null
+}
+
+export interface AliasCandidate {
+  kind: AliasCandidateKind
+  value: string
+  normalized_value: string
+  /** Unsegmented: account typing is E04-S03, so trade and promotional posts count here. */
+  mention_count: number
+  /** The declared term this is a near-miss of. Null for hashtags. */
+  resembles: string | null
+  sample: AliasSamplePost | null
+}
+
+export interface AliasRejection {
+  id: string
+  kind: AliasCandidateKind
+  value: string
+  created_at: string
+}
+
+export interface AliasSuggestions {
+  candidates: AliasCandidate[]
+  rejections: AliasRejection[]
+  /** Below `corpus_size` once a campaign outgrows the scan cap — the counts are then
+   *  over the recent window rather than the whole campaign, and the screen says so. */
+  scanned_mentions: number
+  corpus_size: number
+}
+
+export interface AliasApprovalInput {
+  value: string
+  /** Only `alias` or `hashtag` — a discovery is a positive claim. */
+  term_type: Extract<TitleTermType, 'alias' | 'hashtag'>
+}
+
+export interface AliasRejectionInput {
+  value: string
+  kind: AliasCandidateKind
+}
+
+export interface AliasApproval {
+  term: TitleTerm
+  /** Already-collected posts now credited to this term. Nothing was paid to find them. */
+  rematched_mentions: number
+  scanned_mentions: number
+  /** Always zero. Re-matching reads stored posts and cannot spend. */
+  collection_calls: number
+}

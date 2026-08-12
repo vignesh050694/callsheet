@@ -89,6 +89,18 @@ def build_query_variants(title: Title, *, limit: int) -> list[QueryVariant]:
     return capped
 
 
+def variant_key_for_term(term: TitleTerm) -> str:
+    """What a term's variant is called wherever attribution is written or read.
+
+    One function rather than an f-string in two places. Retroactive matching (E02-S04)
+    credits a newly approved term against posts already in the corpus, and it has to write
+    the *same* key the next cycle will write when that term finally runs as a query —
+    otherwise the term appears twice in every attribution read, once under each spelling of
+    its own name, and the discovery it came from looks like it stopped working.
+    """
+    return f"{term.term_type.value}:{term.normalized_value}"
+
+
 def ordered_identity_terms(title: Title) -> list[TitleTerm]:
     """A title's positive identity terms, in a total order, sorted here rather than trusted.
 
@@ -198,15 +210,13 @@ def _variants_for_types(
         if not has_meaningful_content(term.normalized_value):  # pragma: no cover — refused at save
             continue
         yield QueryVariant(
-            key=f"{term.term_type.value}:{term.normalized_value}",
+            key=variant_key_for_term(term),
             query=_query_for_term(term, name, anchors, style),
             source_term=term.value,
         )
 
 
-def _query_for_term(
-    term: TitleTerm, name: str, anchors: Sequence[str], style: _QueryStyle
-) -> str:
+def _query_for_term(term: TitleTerm, name: str, anchors: Sequence[str], style: _QueryStyle) -> str:
     match style:
         case _QueryStyle.BARE:
             return term.value

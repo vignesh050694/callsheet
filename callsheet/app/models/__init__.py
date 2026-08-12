@@ -12,9 +12,10 @@ from app.models.invitation import Invitation, InvitationStatus
 from app.models.membership import Membership, MembershipRole
 from app.models.mention import Mention, MentionRawPayload
 from app.models.mention_analysis import MentionAnalysis
-from app.models.mention_query_match import MentionQueryMatch
+from app.models.mention_query_match import MatchSource, MentionQueryMatch
 from app.models.organization import Organization, OrganizationType
 from app.models.title import Title, TitleMilestone, TitleTerm, TitleTermType
+from app.models.title_alias_rejection import TitleAliasRejection
 from app.models.title_membership import (
     TitleMembership,
     TitleMembershipStatus,
@@ -34,6 +35,7 @@ __all__ = [
     "CollectionRunTrigger",
     "Invitation",
     "InvitationStatus",
+    "MatchSource",
     "Membership",
     "MembershipRole",
     "Mention",
@@ -43,6 +45,7 @@ __all__ = [
     "Organization",
     "OrganizationType",
     "Title",
+    "TitleAliasRejection",
     "TitleMembership",
     "TitleMembershipStatus",
     "TitleMilestone",

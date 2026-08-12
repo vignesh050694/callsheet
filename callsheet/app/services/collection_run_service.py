@@ -404,6 +404,14 @@ class CollectionRunService:
             # (E03-S04), but the variant that found them cannot be recorded until then.
             return 0
 
+        # A term approved from the suggestion list was credited against these posts before
+        # it had ever run (E02-S04). It has now genuinely run and returned them, so the
+        # credit is upgraded — the insert below cannot do it, because the row already
+        # exists and `existing_pairs` correctly reports the pair as credited.
+        await self._match_repository.promote_retroactive_to_collection(
+            list(mention_ids.values()), variant.key
+        )
+
         already_credited = await self._match_repository.existing_pairs(
             list(mention_ids.values()), variant.key
         )

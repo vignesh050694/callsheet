@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import Settings, get_settings
 from app.db.session import get_db_session
 from app.models.user import User
+from app.services.alias_discovery_service import AliasDiscoveryService
 from app.services.analysis.mention_analyzer import (
     MentionAnalyzer,
     UnconfiguredMentionAnalyzer,
@@ -108,6 +109,20 @@ def get_title_sharing_service(session: DbSession) -> TitleSharingService:
 
 
 TitleSharingServiceDep = Annotated[TitleSharingService, Depends(get_title_sharing_service)]
+
+
+def get_alias_discovery_service(session: DbSession) -> AliasDiscoveryService:
+    """Deliberately assembled without a collection source, exactly as `ReprocessService` is.
+
+    Approving an alias re-matches the corpus already collected, and that path must never
+    be able to pay for a fresh one. Not passing it anything that can reach a provider is a
+    stronger guarantee than a rule inside it, because it survives changes made by people
+    who have not read why.
+    """
+    return AliasDiscoveryService(session)
+
+
+AliasDiscoveryServiceDep = Annotated[AliasDiscoveryService, Depends(get_alias_discovery_service)]
 
 
 def get_app_settings() -> Settings:

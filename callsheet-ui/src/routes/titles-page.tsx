@@ -118,6 +118,16 @@ function TitleRow({ title, isOwner }: { title: Title; isOwner: boolean }) {
         >
           Cast access
         </Link>
+        {/* Owners only: everything on that screen is a decision about what the title
+            collects, and the server refuses it to a read-only grant anyway. */}
+        {isOwner && (
+          <Link
+            to={`/titles/${title.id}/aliases`}
+            className="text-ink-400 hover:text-ink-900 underline underline-offset-2"
+          >
+            Alias suggestions
+          </Link>
+        )}
       </div>
       <TitleCollectionStatusLine
         status={collectionStatus.data}

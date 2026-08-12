@@ -36,7 +36,7 @@ bleed), which is why exclusion terms are a first-class setup control, not a supp
 | E02-S01 | Create a title with a rich identity set | 1 | done | 7c4777c |
 | E02-S02 | Anchor the title to a release date and campaign milestones | 1 | done | 1b91add |
 | E02-S03 | Preview live sample results before committing setup | 1 | done | dcca668 |
-| E02-S04 | Review and approve discovered alias suggestions | 1 | todo | — |
+| E02-S04 | Review and approve discovered alias suggestions | 1 | done | — |
 | E02-S05 | Exclude a contaminating term from a title's results | 1 | todo | — |
 | E02-S06 | Reject invisible characters as anchor terms | 1 | todo | — |
 | E02-S07 | Measure title length by grapheme, not code point | 1 | todo | — |
@@ -139,3 +139,39 @@ the organizations and memberships that epic delivered)
   with no visible origin (listed and removable, but unattributed); and
   `TitlePreviewService._build_draft` dedupes on the bare normalised form while the save path folds,
   a drift between the two paths that downstream folding currently masks.
+
+- **E02-S04** — done · 9 tests · 538 backend tests · `make check` + `npm run check` + build green.
+  Two review rounds. What landed: a corpus miner (`app/core/alias_candidates.py`) that reads a
+  title's own stored mentions and returns two kinds of candidate — hashtags the identity set does
+  not claim, and near-miss spellings of terms it does — ranked by post count with a total-order
+  tiebreak on the folded value; an `AliasDiscoveryService` where suggestions are *derived on read*
+  and only decisions are stored; and the owner-gated setup screen.
+  **Misspellings are mined per word, not per phrase.** The live corpus carried "Kankaraj", never
+  "Lokesh Kankaraj", so each word of a declared multi-word name six characters or longer is also a
+  target on its own and reports the whole name as what it resembles. Comparing only the full phrase
+  would have missed the commonest form of the mistake entirely and satisfied the story on paper.
+  **Approving spends nothing, structurally.** `AliasDiscoveryService` is constructed without a
+  collection source, the same guarantee `ReprocessService` gets (E03-S04): the absence of the
+  dependency is the rule. Retroactive credit is written as `MentionQueryMatch` rows carrying a new
+  `MatchSource.RETROACTIVE`, kept apart from collection hits because counting them together would
+  credit a term with fetching posts it never fetched.
+  Round 1 found the consequence of that separation: `existing_pairs` keys only on
+  `(mention_id, query_variant)`, so once a term ran as a real paid query and returned a post it had
+  already been credited with retroactively, the insert was correctly skipped and the row stayed
+  `RETROACTIVE` for the life of the campaign — permanently undercounting exactly the terms
+  discovery found. Fixed with `promote_retroactive_to_collection`, called from the cycle's
+  crediting step; `first_matched_at` is deliberately left alone, and its docstring was reworded
+  from "first returned" to "first credited" so the column carries one meaning rather than two.
+  Round 1 also flagged `restore_rejected` as a mutating endpoint shipped untested; round 2 covered
+  it, including the cross-title scoping guard. Round 2's only finding was two over-length lines in
+  the new test file failing `make check` — the orchestrator had linted `app/` rather than the whole
+  tree, which is what `make lint` actually runs. Fixed and the real gate re-run.
+  The migration was applied and rolled back against live Postgres by the reviewer, including a
+  check that the enum persists as the member *name*.
+  Known limitations, shipped by decision: the suggestion read scans the 2,000 most recent mentions
+  rather than the whole corpus, so on a campaign larger than that every count describes the recent
+  window — the response returns `scanned_mentions` beside `corpus_size` and the screen says which,
+  rather than implying full coverage. `AliasApprovalOutcome.has_spent_nothing` is asserted nowhere
+  (its `ReprocessService` sibling is). And an undo for rejections was built though the story does
+  not ask for one: "never re-suggested" is permanent, decided from one screenful of evidence in
+  week one, and the alternative to a button is a support ticket.

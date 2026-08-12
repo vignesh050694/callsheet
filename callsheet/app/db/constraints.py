@@ -57,6 +57,11 @@ _RULES: tuple[_UniqueRule, ...] = (
         ),
     ),
     _UniqueRule(
+        constraint="uq_title_alias_rejection_folded",
+        table="title_alias_rejections",
+        message="That suggestion has already been refused for this title.",
+    ),
+    _UniqueRule(
         constraint="uq_collection_run_one_pending_per_title",
         table="collection_runs",
         message="A collection cycle is already queued for this title, so another was not added.",
