@@ -32,7 +32,7 @@ raw corpus** — because analysis (E04) is the real budget risk and it must neve
 | ID | Summary | Phase | Status | Commit |
 |---|---|---|---|---|
 | E03-S07 | Keep the collection agent's tool interface provider-agnostic | 1 | done | 8d36606 |
-| E03-S04 | Store raw payloads verbatim and reprocess without re-paying | 1 | done | PENDING |
+| E03-S04 | Store raw payloads verbatim and reprocess without re-paying | 1 | done | 475ff34 |
 | E03-S01 | Start collecting automatically on title creation, counting each post once | 1 | todo | — |
 | E03-S02 | Shift polling cadence with the campaign phase | 1 | todo | — |
 | E03-S03 | Backfill the conversation from before I signed up | 1 | todo | — |
@@ -166,7 +166,7 @@ needs the title identity set that epic delivered)
   - Only X has adapters. Instagram, Reddit and YouTube are catalogued, priced, and routed
     in configuration, and resolving them fails loudly rather than collecting nothing.
 
-- **E03-S04** — done · `PENDING` · 40 tests · 404 backend tests · `make check` green.
+- **E03-S04** — done · `475ff34` · 40 tests · 404 backend tests · `make check` green.
   Two review rounds. Nothing in `callsheet-ui/` was touched.
 
   What landed: `mention_analyses`, keyed `(mention_id, pipeline_version)` so a re-run is
