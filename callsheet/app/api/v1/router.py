@@ -8,6 +8,7 @@ from app.api.v1.routes import (
     invitations,
     me,
     organizations,
+    title_invitations,
     title_memberships,
     title_previews,
     titles,
@@ -20,5 +21,6 @@ api_v1_router.include_router(organizations.router)
 api_v1_router.include_router(invitations.router)
 api_v1_router.include_router(titles.router)
 api_v1_router.include_router(title_memberships.router)
+api_v1_router.include_router(title_invitations.router)
 api_v1_router.include_router(title_previews.router)
 api_v1_router.include_router(collection.router)

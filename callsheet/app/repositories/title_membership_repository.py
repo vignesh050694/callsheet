@@ -8,7 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.artist import Artist
-from app.models.title_membership import TitleMembership
+from app.models.title import Title
+from app.models.title_membership import TitleMembership, TitleMembershipStatus
 
 _logger = structlog.get_logger(__name__)
 
@@ -56,6 +57,44 @@ class TitleMembershipRepository:
             )
         )
         return result.scalar_one_or_none()
+
+    async def get_pending_by_token_hash(self, token_hash: str) -> TitleMembership | None:
+        """Looks a live invitation up by the hash of the token its holder presents.
+
+        Filtered to pending here rather than in the service, so an accepted or revoked
+        membership is indistinguishable from a token that never existed — a redeemed
+        link must not confirm to whoever replays it that it was once real.
+        """
+        _logger.debug("title_membership.query.get_pending_by_token_hash")
+        result = await self._session.execute(
+            select(TitleMembership)
+            .options(selectinload(TitleMembership.artist).selectinload(Artist.terms))
+            .where(
+                TitleMembership.token_hash == token_hash,
+                TitleMembership.status == TitleMembershipStatus.PENDING,
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def list_active_titles_for_user(self, user_id: uuid.UUID) -> list[Title]:
+        """The titles a signed-in non-owner may read, via an accepted title membership.
+
+        Joined rather than loaded through the memberships, because the caller renders
+        titles. Ordered by release date then id so the list is stable between reads —
+        two titles sharing a release date can never swap places.
+        """
+        _logger.debug("title_membership.query.list_active_titles_for_user", user_id=str(user_id))
+        result = await self._session.execute(
+            select(Title)
+            .join(TitleMembership, TitleMembership.title_id == Title.id)
+            .options(selectinload(Title.terms), selectinload(Title.milestones))
+            .where(
+                TitleMembership.subject_user_id == user_id,
+                TitleMembership.status == TitleMembershipStatus.ACTIVE,
+            )
+            .order_by(Title.release_date.desc(), Title.id.asc())
+        )
+        return list(result.scalars().all())
 
     async def add(self, membership: TitleMembership) -> TitleMembership:
         self._session.add(membership)

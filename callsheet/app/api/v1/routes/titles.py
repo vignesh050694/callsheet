@@ -25,7 +25,7 @@ from app.services.title_service import TitleService
 router = APIRouter(tags=["titles"])
 
 
-def _to_title_read(title: Title) -> TitleRead:
+def to_title_read(title: Title) -> TitleRead:
     """Assembles the derived identity view the API promises, from one loaded title."""
     return TitleRead(
         id=title.id,
@@ -71,7 +71,7 @@ async def create_title(
     current_user: CurrentUser,
 ) -> TitleRead:
     title = await title_service.create_title(organization_id, payload, current_user)
-    return _to_title_read(title)
+    return to_title_read(title)
 
 
 @router.get(
@@ -92,7 +92,7 @@ async def list_titles(
         offset=page_params.offset,
     )
     return Page[TitleRead](
-        items=[_to_title_read(title) for title in titles],
+        items=[to_title_read(title) for title in titles],
         total=total_count,
         limit=page_params.limit,
         offset=page_params.offset,
@@ -110,7 +110,7 @@ async def read_title(
     current_user: CurrentUser,
 ) -> TitleRead:
     title = await title_service.get_title(title_id, current_user)
-    return _to_title_read(title)
+    return to_title_read(title)
 
 
 @router.put(
@@ -131,4 +131,4 @@ async def replace_title_schedule(
     it is the one part of a title that changes on its own, without the identity set.
     """
     title = await title_service.replace_schedule(title_id, payload, current_user)
-    return _to_title_read(title)
+    return to_title_read(title)

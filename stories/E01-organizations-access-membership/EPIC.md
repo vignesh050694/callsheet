@@ -36,7 +36,7 @@ is unmeasurable without it.
 | E01-S01 | Create a production house organization and workspace | 1 | done | a708c43 |
 | E01-S02 | Invite a teammate into the organization with a role | 1 | done | 331ba42 |
 | E01-S03 | Tag an artist on a title and invite them | 2 | done | c0fd6db |
-| E01-S04 | Artist accepts an invite and links their profile | 2 | blocked | — |
+| E01-S04 | Artist accepts an invite and links their profile | 2 | done | — |
 | E01-S05 | Grant an agency scoped access to a single title | 3 | blocked | — |
 | E01-S06 | Revoke access when an engagement ends | 3 | blocked | — |
 
@@ -112,8 +112,40 @@ this epic — they are access-control work, not title setup — and resume once 
   response that issued it; E01-S04 must mint a fresh token rather than assume it can surface
   S03's. Frontend still has no test runner, so the Cast access screen is verified by typecheck,
   build, and manual exercise only.
-- **E01-S04** — blocked · needs E01-S03 ("Given: a production house has tagged me on a title").
-  Its alias corrections also feed the identity set from E02-S04.
+- **E01-S04** — done · `—` · 8 tests · `make check` + `npm run check` + `npm run build` green.
+
+  The artist claims their entity by redeeming an invitation addressed to a verified email —
+  which is the whole of identity verification in v1 (concept note risk #7), never inferred from a
+  matching name. Accepting links `Artist.linked_user_id`, sets the membership's
+  `subject_user_id`, and nulls the token so it cannot be replayed. The confirmed identity set
+  *replaces* the production house's guess rather than merging with it, because the story's "add,
+  correct, or **remove**" cannot be expressed by a merge.
+
+  Two review rounds. Round 1 found three real bugs. The artist claim was a check-then-act with no
+  database backstop, so two concurrent accepts on one artist entity would both pass and the last
+  write would silently win — no error, and the entity bound to whoever committed last. That could
+  not be fixed with a unique constraint, because one account legitimately holds one artist row per
+  organization that tracks them, so the guard moved into the write: a conditional
+  `UPDATE ... WHERE linked_user_id IS NULL` whose rowcount decides, with zero rows a conflict
+  unless this account already holds the claim. A handle's `platform` skipped `ensure_fits` after
+  NFKC — the third instance of that class in this epic. And the workspace gate never checked the
+  shared-titles error state, so an artist whose lookup failed was routed to onboarding and invited
+  to create a production house. Round 2 passed, having mutation-tested both backend fixes to
+  confirm the new tests fail when the fix is removed.
+
+  Carried limitations: a handle-only invitation cannot be accepted at all — the token alone proves
+  nothing about who holds it, so v1 refuses and tells the artist to ask for an email invitation
+  instead. Verified handle ownership is out of scope for E01. The raw token is returned once and
+  never stored, so a lost link is recovered by re-issuing (`POST .../memberships/{id}/resend`),
+  which supersedes the previous one. "Corrected variants are used for entity matching from the
+  next collection run onwards" is delivered as far as this epic can take it — the corrected set is
+  stored and exposed; the matching that consumes it is E04. Frontend still has no test runner, so
+  the acceptance and shared-titles screens are verified by typecheck, build, and manual exercise
+  only.
+
+  **Note on the working tree:** this story was delivered alongside unrelated in-flight E03 work
+  (a live Monid HTTP transport) that shares `app/api/deps.py`. Only this story's changes were
+  staged; that work remains uncommitted and untouched.
 - **E01-S05** — blocked · needs titles to scope access to ("Given: my organization owns three
   titles, two of which are unannounced"). Waiting on E02-S01.
 - **E01-S06** — blocked · needs E01-S05 ("Given: an agency organization currently has manager

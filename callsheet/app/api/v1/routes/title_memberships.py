@@ -36,7 +36,7 @@ _SCOPE_SUMMARIES = {
 }
 
 
-def _to_membership_read(membership: TitleMembership) -> TitleMembershipRead:
+def to_membership_read(membership: TitleMembership) -> TitleMembershipRead:
     """Assembles the response, deriving the scope the screen shows from the role."""
     return TitleMembershipRead(
         id=membership.id,
@@ -48,14 +48,14 @@ def _to_membership_read(membership: TitleMembership) -> TitleMembershipRead:
         ),
         invited_email=membership.invited_email,
         invited_handle=membership.invited_handle,
-        scope=_scope_for(membership),
+        scope=scope_for(membership),
         last_sent_at=membership.last_sent_at,
         accepted_at=membership.accepted_at,
         created_at=membership.created_at,
     )
 
 
-def _scope_for(membership: TitleMembership) -> MembershipScope:
+def scope_for(membership: TitleMembership) -> MembershipScope:
     """The promise the tagging screen makes, derived from the role rather than stored."""
     can_see_only_own_mentions = membership.role.can_see_only_mentions_naming_subject
     return MembershipScope(
@@ -79,7 +79,7 @@ async def tag_artist(
 ) -> TitleMembershipCreated:
     membership, raw_token = await membership_service.tag_artist(title_id, payload, current_user)
     return TitleMembershipCreated(
-        **_to_membership_read(membership).model_dump(),
+        **to_membership_read(membership).model_dump(),
         token=raw_token,
     )
 
@@ -96,7 +96,27 @@ async def list_title_memberships(
 ) -> TitleMembersView:
     memberships = await membership_service.list_memberships(title_id, current_user)
     return TitleMembersView(
-        memberships=[_to_membership_read(membership) for membership in memberships]
+        memberships=[to_membership_read(membership) for membership in memberships]
+    )
+
+
+@router.post(
+    "/titles/{title_id}/memberships/{membership_id}/resend",
+    response_model=TitleMembershipCreated,
+    summary="Re-issue the acceptance link for a pending membership",
+)
+async def resend_title_invitation(
+    title_id: uuid.UUID,
+    membership_id: uuid.UUID,
+    membership_service: TitleMembershipServiceDep,
+    current_user: CurrentUser,
+) -> TitleMembershipCreated:
+    membership, raw_token = await membership_service.resend_invitation(
+        title_id, membership_id, current_user
+    )
+    return TitleMembershipCreated(
+        **to_membership_read(membership).model_dump(),
+        token=raw_token,
     )
 
 

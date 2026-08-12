@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppLayout } from '@/components/layout/app-layout'
 import { WorkspaceGate } from '@/components/layout/workspace-gate'
 import { AcceptInvitationPage } from '@/routes/accept-invitation-page'
+import { AcceptTitleInvitationPage } from '@/routes/accept-title-invitation-page'
 import { MembersPage } from '@/routes/members-page'
 import { NotFoundPage } from '@/routes/not-found-page'
 import { OrganizationsPage } from '@/routes/organizations-page'
@@ -23,6 +24,9 @@ export default function App() {
         <Route path="titles/:titleId/schedule" element={<TitleSchedulePage />} />
         <Route path="titles/:titleId/cast" element={<TitleCastPage />} />
         <Route path="invitations/accept" element={<AcceptInvitationPage />} />
+        {/* Distinct from the route above: a tagged artist's token redeems against a
+            different table through a different endpoint. */}
+        <Route path="titles/invitations/accept" element={<AcceptTitleInvitationPage />} />
         <Route path="organizations" element={<OrganizationsPage />} />
         <Route path="home" element={<Navigate to="/" replace />} />
         <Route path="*" element={<NotFoundPage />} />

@@ -51,11 +51,15 @@ export function TitleMembershipList({
   canManage,
   onUntag,
   isUntagging,
+  onResend,
+  isResending,
 }: {
   memberships: TitleMembership[]
   canManage: boolean
   onUntag: (membership: TitleMembership) => void
   isUntagging: boolean
+  onResend: (membership: TitleMembership) => void
+  isResending: boolean
 }) {
   if (memberships.length === 0) {
     return (
@@ -81,6 +85,19 @@ export function TitleMembershipList({
 
           <div className="flex items-center gap-2">
             <StatusChip status={membership.status} />
+            {canManage && membership.status === 'pending' && (
+              // Only for a pending row: the raw token is shown once and never stored, so
+              // re-issuing is the only way to recover a link — and an accepted membership
+              // has nothing left to redeem.
+              <button
+                type="button"
+                onClick={() => onResend(membership)}
+                disabled={isResending}
+                className="border-ink-200 hover:border-ink-400 rounded-md border px-2 py-1 text-xs disabled:opacity-40"
+              >
+                Get link
+              </button>
+            )}
             {canManage && (
               <button
                 type="button"

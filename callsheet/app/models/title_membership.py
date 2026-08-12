@@ -144,13 +144,27 @@ class TitleMembership(Base, UuidPrimaryKeyMixin, TimestampMixin):
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
     )
+    # Who redeemed the invitation (E01-S04). Null while the membership is pending — the
+    # offer exists before there is an account behind it. This, not `artist_id`, is what
+    # answers "which titles may this signed-in person read".
+    subject_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
     last_sent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     title: Mapped[Title] = relationship(lazy="raise")
     artist: Mapped[Artist | None] = relationship(lazy="raise")
-    invited_by: Mapped[User] = relationship(lazy="raise")
+    # Two foreign keys point at `users`, so each relationship has to say which one it
+    # follows — SQLAlchemy cannot infer the join otherwise.
+    invited_by: Mapped[User] = relationship(lazy="raise", foreign_keys=[invited_by_user_id])
+    subject_user: Mapped[User | None] = relationship(
+        lazy="raise", foreign_keys=[subject_user_id]
+    )
 
     @property
     def is_pending(self) -> bool:

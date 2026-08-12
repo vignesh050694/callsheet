@@ -41,6 +41,7 @@ from app.services.invitation_service import InvitationService
 from app.services.organization_service import OrganizationService
 from app.services.preview_search import PreviewSearch, UnconfiguredPreviewSearch
 from app.services.reprocess_service import ReprocessService
+from app.services.title_invitation_service import TitleInvitationService
 from app.services.title_membership_service import TitleMembershipService
 from app.services.title_preview_service import TitlePreviewService
 from app.services.title_service import TitleService
@@ -88,6 +89,14 @@ def get_title_membership_service(
 
 
 TitleMembershipServiceDep = Annotated[TitleMembershipService, Depends(get_title_membership_service)]
+
+
+def get_title_invitation_service(session: DbSession) -> TitleInvitationService:
+    """No notifier: accepting sends nothing. The artist is already here."""
+    return TitleInvitationService(session)
+
+
+TitleInvitationServiceDep = Annotated[TitleInvitationService, Depends(get_title_invitation_service)]
 
 
 def get_app_settings() -> Settings:

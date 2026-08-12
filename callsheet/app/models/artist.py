@@ -21,6 +21,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin, UuidPrimaryKeyMixin
 from app.models.organization import Organization
+from app.models.user import User
 
 ARTIST_NAME_MAX_LENGTH = 200
 ARTIST_TERM_MAX_LENGTH = 300
@@ -78,8 +79,22 @@ class Artist(Base, UuidPrimaryKeyMixin, TimestampMixin):
     )
     display_name: Mapped[str] = mapped_column(String(ARTIST_NAME_MAX_LENGTH), nullable=False)
     normalized_name: Mapped[str] = mapped_column(String(ARTIST_NAME_MAX_LENGTH), nullable=False)
+    # Set when the artist accepts an invitation and claims the entity (E01-S04). Null
+    # until then, which is the normal state — the production house creates the entity
+    # long before the person it describes has an account, and may never link one.
+    #
+    # This is the whole of identity verification in v1 (concept note risk #7): the claim
+    # is made by redeeming an invitation addressed to a verified email, never inferred
+    # from a matching name.
+    linked_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
     organization: Mapped[Organization] = relationship(lazy="raise")
+    linked_user: Mapped[User | None] = relationship(lazy="raise")
     terms: Mapped[list["ArtistIdentityTerm"]] = relationship(
         back_populates="artist",
         lazy="raise",

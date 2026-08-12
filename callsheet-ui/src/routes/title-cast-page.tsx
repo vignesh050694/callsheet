@@ -22,8 +22,10 @@ import { Link, useParams } from 'react-router-dom'
 import { ErrorState, LoadingState } from '@/components/ui/status-message'
 import { TitleMembershipList } from '@/components/ui/title-membership-list'
 import { useCurrentUser } from '@/hooks/use-current-user'
+import { useResendTitleInvitation } from '@/hooks/use-title-invitations'
 import { useTagArtist, useTitleMemberships, useUntagArtist } from '@/hooks/use-title-memberships'
 import { useTitle } from '@/hooks/use-titles'
+import { buildTitleAcceptanceUrl } from '@/lib/invitations'
 import { hasMeaningfulContent, parseTermList } from '@/lib/title-identity'
 import type { Title, TitleMembership } from '@/types/api'
 
@@ -198,6 +200,19 @@ export function TitleCastPage() {
   const title = useTitle(titleId)
   const memberships = useTitleMemberships(titleId)
   const untagArtist = useUntagArtist(titleId)
+  const resendInvitation = useResendTitleInvitation(titleId)
+  const [issuedLink, setIssuedLink] = useState<{ url: string; recipient: string } | null>(null)
+
+  function handleResend(membership: TitleMembership) {
+    resendInvitation.mutate(membership.id, {
+      onSuccess: (reissued) => {
+        setIssuedLink({
+          url: buildTitleAcceptanceUrl(reissued.token, globalThis.location?.origin ?? ''),
+          recipient: reissued.invited_email ?? reissued.artist?.display_name ?? 'the tagged artist',
+        })
+      },
+    })
+  }
 
   function handleUntag(membership: TitleMembership) {
     const name = membership.artist?.display_name ?? 'this artist'
@@ -248,7 +263,22 @@ export function TitleCastPage() {
             canManage={isOwner}
             onUntag={handleUntag}
             isUntagging={untagArtist.isPending}
+            onResend={handleResend}
+            isResending={resendInvitation.isPending}
           />
+        )}
+        {resendInvitation.isError && <ErrorState error={resendInvitation.error} />}
+        {issuedLink && (
+          <div className="border-ink-200 bg-ink-50 rounded-md border px-4 py-3">
+            <p className="text-sm font-medium">Send this link to {issuedLink.recipient}</p>
+            <p className="text-ink-600 mt-1 text-xs">
+              Shown once, and it replaces any link issued before it. No email is sent yet — copy it
+              now.
+            </p>
+            <code className="text-ink-900 mt-2 block font-mono text-xs break-all">
+              {issuedLink.url}
+            </code>
+          </div>
         )}
         {untagArtist.isError && <ErrorState error={untagArtist.error} />}
       </div>

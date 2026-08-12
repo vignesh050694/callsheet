@@ -66,6 +66,7 @@ NOT_IN_CAST_MESSAGE = (
 )
 ALREADY_TAGGED_MESSAGE = "'{name}' is already tagged on this title"
 NO_CONTACT_MESSAGE = "Tagging an artist needs a way to reach them — an email address or a handle"
+NOT_PENDING_MESSAGE = "Membership {id} is {status}, not pending — there is nothing to resend"
 
 
 class TitleMembershipService:
@@ -141,6 +142,39 @@ class TitleMembershipService:
         title = await self._require_title(title_id)
         await self._require_organization_membership(title, caller)
         return await self._title_membership_repository.list_for_title(title_id)
+
+    async def resend_invitation(
+        self, title_id: uuid.UUID, membership_id: uuid.UUID, caller: User
+    ) -> tuple[TitleMembership, str]:
+        """Re-issues the acceptance token, so a resent link supersedes the earlier one.
+
+        This is the only way to recover a link. The raw token is returned exactly once,
+        on the response that mints it, and is never stored — so an owner who tagged an
+        artist and lost the link has to issue a new one rather than look the old one up.
+        Same shape as `InvitationService.resend_invitation` (E01-S02).
+        """
+        title = await self._require_title_owner(title_id, caller)
+        membership = await self._require_membership_on_title(title_id, membership_id)
+        if not membership.is_pending:
+            raise ValidationFailedError(
+                NOT_PENDING_MESSAGE.format(id=membership_id, status=membership.status)
+            )
+
+        raw_token = generate_invitation_token()
+        membership.token_hash = hash_invitation_token(raw_token)
+        membership.last_sent_at = datetime.now(UTC)
+        await self._session.commit()
+
+        reloaded = await self._reload(membership_id)
+        artist_name = reloaded.artist.display_name if reloaded.artist is not None else ""
+        await self._notifier.send_title_invitation(reloaded, title.name, artist_name)
+        _logger.info(
+            "title_membership.invitation_resent",
+            membership_id=str(membership_id),
+            title_id=str(title_id),
+            resent_by_user_id=str(caller.id),
+        )
+        return reloaded, raw_token
 
     async def untag_artist(
         self, title_id: uuid.UUID, membership_id: uuid.UUID, caller: User

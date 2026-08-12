@@ -185,6 +185,31 @@ export interface TaggedArtistCreate {
   handles: ArtistHandleInput[]
 }
 
+/**
+ * What the invited artist is shown before committing (E01-S04).
+ *
+ * `name_variants` and `handles` are what the production house guessed. Every one of them
+ * is editable — the artist is the only person who knows which spellings are theirs.
+ */
+export interface TitleInvitationPreview {
+  title_name: string
+  organization_name: string
+  artist_display_name: string
+  invited_email: string | null
+  name_variants: string[]
+  handles: ArtistHandleInput[]
+  scope: MembershipScope
+  /** Server-supplied, so the promise the API makes and the sentence shown are one string. */
+  privacy_notice: string
+}
+
+/** The confirmed set replaces the guess wholesale — a delta could not express a removal. */
+export interface TitleInvitationAccept {
+  token: string
+  name_variants: string[]
+  handles: ArtistHandleInput[]
+}
+
 export type CollectionRunStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'skipped'
 
 /**

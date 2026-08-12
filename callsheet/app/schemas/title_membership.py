@@ -143,3 +143,44 @@ class TitleMembersView(BaseModel):
     """Everything the title's access panel renders."""
 
     memberships: list[TitleMembershipRead]
+
+
+class TitleInvitationToken(BaseModel):
+    """The token alone, as the preview and the resend responses carry it."""
+
+    token: str
+
+
+class TitleInvitationPreview(BaseModel):
+    """What the artist is shown before they commit (E01-S04).
+
+    Carries the identity set the production house entered so the acceptance form can
+    pre-fill it. Every field here is correctable — the point of showing it is that the
+    artist is the only person who actually knows which spellings are theirs.
+    """
+
+    title_name: str
+    organization_name: str
+    artist_display_name: str
+    invited_email: str | None
+    name_variants: list[str]
+    handles: list[ArtistHandleCreate]
+    scope: MembershipScope
+    # Stated as data rather than baked into the page, so the promise the API makes and
+    # the sentence the artist reads are the same string.
+    privacy_notice: str
+
+
+class TitleInvitationAccept(BaseModel):
+    """The artist's confirmed identity set, replacing what the production house guessed.
+
+    `name_variants` and `handles` are the *whole* corrected set, not a delta — the form
+    lets the artist remove a variant, and a merge-only payload has no way to say "this
+    spelling is not me".
+    """
+
+    token: str
+    name_variants: VariantList = Field(default_factory=list, max_length=MAX_VARIANTS_PER_ARTIST)
+    handles: list[ArtistHandleCreate] = Field(
+        default_factory=list, max_length=MAX_HANDLES_PER_ARTIST
+    )

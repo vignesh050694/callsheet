@@ -90,8 +90,10 @@ export async function request<TResponse>(
 export const apiClient = {
   get: <TResponse>(path: string, signal?: AbortSignal) =>
     request<TResponse>(path, { method: 'GET', signal }),
-  post: <TResponse>(path: string, body: unknown) =>
-    request<TResponse>(path, { method: 'POST', body }),
+  // Takes a signal because one POST is a read: the title-invitation preview keeps its
+  // token out of the URL by sending it in a body, but it is still a cancellable query.
+  post: <TResponse>(path: string, body: unknown, signal?: AbortSignal) =>
+    request<TResponse>(path, { method: 'POST', body, signal }),
   put: <TResponse>(path: string, body: unknown) =>
     request<TResponse>(path, { method: 'PUT', body }),
   patch: <TResponse>(path: string, body: unknown) =>
