@@ -41,6 +41,7 @@ from app.services.invitation_service import InvitationService
 from app.services.organization_service import OrganizationService
 from app.services.preview_search import PreviewSearch, UnconfiguredPreviewSearch
 from app.services.reprocess_service import ReprocessService
+from app.services.title_membership_service import TitleMembershipService
 from app.services.title_preview_service import TitlePreviewService
 from app.services.title_service import TitleService
 from app.services.user_service import UserService
@@ -77,6 +78,16 @@ def get_invitation_service(
 
 
 InvitationServiceDep = Annotated[InvitationService, Depends(get_invitation_service)]
+
+
+def get_title_membership_service(
+    session: DbSession, notifier: InvitationNotifierDep
+) -> TitleMembershipService:
+    """Shares the notifier seam with organization invitations — one place to swap in a mailer."""
+    return TitleMembershipService(session, notifier)
+
+
+TitleMembershipServiceDep = Annotated[TitleMembershipService, Depends(get_title_membership_service)]
 
 
 def get_app_settings() -> Settings:
@@ -148,9 +159,7 @@ def get_preview_search() -> PreviewSearch:
 PreviewSearchDep = Annotated[PreviewSearch, Depends(get_preview_search)]
 
 
-def get_title_preview_service(
-    session: DbSession, search: PreviewSearchDep
-) -> TitlePreviewService:
+def get_title_preview_service(session: DbSession, search: PreviewSearchDep) -> TitlePreviewService:
     return TitlePreviewService(session, search)
 
 
@@ -170,18 +179,14 @@ def get_monid_transport() -> MonidTransport:
 MonidTransportDep = Annotated[MonidTransport, Depends(get_monid_transport)]
 
 
-def get_collection_source(
-    transport: MonidTransportDep, settings: AppSettings
-) -> CollectionSource:
+def get_collection_source(transport: MonidTransportDep, settings: AppSettings) -> CollectionSource:
     return MonidCollectionSource(transport, settings)
 
 
 CollectionSourceDep = Annotated[CollectionSource, Depends(get_collection_source)]
 
 
-def get_collection_service(
-    session: DbSession, source: CollectionSourceDep
-) -> CollectionService:
+def get_collection_service(session: DbSession, source: CollectionSourceDep) -> CollectionService:
     return CollectionService(session, source)
 
 
@@ -234,9 +239,7 @@ def get_mention_analyzer() -> MentionAnalyzer:
 MentionAnalyzerDep = Annotated[MentionAnalyzer, Depends(get_mention_analyzer)]
 
 
-def get_reprocess_service(
-    session: DbSession, analyzer: MentionAnalyzerDep
-) -> ReprocessService:
+def get_reprocess_service(session: DbSession, analyzer: MentionAnalyzerDep) -> ReprocessService:
     """Deliberately assembled without a collection source.
 
     A reprocess re-derives from stored payloads and must never be able to spend. Not

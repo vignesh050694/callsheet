@@ -35,7 +35,7 @@ is unmeasurable without it.
 |---|---|---|---|---|
 | E01-S01 | Create a production house organization and workspace | 1 | done | a708c43 |
 | E01-S02 | Invite a teammate into the organization with a role | 1 | done | 331ba42 |
-| E01-S03 | Tag an artist on a title and invite them | 2 | blocked | — |
+| E01-S03 | Tag an artist on a title and invite them | 2 | done | 3a94096 |
 | E01-S04 | Artist accepts an invite and links their profile | 2 | blocked | — |
 | E01-S05 | Grant an agency scoped access to a single title | 3 | blocked | — |
 | E01-S06 | Revoke access when an engagement ends | 3 | blocked | — |
@@ -75,9 +75,43 @@ this epic — they are access-control work, not title setup — and resume once 
   emailed); invitations never expire; frontend has no test runner, so all screens are unverified
   by automation. The story's "sees my organization's titles" clause is verified against
   organization PATCH/DELETE as a proxy — titles arrive in E02.
-- **E01-S03** — blocked · needs a title to tag an artist on ("Given: I own a title that has an
-  active collection running"). Waiting on E02-S01 (create a title); the "active collection"
-  Given additionally implies E03.
+- **E01-S03** — done · `3a94096` · 12 tests · `make check` + `npm run check` + `npm run build` green.
+  The blocker cleared when E02-S01 (create a title) and E03-S01 (collection starts on title
+  creation) both landed, so the branch was fast-forwarded onto the E02/E03 stack — `epic/E01` was
+  a strict ancestor of `epic/E03`, so no merge was needed and the history stays linear.
+
+  Introduces the two shapes the rest of the epic needs: an `Artist` entity with its own identity
+  set (separate from `users`, because a tagged artist may never hold an account), and
+  `title_memberships` — access scoped to one entity rather than a whole organization. The pending
+  membership *is* the invitation; it carries the capability token, so "offered access" and "has
+  access" cannot disagree.
+
+  Two review rounds. Round 1 found two real bugs. A `contact_handle` of nothing but invisible
+  characters passed the schema's `str.strip()` test, collapsed to `NULL` under the service's
+  `has_meaningful_content` cleaning, tripped `ck_title_membership_has_contact`, and surfaced
+  through the `IntegrityError` handler as "already tagged" — on a title nobody had ever tagged.
+  And the tagging screen shipped an acceptance link that could never redeem: it reused the
+  organization-invitation flow, whose token lives in a different table. Round 2 confirmed both
+  fixed and found a third in the same class — `invited_handle` reached a `String(300)` column
+  without `ensure_fits`, so a handle of 150 "ﬃ" ligatures cleared the schema's 300-character
+  limit and became 450 after NFKC, which Postgres answers with a `DataError` (a sibling of
+  `IntegrityError`, so the conflict handler misses it) and the caller sees as a 500. Invisible
+  under the test suite, which runs on SQLite and does not enforce VARCHAR limits.
+
+  **Deviation from the pipeline, recorded deliberately:** the third finding was fixed and given a
+  regression test without a third full review round, under the MVP instruction to relax review
+  depth. The fix is one guarded call matching three existing call sites in the same file.
+
+  Carried limitations: tagging requires the person to already be named in the title's identity set
+  (cast, director, or music director) — the story's Given assumes it, and an untethered artist
+  entity would have an empty slice by construction, since a tagged artist sees only mentions
+  naming them. A handle-only tag is accepted but is not a verified channel: only an email address
+  can be matched when the artist accepts, so the owner passes a handle invitation on by hand —
+  the same limitation E01-S02 carries while there is no mail transport. **The acceptance link is
+  deliberately absent from this screen**, so the minted token is not recoverable after the
+  response that issued it; E01-S04 must mint a fresh token rather than assume it can surface
+  S03's. Frontend still has no test runner, so the Cast access screen is verified by typecheck,
+  build, and manual exercise only.
 - **E01-S04** — blocked · needs E01-S03 ("Given: a production house has tagged me on a title").
   Its alias corrections also feed the identity set from E02-S04.
 - **E01-S05** — blocked · needs titles to scope access to ("Given: my organization owns three
@@ -87,7 +121,8 @@ this epic — they are access-control work, not title setup — and resume once 
   and internal viewers" — the internal-viewer half is buildable today, but the story's scenario
   is agency-scoped, so it moves as one piece rather than being split.
 
-**Epic status:** phase 1 complete — 2/6 stories done on
-`epic/E01-organizations-access-membership`. Phases 2 and 3 (4 stories) are blocked on E02 and
-resume once titles exist. The epic's hypothesis is not yet measurable: it needs a pilot title
-with an owner plus one non-owner member, and titles arrive in E02.
+**Epic status:** phase 1 complete, phases 2 and 3 in delivery — 2/6 stories done on
+`epic/E01-organizations-access-membership`. The E02 dependency that blocked S03–S06 is resolved;
+the branch now carries titles and the collection layer. The epic's hypothesis becomes measurable
+once a pilot title has an owner plus one accepted non-owner member — S03 creates the tag, S04 is
+where the artist accepts.

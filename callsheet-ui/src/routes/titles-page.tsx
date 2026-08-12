@@ -112,6 +112,12 @@ function TitleRow({ title, isOwner }: { title: Title; isOwner: boolean }) {
         >
           {isOwner ? 'Edit schedule' : 'View schedule'}
         </Link>
+        <Link
+          to={`/titles/${title.id}/cast`}
+          className="text-ink-400 hover:text-ink-900 underline underline-offset-2"
+        >
+          Cast access
+        </Link>
       </div>
       <TitleCollectionStatusLine
         status={collectionStatus.data}

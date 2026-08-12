@@ -116,6 +116,75 @@ export interface Title {
   updated_at: string
 }
 
+/** Access granted on a single title rather than the whole organization (E01-S03). */
+export type TitleRole = 'tagged_artist' | 'agency_manager'
+
+export type TitleMembershipStatus = 'pending' | 'active' | 'revoked'
+
+export type ArtistTermType = 'name_variant' | 'handle'
+
+export interface ArtistTerm {
+  term_type: ArtistTermType
+  value: string
+  normalized_value: string
+  /** Which network a handle belongs to. Null for a name variant. */
+  platform: string | null
+}
+
+export interface Artist {
+  id: string
+  display_name: string
+  terms: ArtistTerm[]
+}
+
+/**
+ * What a membership lets its holder see, derived server-side from the role.
+ *
+ * Rendered before the invitation goes out, so the owner sees the restriction they are
+ * granting rather than being told about it afterwards.
+ */
+export interface MembershipScope {
+  can_see_only_mentions_naming_subject: boolean
+  can_edit_title_setup: boolean
+  summary: string
+}
+
+export interface TitleMembership {
+  id: string
+  title_id: string
+  role: TitleRole
+  status: TitleMembershipStatus
+  artist: Artist | null
+  invited_email: string | null
+  invited_handle: string | null
+  scope: MembershipScope
+  last_sent_at: string
+  accepted_at: string | null
+  created_at: string
+}
+
+/** The mint-time response only: `token` is returned once and never listed. */
+export interface TitleMembershipCreated extends TitleMembership {
+  token: string
+}
+
+export interface TitleMembersView {
+  memberships: TitleMembership[]
+}
+
+export interface ArtistHandleInput {
+  platform: string
+  handle: string
+}
+
+export interface TaggedArtistCreate {
+  artist_name: string
+  contact_email?: string | null
+  contact_handle?: string | null
+  name_variants: string[]
+  handles: ArtistHandleInput[]
+}
+
 export type CollectionRunStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'skipped'
 
 /**
