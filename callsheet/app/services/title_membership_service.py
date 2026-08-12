@@ -19,7 +19,6 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import (
-    PermissionDeniedError,
     ResourceConflictError,
     ResourceNotFoundError,
     ValidationFailedError,
@@ -53,6 +52,7 @@ from app.repositories.title_repository import TitleRepository
 from app.schemas.title_membership import TaggedArtistCreate
 from app.services.identity_rules import ensure_fits
 from app.services.invitation_notifier import InvitationNotifier
+from app.services.title_access import TitleAccessPolicy
 
 _logger = structlog.get_logger(__name__)
 
@@ -77,6 +77,7 @@ class TitleMembershipService:
         self._artist_repository = ArtistRepository(session)
         self._membership_repository = MembershipRepository(session)
         self._title_membership_repository = TitleMembershipRepository(session)
+        self._access_policy = TitleAccessPolicy(session)
 
     async def tag_artist(
         self, title_id: uuid.UUID, payload: TaggedArtistCreate, caller: User
@@ -138,9 +139,14 @@ class TitleMembershipService:
         return await self._reload(membership.id), raw_token
 
     async def list_memberships(self, title_id: uuid.UUID, caller: User) -> list[TitleMembership]:
-        """Any member of the owning organization may see who has been let in."""
-        title = await self._require_title(title_id)
-        await self._require_organization_membership(title, caller)
+        """Any member of the owning organization may see who has been let in.
+
+        Through the shared policy, like every other access decision here. This method
+        used to hand-roll the same check, which was a fourth copy of exactly the rule
+        `TitleAccessPolicy` exists to hold — sitting in a service that already had the
+        policy injected and used it everywhere else.
+        """
+        await self._access_policy.require_owning_organization(title_id, caller)
         return await self._title_membership_repository.list_for_title(title_id)
 
     async def resend_invitation(
@@ -327,12 +333,6 @@ class TitleMembershipService:
             raise ResourceNotFoundError(MEMBERSHIP_NOT_FOUND_MESSAGE.format(id=membership_id))
         return membership
 
-    async def _require_title(self, title_id: uuid.UUID) -> Title:
-        title = await self._title_repository.get_by_id(title_id)
-        if title is None:
-            raise ResourceNotFoundError(TITLE_NOT_FOUND_MESSAGE.format(id=title_id))
-        return title
-
     async def _require_membership_on_title(
         self, title_id: uuid.UUID, membership_id: uuid.UUID
     ) -> TitleMembership:
@@ -342,46 +342,18 @@ class TitleMembershipService:
             raise ResourceNotFoundError(MEMBERSHIP_NOT_FOUND_MESSAGE.format(id=membership_id))
         return membership
 
-    async def _require_organization_membership(self, title: Title, caller: User) -> None:
-        """A non-member is told the title does not exist — it may be unannounced."""
-        membership = await self._membership_repository.get_for_user_and_organization(
-            caller.id, title.organization_id
-        )
-        if membership is None:
-            _logger.warning(
-                "title_membership.access.not_a_member",
-                title_id=str(title.id),
-                user_id=str(caller.id),
-            )
-            raise ResourceNotFoundError(TITLE_NOT_FOUND_MESSAGE.format(id=title.id))
-
     async def _require_title_owner(self, title_id: uuid.UUID, caller: User) -> Title:
-        """Owner-only, and a non-member gets the 404 rather than the 403.
+        """Owner-only, resolved through the one policy that decides title access.
 
-        The distinction is the one `TitleService._require_title_owner` documents: a viewer
-        can already see the title, so claiming it is missing would be a lie they could
-        disprove; a non-member must not learn it exists at all.
+        Kept as a named method because three call sites read better for it, but the rule
+        itself lives in `TitleAccessPolicy` since E01-S05 — a viewer or an agency holding
+        a read-only grant gets 403 because they can already see the title, and a stranger
+        gets the same 404 a missing title gets.
         """
-        title = await self._require_title(title_id)
-        membership = await self._membership_repository.get_for_user_and_organization(
-            caller.id, title.organization_id
+        access = await self._access_policy.require_administrable(
+            title_id, caller, owner_message=NOT_AN_OWNER_MESSAGE
         )
-        if membership is None:
-            _logger.warning(
-                "title_membership.tag.not_a_member",
-                title_id=str(title_id),
-                user_id=str(caller.id),
-            )
-            raise ResourceNotFoundError(TITLE_NOT_FOUND_MESSAGE.format(id=title_id))
-        if not membership.role.can_administer_organization:
-            _logger.warning(
-                "title_membership.tag.permission_denied",
-                title_id=str(title_id),
-                user_id=str(caller.id),
-                role=str(membership.role),
-            )
-            raise PermissionDeniedError(NOT_AN_OWNER_MESSAGE)
-        return title
+        return access.title
 
 
 def _clean_optional(value: str | None) -> str | None:

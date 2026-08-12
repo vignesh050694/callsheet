@@ -28,7 +28,6 @@ import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.cadence_phase import CadencePhase
-from app.core.exceptions import ResourceNotFoundError
 from app.models.collection_run import CollectionRun, CollectionRunStatus
 from app.models.title import Title
 from app.models.user import User
@@ -37,10 +36,9 @@ from app.repositories.membership_repository import MembershipRepository
 from app.repositories.mention_repository import MentionRepository
 from app.repositories.title_repository import TitleRepository
 from app.services.collection.cadence import CadenceDecision, CadencePolicy
+from app.services.title_access import TitleAccessPolicy
 
 _logger = structlog.get_logger(__name__)
-
-TITLE_NOT_FOUND_MESSAGE = "Title {id} was not found"
 
 
 @dataclass(frozen=True, slots=True)
@@ -93,28 +91,20 @@ class CollectionStatusService:
         self._session = session
         self._title_repository = TitleRepository(session)
         self._membership_repository = MembershipRepository(session)
+        self._access_policy = TitleAccessPolicy(session)
         self._run_repository = CollectionRunRepository(session)
         self._mention_repository = MentionRepository(session)
         self._cadence = cadence
 
     async def status_for_title(self, title_id: uuid.UUID, caller: User) -> CollectionStatus:
-        """Visible to any member of the owning organization, as the title itself is."""
-        title = await self._title_repository.get_by_id(title_id)
-        if title is None:
-            raise ResourceNotFoundError(TITLE_NOT_FOUND_MESSAGE.format(id=title_id))
+        """Visible to exactly whoever can see the title itself.
 
-        membership = await self._membership_repository.get_for_user_and_organization(
-            caller.id, title.organization_id
-        )
-        if membership is None:
-            # The same 404 the title itself gives a non-member — who is tracking what is
-            # not something a stranger should be able to probe.
-            _logger.warning(
-                "collection.status.not_a_member",
-                title_id=str(title_id),
-                user_id=str(caller.id),
-            )
-            raise ResourceNotFoundError(TITLE_NOT_FOUND_MESSAGE.format(id=title_id))
+        Resolved through the shared policy rather than re-deriving the rule, so an agency
+        granted a title sees whether it is collecting — and a stranger still cannot probe
+        who is tracking what.
+        """
+        access = await self._access_policy.require_readable(title_id, caller)
+        title = access.title
 
         pending = await self._run_repository.next_pending_for_title(title_id)
         latest = await self._run_repository.latest_finished_for_title(title_id)

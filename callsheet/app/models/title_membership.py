@@ -23,6 +23,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.artist import Artist
 from app.models.base import Base, TimestampMixin, UuidPrimaryKeyMixin
+from app.models.organization import Organization
 from app.models.title import Title
 from app.models.user import User
 
@@ -88,10 +89,27 @@ class TitleMembership(Base, UuidPrimaryKeyMixin, TimestampMixin):
             "(role != 'TAGGED_ARTIST') OR (artist_id IS NOT NULL)",
             name="ck_title_membership_artist_subject",
         ),
-        # The invitation has to be reachable. Without either channel the token can never
-        # be delivered, and the row would sit pending forever with no way to act on it.
+        # The mirror of the rule above: an agency grant is held by an organization, not a
+        # person. Without this a grant could name nobody and still confer access.
         CheckConstraint(
-            "(invited_email IS NOT NULL) OR (invited_handle IS NOT NULL)",
+            "(role != 'AGENCY_MANAGER') OR (subject_organization_id IS NOT NULL)",
+            name="ck_title_membership_agency_subject",
+        ),
+        # One grant per organization per title. Re-sharing a title already shared is a
+        # double-submit, not a second grant.
+        UniqueConstraint(
+            "title_id",
+            "subject_organization_id",
+            name="uq_title_membership_organization",
+        ),
+        # An artist invitation has to be reachable: without either channel the token can
+        # never be delivered and the row sits pending forever with no way to act on it.
+        # Scoped to the artist role, because an agency grant is not an invitation — the
+        # organization is already on the platform and access starts immediately, so there
+        # is nothing to send and no address to send it to.
+        CheckConstraint(
+            "(role != 'TAGGED_ARTIST') "
+            "OR (invited_email IS NOT NULL) OR (invited_handle IS NOT NULL)",
             name="ck_title_membership_has_contact",
         ),
     )
@@ -153,18 +171,32 @@ class TitleMembership(Base, UuidPrimaryKeyMixin, TimestampMixin):
         nullable=True,
         index=True,
     )
-    last_sent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    # The agency organization a title is shared with (E01-S05). Access follows the
+    # organization rather than the individual, because agency staff change mid-engagement
+    # and re-inviting each new account by hand is how a former employee keeps access.
+    subject_organization_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+    # When the invitation was last issued. Null for an agency grant, which is never sent —
+    # recording a send time for a message that does not exist would put a falsehood in the
+    # one table access questions get answered from.
+    last_sent_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
     accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     title: Mapped[Title] = relationship(lazy="raise")
     artist: Mapped[Artist | None] = relationship(lazy="raise")
+    subject_organization: Mapped[Organization | None] = relationship(lazy="raise")
     # Two foreign keys point at `users`, so each relationship has to say which one it
     # follows — SQLAlchemy cannot infer the join otherwise.
     invited_by: Mapped[User] = relationship(lazy="raise", foreign_keys=[invited_by_user_id])
-    subject_user: Mapped[User | None] = relationship(
-        lazy="raise", foreign_keys=[subject_user_id]
-    )
+    subject_user: Mapped[User | None] = relationship(lazy="raise", foreign_keys=[subject_user_id])
 
     @property
     def is_pending(self) -> bool:

@@ -43,6 +43,7 @@ from app.models.title import Title
 from app.models.title_membership import TitleMembership, TitleMembershipStatus
 from app.models.user import User
 from app.repositories.artist_repository import ArtistRepository
+from app.repositories.membership_repository import MembershipRepository
 from app.repositories.organization_repository import OrganizationRepository
 from app.repositories.title_membership_repository import TitleMembershipRepository
 from app.repositories.title_repository import TitleRepository
@@ -72,6 +73,9 @@ class TitleInvitationService:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
         self._membership_repository = TitleMembershipRepository(session)
+        # The organization memberships this account holds — how an agency manager reaches
+        # the titles shared with their agency (E01-S05).
+        self._organization_membership_repository = MembershipRepository(session)
         self._artist_repository = ArtistRepository(session)
         self._title_repository = TitleRepository(session)
         self._organization_repository = OrganizationRepository(session)
@@ -137,8 +141,38 @@ class TitleInvitationService:
         return await self._reload(membership.id)
 
     async def list_shared_titles(self, caller: User) -> list[Title]:
-        """Every title this account can read through an accepted title membership."""
-        return await self._membership_repository.list_active_titles_for_user(caller.id)
+        """Every title this account can read through a grant rather than through ownership.
+
+        Two routes in, and a person can hold both: an artist tagged directly, and an
+        agency manager reaching titles through their organization (E01-S05). Merged and
+        deduplicated, because the same title arriving by both paths is one entry in the
+        client switcher, not two.
+
+        Titles the caller's organization *owns* are deliberately absent — those come from
+        `/organizations/{id}/titles`, which is an ownership question, not a sharing one.
+        """
+        titles = await self._membership_repository.list_active_titles_for_user(caller.id)
+        organization_ids = [
+            membership.organization_id
+            for membership in await self._organization_membership_repository.list_for_user(
+                caller.id
+            )
+        ]
+        titles.extend(
+            await self._membership_repository.list_active_titles_for_organizations(organization_ids)
+        )
+
+        seen: set[uuid.UUID] = set()
+        merged: list[Title] = []
+        for title in titles:
+            if title.id in seen:
+                continue
+            seen.add(title.id)
+            merged.append(title)
+        # Re-sorted after the merge: each query was ordered on its own, and concatenating
+        # two ordered lists does not produce an ordered list.
+        merged.sort(key=lambda title: (title.release_date, title.id), reverse=True)
+        return merged
 
     async def _require_redeemable(self, raw_token: str, caller: User) -> TitleMembership:
         """The token has to be live, and it has to be redeemed by the person it names."""

@@ -37,7 +37,7 @@ is unmeasurable without it.
 | E01-S02 | Invite a teammate into the organization with a role | 1 | done | 331ba42 |
 | E01-S03 | Tag an artist on a title and invite them | 2 | done | c0fd6db |
 | E01-S04 | Artist accepts an invite and links their profile | 2 | done | e431852 |
-| E01-S05 | Grant an agency scoped access to a single title | 3 | blocked | — |
+| E01-S05 | Grant an agency scoped access to a single title | 3 | done | — |
 | E01-S06 | Revoke access when an engagement ends | 3 | blocked | — |
 
 ## Dependencies
@@ -146,8 +146,43 @@ this epic — they are access-control work, not title setup — and resume once 
   **Note on the working tree:** this story was delivered alongside unrelated in-flight E03 work
   (a live Monid HTTP transport) that shares `app/api/deps.py`. Only this story's changes were
   staged; that work remains uncommitted and untouched.
-- **E01-S05** — blocked · needs titles to scope access to ("Given: my organization owns three
-  titles, two of which are unannounced"). Waiting on E02-S01.
+- **E01-S05** — done · `—` · 8 tests · `make check` + `npm run check` + `npm run build` green.
+
+  The story's real requirement is the one in its Notes — *enforcement at the query layer* — and
+  the work that mattered was consolidation rather than the grant itself. Three services each held
+  their own copy of "is the caller a member of the owning organization": `TitleService`,
+  `CollectionStatusService`, and `TitlePreviewService`. That was correct while ownership was the
+  only way in, and became a liability the moment a title could be shared, because adding the new
+  case to two of three is a silent hole. `TitleAccessPolicy` is now the single answer, and every
+  route taking a title id resolves through it.
+
+  Access is held by the agency *organization*, not by named people in it, because agency staff
+  change mid-engagement and the failure mode of re-inviting by hand is a departed employee who
+  still has access. A grant is live immediately — there is nothing to accept, so an agency
+  membership has no invitation, no contact channel, and no `last_sent_at`; both constraints that
+  assumed otherwise were narrowed to the tagged-artist role rather than dropped.
+
+  Two review rounds. Round 1 found two real bugs, one of them serious: the migration's
+  `downgrade()` restored `last_sent_at` to `NOT NULL` and reinstated an unscoped contact
+  constraint, neither of which an agency row can satisfy — so rollback broke the moment the
+  feature was used once, which is exactly when it would be needed. Reproduced against real
+  Postgres by the reviewer, fixed, and the upgrade → seed → downgrade → upgrade round trip
+  re-verified against Postgres before commit. The second was a *fourth* copy of the access rule
+  hiding in `list_memberships`, inside the very change that removed the other three. Round 2
+  passed and flagged the old helpers as dead code, which was then removed.
+
+  Stage 2 also found a real inconsistency before review: `/access-log` refused an agency with 403
+  while its sibling `/memberships` refused with 404 — two lateral-visibility surfaces denying the
+  same thing two different ways, and the 403's message spoke about editing setup on a read. Both
+  now give the plain 404 a stranger gets.
+
+  Carried limitations: sharing is per title and per agency, one request at a time — deliberate,
+  since the story requires the studio to name what it shares and there is no bulk path anywhere
+  in the API or UI. The grantee must already exist and be an `agency` organization; a production
+  house cannot be granted the agency-manager role. Export is permitted by the role but there is
+  no export feature yet to exercise it. The agency's own multi-client workspace is E07-S01, out
+  of scope here — an agency manager sees shared titles through `/me/titles`. Frontend still has
+  no test runner.
 - **E01-S06** — blocked · needs E01-S05 ("Given: an agency organization currently has manager
   access to one of my titles"). The Notes say revocation "applies identically to tagged artists
   and internal viewers" — the internal-viewer half is buildable today, but the story's scenario

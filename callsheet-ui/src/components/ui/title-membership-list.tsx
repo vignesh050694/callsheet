@@ -10,7 +10,19 @@
  * rather than truncating to a fixed width.
  */
 
-import type { TitleMembership, TitleMembershipStatus } from '@/types/api'
+import type { TitleMembership, TitleMembershipStatus, TitleRole } from '@/types/api'
+
+const ROLE_LABELS: Record<TitleRole, string> = {
+  tagged_artist: 'Tagged artist',
+  agency_manager: 'Agency manager',
+}
+
+/** A membership names either a person or an organization, never both. */
+function subjectNameOf(membership: TitleMembership): string {
+  return (
+    membership.artist?.display_name ?? membership.subject_organization?.name ?? 'Unknown subject'
+  )
+}
 
 const STATUS_LABELS: Record<TitleMembershipStatus, string> = {
   pending: 'Invited — not yet accepted',
@@ -74,9 +86,8 @@ export function TitleMembershipList({
       {memberships.map((membership) => (
         <li key={membership.id} className="flex flex-wrap items-start gap-3 py-3">
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium break-words">
-              {membership.artist?.display_name ?? 'Unnamed artist'}
-            </p>
+            <p className="text-sm font-medium break-words">{subjectNameOf(membership)}</p>
+            <p className="text-ink-400 mt-0.5 text-xs">{ROLE_LABELS[membership.role]}</p>
             <ContactLine membership={membership} />
             {/* The restriction, restated on the row rather than only at tagging time —
                 this list is where an owner checks what an external party can see. */}
@@ -85,20 +96,22 @@ export function TitleMembershipList({
 
           <div className="flex items-center gap-2">
             <StatusChip status={membership.status} />
-            {canManage && membership.status === 'pending' && (
-              // Only for a pending row: the raw token is shown once and never stored, so
-              // re-issuing is the only way to recover a link — and an accepted membership
-              // has nothing left to redeem.
-              <button
-                type="button"
-                onClick={() => onResend(membership)}
-                disabled={isResending}
-                className="border-ink-200 hover:border-ink-400 rounded-md border px-2 py-1 text-xs disabled:opacity-40"
-              >
-                Get link
-              </button>
-            )}
-            {canManage && (
+            {canManage &&
+              membership.status === 'pending' &&
+              membership.role === 'tagged_artist' && (
+                // Only for a pending row: the raw token is shown once and never stored, so
+                // re-issuing is the only way to recover a link — and an accepted membership
+                // has nothing left to redeem.
+                <button
+                  type="button"
+                  onClick={() => onResend(membership)}
+                  disabled={isResending}
+                  className="border-ink-200 hover:border-ink-400 rounded-md border px-2 py-1 text-xs disabled:opacity-40"
+                >
+                  Get link
+                </button>
+              )}
+            {canManage && membership.role === 'tagged_artist' && (
               <button
                 type="button"
                 onClick={() => onUntag(membership)}

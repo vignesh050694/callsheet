@@ -45,6 +45,7 @@ from app.services.title_invitation_service import TitleInvitationService
 from app.services.title_membership_service import TitleMembershipService
 from app.services.title_preview_service import TitlePreviewService
 from app.services.title_service import TitleService
+from app.services.title_sharing_service import TitleSharingService
 from app.services.user_service import UserService
 
 DbSession = Annotated[AsyncSession, Depends(get_db_session)]
@@ -97,6 +98,14 @@ def get_title_invitation_service(session: DbSession) -> TitleInvitationService:
 
 
 TitleInvitationServiceDep = Annotated[TitleInvitationService, Depends(get_title_invitation_service)]
+
+
+def get_title_sharing_service(session: DbSession) -> TitleSharingService:
+    """Sharing sends nothing — the agency organization is already on the platform."""
+    return TitleSharingService(session)
+
+
+TitleSharingServiceDep = Annotated[TitleSharingService, Depends(get_title_sharing_service)]
 
 
 def get_app_settings() -> Settings:

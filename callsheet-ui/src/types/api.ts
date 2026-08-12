@@ -149,16 +149,45 @@ export interface MembershipScope {
   summary: string
 }
 
+/** The agency a title is shared with (E01-S05). */
+export interface SharedOrganization {
+  id: string
+  name: string
+  slug: string
+}
+
+export type AccessAuditAction = 'granted' | 'revoked'
+
+/** One recorded change to who can see a title. Append-only. */
+export interface AccessAuditEvent {
+  id: string
+  action: AccessAuditAction
+  role: TitleRole
+  actor_user_id: string
+  subject_organization_id: string | null
+  subject_user_id: string | null
+  /** Denormalised, so the row still reads after the organization or artist is gone. */
+  subject_name: string
+  created_at: string
+}
+
+export interface AgencyShareCreate {
+  agency_organization_id: string
+}
+
 export interface TitleMembership {
   id: string
   title_id: string
   role: TitleRole
   status: TitleMembershipStatus
   artist: Artist | null
+  /** Set for an agency grant; exactly one of this and `artist` is present. */
+  subject_organization: SharedOrganization | null
   invited_email: string | null
   invited_handle: string | null
   scope: MembershipScope
-  last_sent_at: string
+  /** Null for an agency grant — nothing was ever sent. */
+  last_sent_at: string | null
   accepted_at: string | null
   created_at: string
 }

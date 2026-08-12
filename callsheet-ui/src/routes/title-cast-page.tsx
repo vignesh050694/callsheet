@@ -19,13 +19,16 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
+import { AgencyShareForm } from '@/components/ui/agency-share-form'
 import { ErrorState, LoadingState } from '@/components/ui/status-message'
 import { TitleMembershipList } from '@/components/ui/title-membership-list'
 import { useCurrentUser } from '@/hooks/use-current-user'
 import { useResendTitleInvitation } from '@/hooks/use-title-invitations'
 import { useTagArtist, useTitleMemberships, useUntagArtist } from '@/hooks/use-title-memberships'
+import { useTitleAccessLog } from '@/hooks/use-title-sharing'
 import { useTitle } from '@/hooks/use-titles'
 import { buildTitleAcceptanceUrl } from '@/lib/invitations'
+import { formatDay } from '@/lib/release-phase'
 import { hasMeaningfulContent, parseTermList } from '@/lib/title-identity'
 import type { Title, TitleMembership } from '@/types/api'
 
@@ -242,7 +245,7 @@ export function TitleCastPage() {
           ← Back to titles
         </Link>
         <h1 className="mt-2 text-xl font-semibold tracking-tight">{title.data.name}</h1>
-        <p className="text-ink-600 mt-1 text-sm">Cast access</p>
+        <p className="text-ink-600 mt-1 text-sm">Access</p>
       </div>
 
       {isOwner ? (
@@ -282,6 +285,49 @@ export function TitleCastPage() {
         )}
         {untagArtist.isError && <ErrorState error={untagArtist.error} />}
       </div>
+
+      {isOwner && (
+        <div className="border-ink-200 space-y-3 rounded-lg border bg-white p-5">
+          <h2 className="text-sm font-semibold">Share with an agency</h2>
+          <AgencyShareForm titleId={title.data.id} titleName={title.data.name} />
+        </div>
+      )}
+
+      {/* Owners only. The server refuses the log to a shared grant — it names the other
+          partners on this title, which is exactly the lateral visibility scoped access
+          exists to deny — and asking for it here would only produce a 403. */}
+      {isOwner && <AccessLogPanel titleId={title.data.id} />}
     </section>
+  )
+}
+
+function AccessLogPanel({ titleId }: { titleId: string }) {
+  const accessLog = useTitleAccessLog(titleId, true)
+
+  return (
+    <div className="border-ink-200 space-y-3 rounded-lg border bg-white p-5">
+      <h2 className="text-sm font-semibold">Access log</h2>
+      <p className="text-ink-400 text-xs">
+        Every grant and revocation on this title, newest first. Append-only.
+      </p>
+      {accessLog.isPending && <LoadingState label="Loading access log…" />}
+      {accessLog.isError && <ErrorState error={accessLog.error} />}
+      {accessLog.data &&
+        (accessLog.data.length === 0 ? (
+          <p className="text-ink-400 text-sm">Nothing has been granted or revoked yet.</p>
+        ) : (
+          <ul className="divide-ink-200 divide-y">
+            {accessLog.data.map((event) => (
+              <li key={event.id} className="py-2 text-xs">
+                <span className="font-medium">{event.subject_name}</span>{' '}
+                <span className="text-ink-600">
+                  {event.action === 'granted' ? 'was granted' : 'lost'} {event.role} access
+                </span>
+                <span className="text-ink-400"> · {formatDay(event.created_at.slice(0, 10))}</span>
+              </li>
+            ))}
+          </ul>
+        ))}
+    </div>
   )
 }

@@ -44,6 +44,7 @@ from app.repositories.title_repository import TitleRepository
 from app.schemas.title import TitleCreate, TitleMilestoneCreate, TitleScheduleUpdate
 from app.services.collection_schedule_service import CollectionScheduleService
 from app.services.identity_rules import ensure_fits, ensure_name_is_collectable
+from app.services.title_access import TitleAccessPolicy
 
 _logger = structlog.get_logger(__name__)
 
@@ -67,6 +68,7 @@ class TitleService:
         self._session = session
         self._title_repository = TitleRepository(session)
         self._membership_repository = MembershipRepository(session)
+        self._access_policy = TitleAccessPolicy(session)
         self._schedule_service = schedule_service
 
     async def create_title(
@@ -144,11 +146,14 @@ class TitleService:
         has already been collected. Charts re-split on the next read because the phase is
         derived there, not stamped on rows at collection time.
         """
-        title = await self._title_repository.get_by_id(title_id)
-        if title is None:
-            raise ResourceNotFoundError(TITLE_NOT_FOUND_MESSAGE.format(id=title_id))
-
-        await self._require_title_owner(title, caller)
+        # Through the shared policy, so a caller holding a read-only grant is told their
+        # access does not stretch this far (403) rather than that the title is missing —
+        # they can see it, so a 404 would be a lie they could disprove. A stranger still
+        # gets the 404.
+        access = await self._access_policy.require_administrable(
+            title_id, caller, owner_message=NOT_AN_OWNER_SCHEDULE_MESSAGE
+        )
+        title = access.title
 
         title.release_date = payload.release_date
         self._apply_milestones(title, payload.milestones)
@@ -178,25 +183,15 @@ class TitleService:
         return updated_title
 
     async def get_title(self, title_id: uuid.UUID, caller: User) -> Title:
-        """A title is visible to members of the organization that owns it, and nobody else."""
-        title = await self._title_repository.get_by_id(title_id)
-        if title is None:
-            raise ResourceNotFoundError(TITLE_NOT_FOUND_MESSAGE.format(id=title_id))
+        """Visible to the owning organization, and to anyone it has been shared with.
 
-        membership = await self._membership_repository.get_for_user_and_organization(
-            caller.id, title.organization_id
-        )
-        if membership is None:
-            # The same "not found" a missing title gets — a non-member learns nothing
-            # about which titles exist, which matters most for unannounced ones.
-            _logger.warning(
-                "title.access.not_a_member",
-                title_id=str(title_id),
-                user_id=str(caller.id),
-            )
-            raise ResourceNotFoundError(TITLE_NOT_FOUND_MESSAGE.format(id=title_id))
-
-        return title
+        The rule moved to `TitleAccessPolicy` when titles became shareable (E01-S05).
+        Three services used to hold their own copy of it, which was fine while ownership
+        was the only way in and became a liability the moment it was not: adding the
+        shared case to two of three is a silent hole.
+        """
+        access = await self._access_policy.require_readable(title_id, caller)
+        return access.title
 
     async def list_titles(
         self, organization_id: uuid.UUID, caller: User, *, limit: int, offset: int
@@ -436,34 +431,6 @@ class TitleService:
         )
         if membership is None:
             raise ResourceNotFoundError(ORGANIZATION_NOT_FOUND_MESSAGE.format(id=organization_id))
-        return membership
-
-    async def _require_title_owner(self, title: Title, caller: User) -> Membership:
-        """Owner-only, but a non-member is told the title does not exist.
-
-        The two failures have to stay distinct. A viewer can already see this title, so
-        pretending it is missing would be a lie they can disprove — they get 403. A
-        non-member must not learn that the title exists at all, which matters most for
-        an unannounced one, so they get the same 404 a missing row gets.
-        """
-        membership = await self._membership_repository.get_for_user_and_organization(
-            caller.id, title.organization_id
-        )
-        if membership is None:
-            _logger.warning(
-                "title.schedule.not_a_member",
-                title_id=str(title.id),
-                user_id=str(caller.id),
-            )
-            raise ResourceNotFoundError(TITLE_NOT_FOUND_MESSAGE.format(id=title.id))
-        if not membership.role.can_administer_organization:
-            _logger.warning(
-                "title.schedule.permission_denied",
-                title_id=str(title.id),
-                user_id=str(caller.id),
-                role=str(membership.role),
-            )
-            raise PermissionDeniedError(NOT_AN_OWNER_SCHEDULE_MESSAGE)
         return membership
 
     async def _require_owner(self, organization_id: uuid.UUID, caller: User) -> Membership:

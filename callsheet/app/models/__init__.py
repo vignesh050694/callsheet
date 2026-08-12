@@ -1,5 +1,6 @@
 """Model package. Import every model here so Alembic autogenerate sees the full metadata."""
 
+from app.models.access_audit import AccessAuditAction, AccessAuditEvent
 from app.models.artist import Artist, ArtistIdentityTerm, ArtistTermType
 from app.models.base import Base
 from app.models.collection_run import (
@@ -22,6 +23,8 @@ from app.models.title_membership import (
 from app.models.user import User
 
 __all__ = [
+    "AccessAuditAction",
+    "AccessAuditEvent",
     "Artist",
     "ArtistIdentityTerm",
     "ArtistTermType",

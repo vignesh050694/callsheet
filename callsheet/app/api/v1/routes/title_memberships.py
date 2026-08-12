@@ -8,11 +8,14 @@ import uuid
 
 from fastapi import APIRouter, status
 
-from app.api.deps import CurrentUser, TitleMembershipServiceDep
+from app.api.deps import CurrentUser, TitleMembershipServiceDep, TitleSharingServiceDep
 from app.models.title_membership import TitleMembership
 from app.schemas.title_membership import (
+    AccessAuditEventRead,
+    AgencyShareCreate,
     ArtistRead,
     MembershipScope,
+    SharedOrganizationRead,
     TaggedArtistCreate,
     TitleMembershipCreated,
     TitleMembershipRead,
@@ -45,6 +48,11 @@ def to_membership_read(membership: TitleMembership) -> TitleMembershipRead:
         status=membership.status,
         artist=(
             ArtistRead.model_validate(membership.artist) if membership.artist is not None else None
+        ),
+        subject_organization=(
+            SharedOrganizationRead.model_validate(membership.subject_organization)
+            if membership.subject_organization is not None
+            else None
         ),
         invited_email=membership.invited_email,
         invited_handle=membership.invited_handle,
@@ -98,6 +106,40 @@ async def list_title_memberships(
     return TitleMembersView(
         memberships=[to_membership_read(membership) for membership in memberships]
     )
+
+
+@router.post(
+    "/titles/{title_id}/shares",
+    response_model=TitleMembershipRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Share this title with an agency organization",
+)
+async def share_title_with_agency(
+    title_id: uuid.UUID,
+    payload: AgencyShareCreate,
+    sharing_service: TitleSharingServiceDep,
+    current_user: CurrentUser,
+) -> TitleMembershipRead:
+    """One title per request. There is no bulk or all-titles form on purpose — the studio
+    names what it is sharing, and the rest of the slate stays invisible."""
+    membership = await sharing_service.share_with_agency(
+        title_id, payload.agency_organization_id, current_user
+    )
+    return to_membership_read(membership)
+
+
+@router.get(
+    "/titles/{title_id}/access-log",
+    response_model=list[AccessAuditEventRead],
+    summary="Every recorded change to who can see this title",
+)
+async def list_title_access_log(
+    title_id: uuid.UUID,
+    sharing_service: TitleSharingServiceDep,
+    current_user: CurrentUser,
+) -> list[AccessAuditEventRead]:
+    events = await sharing_service.list_audit_events(title_id, current_user)
+    return [AccessAuditEventRead.model_validate(event) for event in events]
 
 
 @router.post(

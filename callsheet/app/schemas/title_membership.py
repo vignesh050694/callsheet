@@ -7,6 +7,7 @@ from typing import Annotated
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
 from app.core.identity_terms import has_meaningful_content
+from app.models.access_audit import AccessAuditAction
 from app.models.artist import (
     ARTIST_NAME_MAX_LENGTH,
     ARTIST_PLATFORM_MAX_LENGTH,
@@ -113,6 +114,16 @@ class MembershipScope(BaseModel):
     summary: str
 
 
+class SharedOrganizationRead(BaseModel):
+    """The agency a title is shared with, as the Members screen names it."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    name: str
+    slug: str
+
+
 class TitleMembershipRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -121,10 +132,14 @@ class TitleMembershipRead(BaseModel):
     role: TitleRole
     status: TitleMembershipStatus
     artist: ArtistRead | None
+    # Set for an agency grant, null for a tagged artist. Exactly one of this and `artist`
+    # is present, matching the membership's own subject.
+    subject_organization: SharedOrganizationRead | None
     invited_email: str | None
     invited_handle: str | None
     scope: MembershipScope
-    last_sent_at: datetime
+    # Null for an agency grant — nothing was ever sent.
+    last_sent_at: datetime | None
     accepted_at: datetime | None
     created_at: datetime
 
@@ -143,6 +158,32 @@ class TitleMembersView(BaseModel):
     """Everything the title's access panel renders."""
 
     memberships: list[TitleMembershipRead]
+
+
+class AgencyShareCreate(BaseModel):
+    """The sharing form. One organization, and the titles are picked explicitly.
+
+    There is deliberately no "share all titles" flag and no default: the story requires
+    the studio to name the titles, because the whole point of the grant is that the rest
+    of the slate — including the unannounced part — stays invisible.
+    """
+
+    agency_organization_id: uuid.UUID
+
+
+class AccessAuditEventRead(BaseModel):
+    """One recorded change to who can see a title."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    action: AccessAuditAction
+    role: TitleRole
+    actor_user_id: uuid.UUID
+    subject_organization_id: uuid.UUID | None
+    subject_user_id: uuid.UUID | None
+    subject_name: str
+    created_at: datetime
 
 
 class TitleInvitationToken(BaseModel):
