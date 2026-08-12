@@ -57,13 +57,17 @@ you could not satisfy and why, and the exact command to exercise the feature.
 Write the test suite for user story <STORY_ID>. You did not write the implementation and you are
 not here to defend it.
 
-Read <STORY_PATH> first. Each Gherkin scenario in its Acceptance Criteria must map to at least
-one test, named so the mapping is obvious. Then read the implementation at <CHANGED_FILES> to
+Read <STORY_PATH> first. Each Gherkin scenario in its Acceptance Criteria must map to **exactly
+one** test, named so the mapping is obvious. Then read the implementation at <CHANGED_FILES> to
 learn the seams you are testing against — not to learn what behaviour to expect. Expected
 behaviour comes from the story.
 
-Also cover, beyond the happy path: the boundary conditions the story implies (the "form blocks
-submission" style rules), the error paths, and any empty/absent-data case.
+BUDGET: the scenario tests, plus at most **five** more of your own choosing. Spend those five
+where this story is most likely to be wrong — the boundary the story implies, the error path, the
+empty-data case, the input that is text in a script or encoding the implementer probably did not
+try. Five sharp tests beat fifty mechanical ones; a story with eight scenarios should land ~13
+tests, not 90. If you believe a story genuinely needs more, write the five, then report what else
+you would have covered and why — do not exceed the budget on your own.
 
 Where to put them:
 - Backend: callsheet/tests/, pytest, following the existing layout and fixtures. Run with
@@ -114,4 +118,40 @@ you can point at.
 
 Missing documentation is not a finding — this pipeline does not produce docs. Only flag a doc as
 missing if the story's own acceptance criteria name it.
+```
+
+---
+
+## Re-runs (review loop rounds 2 and 3)
+
+A first review starts cold — that independence is what makes the verdict worth anything. A
+*re-review* does not: rediscovering the whole story to check a two-line fix is most of the loop's
+cost. Round 2 and 3 still use a **fresh agent**, but a briefed one.
+
+**Stage 2 on a re-run** — do not rewrite the suite. Append this to the prompt:
+
+```
+Tests for this story already exist at <TEST_FILES>. The implementation changed to address these
+reviewer findings:
+
+<FINDINGS_VERBATIM>
+
+Keep the existing tests. Add tests only for behaviour those findings changed, and update any
+existing test whose expectation the fix legitimately invalidates — say which and why. The test
+budget above does not reset; it applies to what you add this round.
+```
+
+**Stage 3 on a re-run** — replace steps 1–2 of the template with:
+
+```
+This is review round <N> for <STORY_ID>. Round <N-1> returned changes-requested with:
+
+<FINDINGS_VERBATIM>
+
+1. Read <STORY_PATH>. Skim <EPIC_PATH> only for the gate and out-of-scope list.
+2. Read `git diff` since the previous round — that delta is your primary surface.
+3. Verdict on each prior finding: fixed, not fixed, or fixed-but-introduced-something-else.
+   A fix that trades one defect for another is `changes-requested`.
+4. Then run the full check and re-read the whole diff for anything the earlier round missed.
+   Prior rounds constrain where you look first, not what you are allowed to find.
 ```

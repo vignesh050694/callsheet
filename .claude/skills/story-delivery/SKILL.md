@@ -85,6 +85,17 @@ findings and re-run Stages 2–3. Cap at **two** loops. On a third failure, stop
 uncommitted, set the story's status to `blocked` with the reason, and hand the reviewer's output to
 the user.
 
+Rounds 2 and 3 use the **re-run prompts** in `references/agent-prompts.md`, not the cold templates:
+still a fresh agent each time, but briefed with the prior round's findings and pointed at the delta
+first. A re-review that re-derives the entire story to check a two-line fix is where this pipeline
+loses most of its time.
+
+**Test volume is capped.** Stage 2 writes one test per Gherkin scenario plus at most five of its own
+— a story lands ~15 tests, not 90. The scenarios are the contract; the five are where the tester
+thinks the story is most likely to be wrong. This cap is a speed decision made with eyes open: it
+trades broad mechanical coverage for the sharp cases, and it is the reason Stage 2 stays cheap enough
+to keep. It is not licence to skip Stage 2 — the tests *are* how Stage 3 verifies anything.
+
 **Never** relax an acceptance criterion, delete a failing test, or narrow a scenario to get green.
 If a criterion is genuinely wrong or unimplementable, stop and say so — amending the story is the
 user's call.
