@@ -36,7 +36,7 @@ is unmeasurable without it.
 | E01-S01 | Create a production house organization and workspace | 1 | done | a708c43 |
 | E01-S02 | Invite a teammate into the organization with a role | 1 | done | 331ba42 |
 | E01-S03 | Tag an artist on a title and invite them | 2 | done | c0fd6db |
-| E01-S04 | Artist accepts an invite and links their profile | 2 | done | — |
+| E01-S04 | Artist accepts an invite and links their profile | 2 | done | e431852 |
 | E01-S05 | Grant an agency scoped access to a single title | 3 | blocked | — |
 | E01-S06 | Revoke access when an engagement ends | 3 | blocked | — |
 
@@ -112,7 +112,7 @@ this epic — they are access-control work, not title setup — and resume once 
   response that issued it; E01-S04 must mint a fresh token rather than assume it can surface
   S03's. Frontend still has no test runner, so the Cast access screen is verified by typecheck,
   build, and manual exercise only.
-- **E01-S04** — done · `—` · 8 tests · `make check` + `npm run check` + `npm run build` green.
+- **E01-S04** — done · `e431852` · 8 tests · `make check` + `npm run check` + `npm run build` green.
 
   The artist claims their entity by redeeming an invitation addressed to a verified email —
   which is the whole of identity verification in v1 (concept note risk #7), never inferred from a
