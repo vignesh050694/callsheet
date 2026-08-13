@@ -37,8 +37,8 @@ bleed), which is why exclusion terms are a first-class setup control, not a supp
 | E02-S02 | Anchor the title to a release date and campaign milestones | 1 | done | 1b91add |
 | E02-S03 | Preview live sample results before committing setup | 1 | done | dcca668 |
 | E02-S04 | Review and approve discovered alias suggestions | 1 | done | 109dd56 |
-| E02-S05 | Exclude a contaminating term from a title's results | 1 | done | — |
-| E02-S06 | Reject invisible characters as anchor terms | 1 | todo | — |
+| E02-S05 | Exclude a contaminating term from a title's results | 1 | done | 8924e6e |
+| E02-S06 | Reject invisible characters as anchor terms | 1 | in-progress | — |
 | E02-S07 | Measure title length by grapheme, not code point | 1 | todo | — |
 
 ## Dependencies
@@ -176,7 +176,7 @@ the organizations and memberships that epic delivered)
   not ask for one: "never re-suggested" is permanent, decided from one screenful of evidence in
   week one, and the alternative to a button is a support ticket.
 
-- **E02-S05** — done · 9 tests · 547 backend tests · `make check` + `npm run check` + build green.
+- **E02-S05** — done · `8924e6e` · 9 tests · 547 backend tests · `make check` + `npm run check` + build green.
   Two review rounds. What landed: `TitleExclusionService` (measure, apply, lift), a narrow
   mentions feed to decide from, and the `excluded_by_term` marker on `mentions`.
   **The confirmation is on a number, not a string.** `#DC` and `#DareDevil` are
