@@ -26,11 +26,16 @@
   change, with no action required from me
 
 #### Notes
+- Builds on the scheduler E03-S01 delivers; this story replaces its single default rate with a
+  phase-driven one and adds the phase indicator to the dashboard.
 - Phase transitions must also be triggerable by observed volume, not only by calendar — an
   unplanned controversy in the dormant phase should escalate cadence.
 - Cadence changes are the primary lever on the ~$273/title collection model; any change to the
   policy must be reflected in the cost projection shown in E09-S04.
+- Surge cadence is where overlapping polls stop being theoretical — confirm E03-S01's handling of
+  the concurrent double-poll rollback still holds at 48/day.
 
 #### Out of scope
 - Per-platform independent cadences (v1 polls all configured platforms together).
 - Customer-editable cadence (surface it as a tier property in E09-S05 instead).
+- Staleness detection when a platform misses its expected interval (E03-S05).

@@ -5,6 +5,12 @@
 Everything a story produced goes in a single commit: implementation, tests, and the `EPIC.md` status
 update. No separate "add tests" commit — the story is the unit.
 
+The one exception the ledger forces: the Stories table's `Commit` column holds the story's own hash,
+which cannot be known until after the commit exists. Write the row with `—`, commit, then fill the
+hash and `git commit --amend --no-edit`. That keeps one commit per story instead of trailing every
+`feat` with a `docs(...): record commit hash` follow-up. Amending here is safe and is the only
+amend this pipeline permits — the commit has not left the local branch.
+
 ```
 <type>(<STORY_ID>): <story summary, lowercase, imperative>
 
@@ -47,8 +53,9 @@ Pipeline: implement=opus tests=sonnet review=sonnet
 Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
 ```
 
-Commit only after Stage 3 returns `pass`. Never `--amend` a story commit that is already on the epic
-branch — a correction is its own `fix(<STORY_ID>)` commit.
+Commit only after Stage 3 returns `pass`. Apart from the hash-backfill amend described above — which
+happens seconds later, before anything else lands — never `--amend` a story commit that is already on
+the epic branch. A later correction is its own `fix(<STORY_ID>)` commit.
 
 ## EPIC.md — the status ledger
 

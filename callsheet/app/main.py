@@ -16,6 +16,7 @@ from app.core.exceptions import (
     PermissionDeniedError,
     ResourceConflictError,
     ResourceNotFoundError,
+    ServiceUnavailableError,
     ValidationFailedError,
 )
 from app.core.logging_config import configure_logging
@@ -32,6 +33,7 @@ DOMAIN_ERROR_STATUS_CODES: dict[type[DomainError], int] = {
     ValidationFailedError: 422,
     AuthenticationRequiredError: 401,
     PermissionDeniedError: 403,
+    ServiceUnavailableError: 503,
 }
 DEFAULT_DOMAIN_ERROR_STATUS_CODE = 400
 

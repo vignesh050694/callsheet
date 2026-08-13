@@ -145,9 +145,7 @@ class OrganizationService:
             user_id=str(caller.id),
         )
 
-    async def _ensure_caller_can_administer(
-        self, organization_id: uuid.UUID, caller: User
-    ) -> None:
+    async def _ensure_caller_can_administer(self, organization_id: uuid.UUID, caller: User) -> None:
         """A viewer reads; only an owner changes. Enforced here, not by hiding UI controls.
 
         The caller has already passed the membership check, so a refusal here is a genuine

@@ -3,8 +3,38 @@
 from functools import lru_cache
 from typing import Annotated, Literal
 
-from pydantic import Field, field_validator
+from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+
+from app.core.platforms import Platform
+
+EndpointChoice = Literal["primary", "alternative"]
+
+# The range a polling rate has to fall in to describe a schedule at all (E03-S01). Below
+# one, a title is never polled; above roughly one poll every five minutes, "per day" stops
+# describing a schedule and starts describing a continuous load. Defined here rather than
+# in the cadence policy so configuration can be rejected at startup and the policy can
+# enforce the same bound at runtime, without two different numbers.
+MIN_POLLS_PER_DAY = 1
+MAX_POLLS_PER_DAY = 288
+
+
+class PlatformEndpoints(BaseModel):
+    """Which endpoints a platform may be served by, and which one is live.
+
+    Both are configured up front so a switchover is a single value change made under
+    pressure — an endpoint being deprecated is exactly when nobody wants to be looking up
+    a vendor path. `active` names one of the two rather than holding a key of its own, so
+    it is impossible to point a platform at an endpoint that was never vetted for it.
+    """
+
+    primary: str
+    alternative: str | None = None
+    active: EndpointChoice = "primary"
+
+    @property
+    def active_key(self) -> str | None:
+        return self.primary if self.active == "primary" else self.alternative
 
 
 class Settings(BaseSettings):
@@ -33,7 +63,114 @@ class Settings(BaseSettings):
         default_factory=lambda: ["http://localhost:5173"]
     )
 
+    # The credential the whole collection layer hangs off. Empty is a supported state, not
+    # a broken one: every seam that would spend money stays bound to its refusing
+    # implementation, and both the preview and the poller say so rather than returning
+    # empty results that would read as silence.
     monid_api_key: str = ""
+    monid_base_url: str = "https://api.monid.ai"
+
+    # Monid queues a run and is polled until it finishes, and it bills at the *start*. So
+    # this is a ceiling on waiting rather than a retry budget — giving up early throws away
+    # a result that has already been paid for and may still be seconds away. Set above
+    # Monid's own stated 1-120 second range, because the alternative to waiting is not a
+    # faster answer, it is no answer and the same invoice.
+    monid_run_timeout_seconds: float = Field(default=120.0, gt=0)
+    monid_poll_interval_seconds: float = Field(default=2.0, gt=0)
+    # Per HTTP request, not per run. A single request hanging this long means the API
+    # itself is unreachable, which is a different failure from a slow provider.
+    monid_request_timeout_seconds: float = Field(default=30.0, gt=0)
+
+    # Per-platform endpoint routing (E03-S07). Overridden as one JSON object, e.g.
+    # COLLECTION_ENDPOINTS={"x":{"primary":"x.tikhub_search_timeline",
+    #                            "alternative":"x.apify_tweet_scraper","active":"alternative"}}
+    # which is the whole of "replace the X endpoint" — no code change, no redeploy of the
+    # pipeline. Only X ships with a working adapter; the rest are routed here so the
+    # configuration is complete before the adapters that read them exist.
+    collection_endpoints: dict[Platform, PlatformEndpoints] = Field(
+        default_factory=lambda: {
+            Platform.X: PlatformEndpoints(
+                primary="x.tikhub_search_timeline",
+                alternative="x.apify_tweet_scraper",
+            ),
+            Platform.INSTAGRAM: PlatformEndpoints(
+                primary="instagram.tikhub_hashtag_search",
+                alternative="instagram.apify_hashtag_scraper",
+            ),
+            Platform.REDDIT: PlatformEndpoints(
+                primary="reddit.tikhub_dynamic_search",
+                alternative="reddit.apify_scraper_lite",
+            ),
+            Platform.YOUTUBE: PlatformEndpoints(
+                primary="youtube.tikhub_video_comments",
+                alternative="youtube.apify_comments_scraper",
+            ),
+        }
+    )
+
+    # Every page request carries this, and a PER_RESULT endpoint is refused without it.
+    # One page of the size the live run returned (concept note §7 rule 2).
+    collection_page_size: int = 20
+
+    # Which platforms a cycle actually polls (E03-S01). Only X ships with adapters, and a
+    # platform listed here without one is refused loudly rather than collecting nothing —
+    # so this is the list that grows as adapters land, not `collection_endpoints`, which
+    # describes routing for every platform whether or not it can be read yet.
+    collection_platforms: Annotated[list[Platform], NoDecode] = Field(
+        default_factory=lambda: [Platform.X]
+    )
+
+    # How many overlapping queries one cycle runs per platform (E03-S01). A cycle costs
+    # variants x platforms calls, so this is the sharpest cost lever in the layer after
+    # cadence. Five matches the story's worked example and the identity set the live run
+    # was measured on.
+    collection_variants_per_title: int = 5
+
+    # Whether a title's rate follows its campaign phase (E03-S02). False binds the flat
+    # policy at `collection_polls_per_day` instead — the escape hatch for a deployment
+    # where adaptive cadence is the code path suspected of costing money, which has to be
+    # one environment variable rather than a redeploy.
+    collection_adaptive_cadence: bool = True
+
+    # The three phase rates the concept note's §7 cost model is built on (E03-S02), and the
+    # flat rate the opt-out above uses (E03-S01). All in polls per day.
+    #
+    # Bounded so an unusable value fails at startup rather than per title per cycle. Without
+    # it a typo is only caught when a finished cycle tries to queue its successor, where it
+    # is swallowed and logged — leaving every title quietly stalled one cycle in, which is a
+    # long way from the typo that caused it.
+    collection_polls_per_day: int = Field(default=12, ge=MIN_POLLS_PER_DAY, le=MAX_POLLS_PER_DAY)
+    collection_dormant_polls_per_day: int = Field(
+        default=2, ge=MIN_POLLS_PER_DAY, le=MAX_POLLS_PER_DAY
+    )
+    collection_campaign_polls_per_day: int = Field(
+        default=12, ge=MIN_POLLS_PER_DAY, le=MAX_POLLS_PER_DAY
+    )
+    collection_surge_polls_per_day: int = Field(
+        default=48, ge=MIN_POLLS_PER_DAY, le=MAX_POLLS_PER_DAY
+    )
+
+    # When observed volume overrides the calendar (E03-S02). A title escalates one phase
+    # when its last `recent_hours` carry at least `minimum_mentions` posts *and* that is at
+    # least `spike_multiplier` times its own daily mean over the `baseline_days` before.
+    #
+    # The floor is what stops a title going from one mention a day to four from buying surge
+    # rates; the multiplier is what stops an ordinary campaign volume escalating permanently.
+    collection_volume_spike_multiplier: float = Field(default=3.0, gt=1.0)
+    collection_volume_spike_minimum_mentions: int = Field(default=25, ge=1)
+    collection_volume_baseline_days: int = Field(default=14, ge=1)
+    collection_volume_recent_hours: int = Field(default=24, ge=1)
+
+    # What one poll costs, in USD (concept note §7: 5 variants x 5 pages across four
+    # platforms). Configuration rather than a constant because it is a vendor price, and it
+    # is the multiplier in every projection E09 shows.
+    collection_cost_per_poll_usd: float = Field(default=0.225, gt=0)
+
+    # How many due cycles one worker tick claims, how long it waits between ticks, and how
+    # many queued cycles it re-checks against the current cadence per tick (E03-S02).
+    collection_worker_batch_size: int = 5
+    collection_worker_interval_seconds: int = 60
+    collection_cadence_reconcile_batch_size: int = Field(default=50, ge=0)
 
     @field_validator("cors_origins", mode="before")
     @classmethod
@@ -43,9 +180,40 @@ class Settings(BaseSettings):
             return [origin.strip() for origin in raw_value.split(",") if origin.strip()]
         return raw_value
 
+    @field_validator("collection_platforms", mode="before")
+    @classmethod
+    def split_comma_separated_platforms(cls, raw_value: object) -> object:
+        """`COLLECTION_PLATFORMS=x,reddit` is the form anyone will actually type."""
+        if isinstance(raw_value, str) and not raw_value.strip().startswith("["):
+            return [name.strip() for name in raw_value.split(",") if name.strip()]
+        return raw_value
+
     @property
     def is_production(self) -> bool:
         return self.environment == "production"
+
+    @property
+    def is_collection_configured(self) -> bool:
+        """Whether anything in this deployment can reach a provider at all.
+
+        One question asked in one place, because two seams turn on it — the collection
+        transport and the setup preview — and a deployment where those disagreed would
+        show a studio live sample posts and then collect nothing, or the reverse.
+
+        **The test environment is never configured, whatever the key says.** A developer's
+        `.env` holds a working key, `pytest` loads that same `.env`, and any test touching
+        the real dependency graph then makes a live, billed call. That is not theoretical:
+        it happened the first time this transport was wired up, and the suite spent real
+        money proving a preview refuses. Checking it here rather than in a fixture is
+        deliberate — a fixture protects the tests that remember to use it, and this has to
+        protect the ones nobody has written yet.
+
+        It is a barrier, not a proof: this trusts `environment`, which is read from the
+        process environment, so it holds only because `tests/conftest.py` *assigns* both
+        that and the key rather than defaulting them. The two together are what make a
+        billed call from the suite hard to reach; neither alone is sufficient.
+        """
+        return bool(self.monid_api_key.strip()) and self.environment != "test"
 
 
 @lru_cache

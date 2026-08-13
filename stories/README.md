@@ -10,7 +10,7 @@ One story per file, one folder per epic.
 | Epic | Folder | Stories | Phase |
 |---|---|---|---|
 | E01 — Organizations, Access & Membership | `E01-organizations-access-membership/` | 6 | 1–3 |
-| E02 — Title Setup & Identity Discovery | `E02-title-setup-identity-discovery/` | 5 | 1 |
+| E02 — Title Setup & Identity Discovery | `E02-title-setup-identity-discovery/` | 7 | 1 |
 | E03 — Agentic Collection Layer | `E03-agentic-collection-layer/` | 7 | 1 |
 | E04 — AI Analysis Pipeline | `E04-ai-analysis-pipeline/` | 7 | 1 |
 | E05 — Title Dashboard | `E05-title-dashboard/` | 9 | 1 |
