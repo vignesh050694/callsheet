@@ -67,15 +67,15 @@ Sections 11-13 are regression tests added after a Stage 3 review round came back
     runs on SQLite, so nothing here executes the migration — it only asserts on the
     migration file's own source text, which is the most this suite can honestly claim
     about it.
-  - Section 13 is a single, explicitly-labelled characterisation test for a change that
-    was deliberately *not* made: variation selectors (U+FE00-FE0F, Unicode category
-    `Mn`) still pass as meaningful milestone names, so a milestone named with one
-    renders as a blank marker. This is the same bug class already filed as E02-S06
-    (found there for anchor terms; its scope now includes the milestone-name surface).
-    It documents current, known-buggy behaviour — it is not a claim that this is
-    correct, and it must never be "fixed" by making this test assert a 422.
+  - Section 13 originally pinned a deliberately-unfixed defect: variation selectors
+    (U+FE00-FE0F, Unicode category `Mn`) passed as meaningful milestone names, so a
+    milestone named with one rendered as a blank marker. That was the same bug class
+    filed as E02-S06 (found there for anchor terms; its scope included this
+    milestone-name surface). E02-S06 has since fixed the shared `has_meaningful_content`
+    predicate, so Section 13 now pins the fixed (422, nothing stored) behaviour instead.
 """
 
+import unicodedata
 import uuid
 from datetime import UTC, date, datetime, timedelta, timezone
 from pathlib import Path
@@ -1440,29 +1440,28 @@ def test_migration_backfills_release_date_pinned_to_utc_not_session_timezone() -
 
 
 # ---------------------------------------------------------------------------
-# Section 13 — Characterisation of a KNOWN, OPEN defect (E02-S06), deliberately not
-# fixed here. Variation selectors (U+FE00-FE0F, Unicode category `Mn`) are not in
-# `_INVISIBLE_CATEGORIES` (Cc/Cf/Zl/Zp/Zs) and are not in the explicit
-# `_BLANK_RENDERING_CHARACTERS` set, so `has_meaningful_content` currently treats a
-# milestone name made of nothing but a variation selector as real content. This test
-# documents the CURRENT (buggy) behaviour -- it is not a claim that a blank-rendering
-# marker on a chart is correct, and it must never be changed to assert the fixed (422)
-# behaviour without the underlying fix landing first, or it will fail.
+# Section 13 — E02-S06 fixed the defect this section originally characterised.
+# Variation selectors (U+FE00-FE0F, Unicode category `Mn`) were not in
+# `_INVISIBLE_CATEGORIES` (Cc/Cf/Zl/Zp/Zs) and not in the explicit
+# `_BLANK_RENDERING_CHARACTERS` set, so `has_meaningful_content` treated a milestone
+# name made of nothing but a variation selector as real content. E02-S06 rewrote the
+# predicate around `_renders_on_its_own`, which excludes every Unicode mark category
+# (Mn/Mc/Me), closing this surface along with the anchor-term surface the story's
+# scenario covers. This test now pins the fixed behaviour instead of the defect.
 # ---------------------------------------------------------------------------
 
 
-async def test_known_defect_variation_selector_milestone_name_is_still_accepted(
+async def test_variation_selector_only_milestone_name_is_refused(
     api_client: AsyncClient,
 ) -> None:
-    """KNOWN OPEN DEFECT, tracked by E02-S06 (scope widened to the milestone-name
-    surface): a milestone named with only U+FE0F (VARIATION SELECTOR-16) is currently
-    accepted and stored, and would render as a blank marker with no visible label. This
-    pins today's actual behaviour so a future, unrelated refactor does not silently
-    change it in either direction without someone noticing -- it is a characterisation
-    test, not an approval of the outcome. When E02-S06 lands a fix for this surface,
-    this test should be rewritten to assert 422, not deleted silently."""
+    """A milestone named with only U+FE0F (VARIATION SELECTOR-16) renders nothing --
+    it must be refused with the same "needs a name" explanation an empty milestone name
+    gets, and no title may be created. Before E02-S06's fix to `has_meaningful_content`,
+    this was accepted and stored (201), and would have painted a blank, unlabelled
+    marker on the campaign timeline."""
     organization_id = await _create_organization(api_client)
     variation_selector_only_name = "️"
+    assert unicodedata.category(variation_selector_only_name) == "Mn"
 
     response = await api_client.post(
         _titles_url(organization_id),
@@ -1471,11 +1470,11 @@ async def test_known_defect_variation_selector_milestone_name_is_still_accepted(
         ),
     )
 
-    # This is the bug: today, this is 201, not 422.
-    assert response.status_code == 201, response.text
-    stored_name = response.json()["milestones"][0]["name"]
-    assert stored_name == variation_selector_only_name
-    # The stored name renders as nothing -- there is no visible character in it at all.
-    import unicodedata
+    assert response.status_code == 422, response.text
+    body = response.json()
+    assert body["code"] == "ValidationFailedError"
+    assert body["message"] == EMPTY_MILESTONE_NAME_MESSAGE
 
-    assert unicodedata.category(stored_name) == "Mn"
+    list_response = await api_client.get(_titles_url(organization_id))
+    assert list_response.status_code == 200, list_response.text
+    assert list_response.json()["total"] == 0

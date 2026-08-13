@@ -38,7 +38,7 @@ bleed), which is why exclusion terms are a first-class setup control, not a supp
 | E02-S03 | Preview live sample results before committing setup | 1 | done | dcca668 |
 | E02-S04 | Review and approve discovered alias suggestions | 1 | done | 109dd56 |
 | E02-S05 | Exclude a contaminating term from a title's results | 1 | done | 8924e6e |
-| E02-S06 | Reject invisible characters as anchor terms | 1 | in-progress | — |
+| E02-S06 | Reject invisible characters as anchor terms | 1 | done | — |
 | E02-S07 | Measure title length by grapheme, not code point | 1 | todo | — |
 
 ## Dependencies
@@ -213,3 +213,27 @@ the organizations and memberships that epic delivered)
   because "does this term appear as a whole word" is not a `LIKE`, which is right but is linear
   in corpus size on a screen a studio opens repeatedly; and an exclusion applies to one title
   only — account-level exclusion is E04-S03 and was deliberately not built.
+
+- **E02-S06** — done · 22 cases in 5 tests · 569 backend tests · `make check` + `npm run check` green.
+  **One review round, passed first time** — the only story in this epic that has.
+  The story asked for a fix that asks "does this render anything" rather than one that adds
+  `Mn` to a category list, and that is what landed: `_renders_on_its_own` answers False for
+  anything invisible *and* for any Unicode mark, on the reasoning that a mark is not a
+  character in its own right — it modifies the one before it, and with nothing before it there
+  is nothing to modify. Variation selectors are `Mn`, which is why they got through; so would
+  the next neighbour in that family, and now none of them do.
+  One predicate, three callers, two bugs closed: a term of one variation selector satisfied the
+  anchor rule *and* painted an unlabelled marker on the campaign timeline. E02-S02 left a
+  characterisation test pinning the milestone half with an instruction to rewrite it rather
+  than delete it when this story landed; it was rewritten to assert 422, and strengthened while
+  it was open.
+  `visible_length` was deliberately not touched — that is E02-S07, and changing it here would
+  have silently altered which titles need an anchor at all.
+  The reviewer swept every caller for over-rejection, since this widens a refusal: the two call
+  sites that pass already-normalised values apply the same predicate at save and at query time,
+  so there is no split brain, and no real single-word term in any script is entirely marks
+  (abugidas need a base consonant).
+  **Carried, pre-existing:** the client mirror is stricter than the server on private-use
+  characters — JS `\p{C}` spans `Co/Cs/Cn` while the server checks `Cc/Cf/Zl/Zp/Zs`, so
+  `U+E000` blocks the form's submit button on a value the server would accept. Confirmed by the
+  reviewer, unchanged by this story, and left alone rather than widened into it.

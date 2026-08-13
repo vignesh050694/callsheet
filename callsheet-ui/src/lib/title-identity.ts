@@ -10,13 +10,20 @@
 export const MIN_UNANCHORED_NAME_LENGTH = 4
 
 /**
- * Matches one character that actually renders — not whitespace, and not in Unicode
- * category C (control/format, which is where the zero-width family lives).
+ * Matches one character that renders on its own — not whitespace, not in Unicode category
+ * C (control/format, where the zero-width family lives), and not a mark (category M).
  *
  * `String.prototype.trim()` removes whitespace but NOT zero-width characters, so a term
  * of nothing but a ZWSP survives a naive `.trim().length > 0` check and reads as real.
+ *
+ * `\p{M}` was added for E02-S06. A variation selector (U+FE00–FE0F) is category Mn: a real
+ * character that paints nothing without a base character to attach to. Without this, a
+ * cast entry of one variation selector satisfied the anchor rule and the form's submit
+ * button lit up — the same rule wrong in both places rather than a client/server
+ * disagreement. Kept in sync with `_renders_on_its_own` in
+ * `callsheet/app/core/identity_terms.py`; the server refuses the same payload independently.
  */
-const VISIBLE_CHARACTER = /[^\s\p{C}]/u
+const VISIBLE_CHARACTER = /[^\s\p{C}\p{M}]/u
 
 /**
  * Blank-rendering characters that Unicode classifies as letters or symbols, so no

@@ -40,13 +40,41 @@ def _is_invisible(character: str) -> bool:
     return unicodedata.category(character) in _INVISIBLE_CATEGORIES
 
 
+# Every mark category. A mark is not a character in its own right — it modifies the one
+# before it, and with nothing before it there is nothing to modify. This is deliberately
+# wider than `_COMBINING_MARK_CATEGORIES` below, which answers a different question: a
+# spacing mark (`Mc`) *does* occupy width once it is attached to a letter, so it counts
+# towards length, but a string containing only marks still paints no word.
+_MARK_CATEGORIES = frozenset({"Mn", "Mc", "Me"})
+
+
+def _renders_on_its_own(character: str) -> bool:
+    """Whether this character puts something on screen without a base character to sit on.
+
+    The question the rule actually wants to ask, asked directly rather than by listing the
+    categories that fail it (E02-S06). Six earlier bypasses of the anchor rule were each a
+    different Unicode neighbour — zero-width characters, Hangul fillers, the Braille blank,
+    and finally variation selectors — and each fix named one more category. Variation
+    selectors are `Mn`: they are real characters, they carry meaning attached to an emoji,
+    and alone they render nothing at all, which is exactly the shape of every previous
+    bypass.
+    """
+    return not _is_invisible(character) and unicodedata.category(character) not in _MARK_CATEGORIES
+
+
 def has_meaningful_content(value: str) -> bool:
     """True when at least one character actually renders.
 
     This is the emptiness test for terms — `not value` is not enough, because a string of
-    zero-width characters is truthy and looks empty to everyone reading the screen.
+    zero-width characters is truthy and looks empty to everyone reading the screen, and a
+    string of combining marks is truthy and paints, at most, a dotted placeholder circle.
+
+    One predicate, three callers: title names, identity terms, and campaign milestone
+    names. That is the argument for fixing this rather than each caller — a term made of a
+    variation selector satisfied the anchor rule *and* painted an unlabelled marker on the
+    campaign timeline, which are two bugs from one wrong answer.
     """
-    return any(not _is_invisible(character) for character in value)
+    return any(_renders_on_its_own(character) for character in value)
 
 
 # Non-spacing (Mn) and enclosing (Me) marks paint on top of the character before them and
