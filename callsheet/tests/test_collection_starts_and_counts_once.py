@@ -134,7 +134,12 @@ from app.services.collection.query_plan import (
     build_query_variants,
     ordered_identity_terms,
 )
-from app.services.collection.source import CollectedItem, CollectionPage, CollectionSource
+from app.services.collection.source import (
+    CollectedItem,
+    CollectionPage,
+    CollectionSource,
+    CollectionWindow,
+)
 from app.services.collection.spend_policy import SpendDecision, SpendPolicy, UnrestrictedSpendPolicy
 from app.services.collection_run_service import (
     ABANDONED_REASON,
@@ -360,7 +365,13 @@ class _CountingRefusingSource(CollectionSource):
         self._message = message
 
     async def fetch(
-        self, platform: Platform, query: str, *, page: str | None = None, limit: int
+        self,
+        platform: Platform,
+        query: str,
+        *,
+        page: str | None = None,
+        limit: int,
+        window: CollectionWindow | None = None,
     ) -> Any:
         self.calls += 1
         raise ServiceUnavailableError(self._message)
@@ -372,7 +383,13 @@ class _CrashingSource(CollectionSource):
     typed refusal `_CountingRefusingSource` models."""
 
     async def fetch(
-        self, platform: Platform, query: str, *, page: str | None = None, limit: int
+        self,
+        platform: Platform,
+        query: str,
+        *,
+        page: str | None = None,
+        limit: int,
+        window: CollectionWindow | None = None,
     ) -> Any:
         raise RuntimeError("provider connection dropped mid-poll")
 
@@ -2025,7 +2042,13 @@ class _FakeCollectionSource(CollectionSource):
         self._page = page
 
     async def fetch(
-        self, platform: Platform, query: str, *, page: str | None = None, limit: int
+        self,
+        platform: Platform,
+        query: str,
+        *,
+        page: str | None = None,
+        limit: int,
+        window: CollectionWindow | None = None,
     ) -> CollectionPage:
         return self._page
 

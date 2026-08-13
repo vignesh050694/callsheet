@@ -33,12 +33,10 @@ from app.models.collection_run import (
     CollectionRun,
     CollectionRunStatus,
 )
-from app.models.mention_query_match import MentionQueryMatch
 from app.models.title import Title
 from app.repositories.collection_run_repository import CollectionRunRepository
-from app.repositories.mention_query_match_repository import MentionQueryMatchRepository
-from app.repositories.mention_repository import MentionRepository
 from app.repositories.title_repository import TitleRepository
+from app.services.collection.attribution import MentionAttributionWriter
 from app.services.collection.query_plan import QueryVariant, build_query_variants
 from app.services.collection.spend_policy import SpendPolicy
 from app.services.collection_schedule_service import CollectionScheduleService
@@ -99,8 +97,7 @@ class CollectionRunService:
         self._session = session
         self._run_repository = CollectionRunRepository(session)
         self._title_repository = TitleRepository(session)
-        self._mention_repository = MentionRepository(session)
-        self._match_repository = MentionQueryMatchRepository(session)
+        self._attribution = MentionAttributionWriter(session)
         self._collection_service = collection_service
         self._schedule_service = schedule_service
         self._spend_policy = spend_policy
@@ -311,9 +308,7 @@ class CollectionRunService:
             )
             return CollectionRunStatus.SKIPPED, decision.reason
 
-        variants = build_query_variants(
-            title, limit=self._settings.collection_variants_per_title
-        )
+        variants = build_query_variants(title, limit=self._settings.collection_variants_per_title)
         totals.variants_planned = len(variants)
         if not variants:
             return CollectionRunStatus.SKIPPED, NO_VARIANTS_REASON
@@ -373,55 +368,9 @@ class CollectionRunService:
         totals.mentions_already_known += result.already_known
         totals.unreadable += result.unreadable
 
-        totals.variants_attributed += await self._attribute(
+        totals.variants_attributed += await self._attribution.credit(
             title.id, platform, variant, result.seen_external_ids
         )
-
-    async def _attribute(
-        self,
-        title_id: uuid.UUID,
-        platform: Platform,
-        variant: QueryVariant,
-        external_ids: tuple[str, ...],
-    ) -> int:
-        """Records that this variant returned these posts, without double-counting.
-
-        Runs over every id the page returned, not only the ones this cycle stored. The
-        scenario this story is written around is one post matching three variants inside a
-        single cycle: the first stores it, the other two see it as already known, and all
-        three found it. Crediting only new rows would attribute a popular post entirely to
-        whichever query happened to run first.
-        """
-        if not external_ids:
-            return 0
-
-        mention_ids = await self._mention_repository.ids_by_external_id(
-            title_id, platform, external_ids
-        )
-        if not mention_ids:
-            # Everything on this page failed to normalise, so there is no mention to hang
-            # attribution off. The payloads are stored and a reprocess can recover them
-            # (E03-S04), but the variant that found them cannot be recorded until then.
-            return 0
-
-        already_credited = await self._match_repository.existing_pairs(
-            list(mention_ids.values()), variant.key
-        )
-        matched_at = datetime.now(UTC)
-        matches = [
-            MentionQueryMatch(
-                title_id=title_id,
-                mention_id=mention_id,
-                platform=platform,
-                query_variant=variant.key,
-                first_matched_at=matched_at,
-            )
-            for mention_id in mention_ids.values()
-            if mention_id not in already_credited
-        ]
-        self._match_repository.add_all(matches)
-        await self._session.commit()
-        return len(matches)
 
     @staticmethod
     def _verdict(totals: _CycleTotals) -> tuple[CollectionRunStatus, str | None]:
@@ -497,6 +446,4 @@ class CollectionRunService:
         if title is None:
             return closed
         next_run = await self._queue_successor(title, finished_at)
-        return replace(
-            closed, next_run_at=next_run.scheduled_for if next_run is not None else None
-        )
+        return replace(closed, next_run_at=next_run.scheduled_for if next_run is not None else None)

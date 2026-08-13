@@ -24,6 +24,7 @@ from typing import Any
 
 from sqlalchemy import (
     JSON,
+    Boolean,
     DateTime,
     ForeignKey,
     Index,
@@ -32,6 +33,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     Uuid,
+    false,
 )
 from sqlalchemy import Enum as SqlEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -110,6 +112,19 @@ class Mention(Base, UuidPrimaryKeyMixin, TimestampMixin):
 
     collected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
+    # Collected by a historical backfill rather than by a scheduled poll (E03-S03).
+    #
+    # The one thing a mention is allowed to say about how it arrived, and it is here for the
+    # opposite reason there is no provider column. A provider split would be a distinction
+    # the reader must never draw; this one they must: platform search depth means a
+    # backfilled stretch is a *sample* of what was said, not the record of it, so a chart
+    # covering it has to be able to label the gap rather than present it as equivalent
+    # (concept note §6.4). First capture wins, as everywhere else in this table — a post
+    # already held from a live poll stays live, because that is when it was seen.
+    is_backfilled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=false()
+    )
+
     title: Mapped[Title] = relationship(lazy="raise")
 
     def __repr__(self) -> str:
@@ -155,16 +170,12 @@ class MentionRawPayload(Base, UuidPrimaryKeyMixin, TimestampMixin):
         nullable=False,
     )
     # Null only when the payload was so unreadable that no id came out of it.
-    external_id: Mapped[str | None] = mapped_column(
-        String(EXTERNAL_ID_MAX_LENGTH), nullable=True
-    )
+    external_id: Mapped[str | None] = mapped_column(String(EXTERNAL_ID_MAX_LENGTH), nullable=True)
 
     # The provenance the normalised row refuses to carry.
     provider: Mapped[str] = mapped_column(String(PROVIDER_MAX_LENGTH), nullable=False)
     endpoint_key: Mapped[str] = mapped_column(String(ENDPOINT_KEY_MAX_LENGTH), nullable=False)
-    adapter_version: Mapped[str] = mapped_column(
-        String(ADAPTER_VERSION_MAX_LENGTH), nullable=False
-    )
+    adapter_version: Mapped[str] = mapped_column(String(ADAPTER_VERSION_MAX_LENGTH), nullable=False)
 
     payload: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     normalization_error: Mapped[str | None] = mapped_column(

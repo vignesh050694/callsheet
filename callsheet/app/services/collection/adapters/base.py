@@ -18,6 +18,7 @@ from typing import Any, ClassVar
 
 from app.core.platforms import Platform
 from app.services.collection.mention_shape import NormalizedMention
+from app.services.collection.source import CollectionWindow
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,8 +41,24 @@ class EndpointAdapter(abc.ABC):
     version: ClassVar[str]
 
     @abc.abstractmethod
-    def build_request(self, query: str, *, page: str | None, limit: int) -> ProviderRequest:
-        """One page of `query`. Never more than one — pagination is the caller's decision."""
+    def build_request(
+        self,
+        query: str,
+        *,
+        page: str | None,
+        limit: int,
+        window: CollectionWindow | None = None,
+    ) -> ProviderRequest:
+        """One page of `query`. Never more than one — pagination is the caller's decision.
+
+        `window` is a past date range (E03-S03), and translating it is the second half of
+        why request-building lives in the adapter rather than in the caller. The two X
+        providers express the identical bound in unrelated places: one as a search operator
+        inside the keyword text, the other as two fields in a JSON body. An adapter that
+        cannot honour a window must say so by raising, never by ignoring it — silently
+        dropping the bound turns a cheap targeted backfill into a full-price poll of the
+        present, billed against a range the studio will never see results for.
+        """
 
     @abc.abstractmethod
     def read_items(self, response: Any) -> Sequence[Mapping[str, Any]]:

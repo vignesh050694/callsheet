@@ -35,7 +35,7 @@ raw corpus** — because analysis (E04) is the real budget risk and it must neve
 | E03-S04 | Store raw payloads verbatim and reprocess without re-paying | 1 | done | 475ff34 |
 | E03-S01 | Start collecting automatically on title creation, counting each post once | 1 | done | fa67410 |
 | E03-S02 | Shift polling cadence with the campaign phase | 1 | done | 14c15b0 |
-| E03-S03 | Backfill the conversation from before I signed up | 1 | todo | — |
+| E03-S03 | Backfill the conversation from before I signed up | 1 | done | e7aaefd |
 | E03-S05 | See per-platform collection health and coverage gaps | 1 | todo | — |
 
 **S06 was merged into S01** and its file deleted; its content lives on as S01's second scenario.
@@ -382,3 +382,74 @@ needs the title identity set that epic delivered)
     for a deployment where adaptive cadence is the code path suspected of costing money.
   - Per-platform cadences, customer-editable cadence and staleness detection are all out of
     scope and none were built.
+
+- **E03-S03** — done · `e7aaefd` · 11 tests · 481 backend tests · `make check` + `npm run check` +
+  build green. **One review round, passed.**
+
+  What landed: a `CollectionWindow` on the collection port — two instants, and deliberately
+  not an operator — with each X adapter translating it into its own vendor syntax:
+  `since:`/`until:` *inside* tikhub's keyword string, `start`/`end` as body fields for apify.
+  That asymmetry is the whole argument for the window living at the port rather than being
+  built by the caller, and it is the S07 rule holding under the first feature that needed
+  dates. Alongside it `collection_backfills`, a request and its receipt; a page-capped walk;
+  and `mentions.is_backfilled`.
+
+  **The date range is a request parameter, not a filter, and that is the cost decision.**
+  Paging back through the present until the dates matched would mean paying for every page
+  between now and a trailer launch six weeks ago. Asking the provider for the range costs
+  the pages in the range.
+
+  **A separate table rather than another trigger on `collection_runs`.**
+  `uq_collection_run_one_pending_per_title` allows a title exactly one pending cycle, so a
+  backfill living in that table would mean asking for history stopped live collection — or
+  that the constraint keeping a title from being double-polled had to be weakened to permit
+  it. `collection_backfills` carries its own partial unique index for its own reason: this is
+  the only control in the product that spends a lump of money on a button press, and a
+  double-click on a slow connection is the ordinary way to press it twice, where the failure
+  is not a duplicate row but a duplicate invoice. The reviewer confirmed by mutation that the
+  index, not the service-side check, is what actually refuses the second one.
+
+  **The estimate is a ceiling and says so.** `backfill_cost.py` quotes variants x platforms x
+  page cap, priced off the endpoint catalogue, so PER_CALL depth and PER_RESULT volume are
+  charged by the two different formulas the catalogue already distinguishes (§7 rules 2 and
+  3). A platform with no usable route is quoted as *unavailable* rather than at $0.00 — a
+  zero line beside Instagram reads as "free", which is the opposite of "will not run". The
+  walk then stops on whichever of three conditions comes first: range covered, provider out
+  of pages, page cap. `is_depth_limited` and `has_reached_page_cap` separate "the platform
+  stopped serving history" from "our own cap stopped us", because only one of those is
+  something an operator can change.
+
+  **Found by a manual end-to-end run before any test existed:** comparing the depth reached
+  against the requested range raised `TypeError` mid-walk, after a page had already been paid
+  for. SQLite returns stored datetimes naive while adapters produce aware ones — the same
+  class of defect the E03-S04 entry above records, and the reason `app/core/timestamps.py`
+  exists. Fixed at the boundary rather than at the comparison: `CollectionWindow` normalises
+  both bounds on construction, so every site comparing against a window is correct by
+  construction instead of by memory. The tester and the reviewer independently confirmed the
+  guard is sensitive by removing it and watching the specific test fail.
+
+  **An E03-S07 contract test changed its expectation, deliberately.**
+  `test_collection_source_port_speaks_platform_query_page_and_limit_only` asserted the port's
+  exact parameter list; it now includes `window`. The rule that test defends is that nothing
+  above the port names a vendor, and two datetimes do not — the operators stay in the
+  adapters. Recorded in the test itself rather than edited silently, and explicitly accepted
+  by the reviewer.
+
+  `attribution.py` was extracted from `CollectionRunService` so a backfilled post credits the
+  query variant that found it. Without it, a regional alias that worked throughout the weeks
+  before signup would read to alias discovery (E02-S04) as an alias that found nothing — the
+  opposite of what a backfill is for.
+
+  Known limits, recorded rather than hidden:
+  - **Completeness is impossible to promise and is not promised.** Platform search depth is
+    the platform's to decide; the UI states the depth reached, in the same place it states
+    the cost, and calls a short stretch a sample rather than the record.
+  - A slow backfill delays *that worker's next tick* of scheduled cycles by its own duration.
+    Mitigated by a batch size of 1 and by backfills running after cycles, never before.
+  - The Title Dashboard the story names is E05 and does not exist; the action lives on the
+    titles list beside the collection line E03-S01 put there, and is owner-only.
+  - The last selectable day is yesterday. Today is still being collected live, so backfilling
+    it would pay a premium for what the scheduled poll brings in for nothing — and would mark
+    posts as historical that are not.
+  - `charged_cost_usd` is derived from the catalogue's list prices, not from a provider
+    invoice. Reconciling the two is E09's.

@@ -157,6 +157,78 @@ export interface TitleCollectionStatus {
   is_stalled: boolean
 }
 
+export type CollectionBackfillStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'skipped'
+
+/** Two instants. The screen composes them from two date inputs. */
+export interface BackfillRangeRequest {
+  requested_from: string
+  requested_until: string
+}
+
+export interface PlatformBackfillEstimate {
+  platform: string
+  endpoint_key: string | null
+  price_model: string | null
+  calls: number
+  max_cost_usd: number
+  /** Set when this platform will not be collected from at all — never render it as $0.00. */
+  unavailable_reason: string | null
+}
+
+/**
+ * What a range would cost, before anything is spent (E03-S03).
+ *
+ * Every figure is a **ceiling**, not a forecast: the walk stops early whenever a provider
+ * runs out of pages or the range is covered, which is the common case. Present it as "up
+ * to", never as "this will cost".
+ */
+export interface BackfillEstimate {
+  title_id: string
+  requested_from: string
+  requested_until: string
+  variants: number
+  /** The hard page cap. On a per-call endpoint this is the whole cost lever. */
+  pages_per_query: number
+  page_size: number
+  max_calls: number
+  max_cost_usd: number
+  platforms: PlatformBackfillEstimate[]
+}
+
+/** One backfill request, and what it actually managed to collect. */
+export interface Backfill {
+  id: string
+  title_id: string
+  status: CollectionBackfillStatus
+  requested_from: string
+  requested_until: string
+  /** The quote as confirmed, not as it would be recomputed now. */
+  page_cap: number
+  estimated_calls: number
+  estimated_max_cost_usd: number
+  pages_fetched: number
+  /**
+   * Historical posts newly stored, with **no account-type segmentation applied**.
+   * Segmentation is E04-S03; until then this is activity, never public conversation.
+   */
+  unsegmented_mentions_stored: number
+  mentions_already_known: number
+  unreadable: number
+  charged_cost_usd: number
+  /** The oldest post any query actually reached — the depth achieved, not the depth asked for. */
+  earliest_posted_at: string | null
+  /**
+   * True when the requested range was not covered in full. Must stay visible on anything
+   * that charts the range: a backfilled stretch is a sample, not the record.
+   */
+  is_depth_limited: boolean
+  has_reached_page_cap: boolean
+  started_at: string | null
+  finished_at: string | null
+  failure_reason: string | null
+  created_at: string
+}
+
 export interface TitleCreate {
   name: string
   release_date: string

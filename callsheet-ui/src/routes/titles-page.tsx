@@ -112,6 +112,17 @@ function TitleRow({ title, isOwner }: { title: Title; isOwner: boolean }) {
         >
           {isOwner ? 'Edit schedule' : 'View schedule'}
         </Link>
+        {/* The Title Dashboard the story names is E05 and does not exist, so the action
+            lives on the screen a studio is actually on — the same place E03-S01 put the
+            collection line it sits under. */}
+        {isOwner && (
+          <Link
+            to={`/titles/${title.id}/backfill`}
+            className="text-ink-400 hover:text-ink-900 underline underline-offset-2"
+          >
+            Backfill history
+          </Link>
+        )}
       </div>
       <TitleCollectionStatusLine
         status={collectionStatus.data}

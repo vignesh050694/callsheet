@@ -19,10 +19,16 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.platforms import Platform
+from app.core.timestamps import as_utc
 from app.models.mention import Mention, MentionRawPayload
 from app.repositories.mention_repository import MentionRepository
 from app.services.collection.mention_shape import NormalizedMention
-from app.services.collection.source import CollectedItem, CollectionPage, CollectionSource
+from app.services.collection.source import (
+    CollectedItem,
+    CollectionPage,
+    CollectionSource,
+    CollectionWindow,
+)
 
 _logger = structlog.get_logger(__name__)
 
@@ -47,6 +53,11 @@ class CollectionResult:
     # is stored by the first variant that finds it and is "already known" to the next
     # three, and those three found it just as genuinely as the first did.
     seen_external_ids: tuple[str, ...] = ()
+    # The oldest post on the page, over everything readable on it rather than over what was
+    # stored. A backfill (E03-S03) reports the depth it actually reached, and depth is a
+    # property of what the provider was willing to return — a page of posts this title
+    # already holds proves the search got that far back just as well as a page of new ones.
+    earliest_posted_at: datetime | None = None
 
 
 class CollectionService:
@@ -63,13 +74,26 @@ class CollectionService:
         *,
         limit: int,
         page: str | None = None,
+        backfill_window: CollectionWindow | None = None,
     ) -> CollectionResult:
-        """Fetches one page for this title and stores what is new in it."""
+        """Fetches one page for this title and stores what is new in it.
+
+        `backfill_window` does two things at once, and they are one parameter rather than
+        two on purpose (E03-S03): it bounds the request to a past date range, and it marks
+        what that request stores as backfilled. A mention is backfilled exactly when it was
+        fetched by a windowed historical call, so the two cannot be set independently and a
+        caller cannot mark a live poll's results as history or collect a range without
+        saying it did.
+        """
         started_at = time.perf_counter()
-        fetched_page = await self._source.fetch(platform, query, page=page, limit=limit)
+        fetched_page = await self._source.fetch(
+            platform, query, page=page, limit=limit, window=backfill_window
+        )
         collected_at = datetime.now(UTC)
 
-        result = await self._store_and_commit(title_id, fetched_page, collected_at)
+        result = await self._store_and_commit(
+            title_id, fetched_page, collected_at, is_backfill=backfill_window is not None
+        )
 
         _logger.info(
             "collection.page.completed",
@@ -81,6 +105,7 @@ class CollectionService:
             stored=result.stored,
             already_known=result.already_known,
             unreadable=result.unreadable,
+            is_backfill=backfill_window is not None,
             duration_ms=round((time.perf_counter() - started_at) * 1000, 1),
         )
         return result
@@ -90,6 +115,8 @@ class CollectionService:
         title_id: uuid.UUID,
         page: CollectionPage,
         collected_at: datetime,
+        *,
+        is_backfill: bool,
     ) -> CollectionResult:
         """Writes the page, retrying once if another poll stored some of it first.
 
@@ -113,7 +140,7 @@ class CollectionService:
         # `expire_on_commit=False` is set on the session factory, so `result` stays
         # readable after the commit below.
         try:
-            result = await self._store(title_id, page, collected_at)
+            result = await self._store(title_id, page, collected_at, is_backfill=is_backfill)
             # The service owns the transaction boundary here as everywhere else in this
             # codebase — `get_db_session` rolls back and never commits on its behalf.
             # Without this the whole page, including payloads that have already been paid
@@ -129,7 +156,7 @@ class CollectionService:
                 endpoint=page.endpoint.key,
             )
 
-        result = await self._store(title_id, page, collected_at)
+        result = await self._store(title_id, page, collected_at, is_backfill=is_backfill)
         await self._session.commit()
         _logger.info(
             "collection.page.write_conflict_resolved",
@@ -145,6 +172,8 @@ class CollectionService:
         title_id: uuid.UUID,
         page: CollectionPage,
         collected_at: datetime,
+        *,
+        is_backfill: bool,
     ) -> CollectionResult:
         """Writes the page's new items, skipping what this title already holds.
 
@@ -172,7 +201,9 @@ class CollectionService:
                     continue
                 seen_in_page.add(external_id)
 
-            mention = self._build_mention(title_id, item.mention, collected_at)
+            mention = self._build_mention(
+                title_id, item.mention, collected_at, is_backfill=is_backfill
+            )
             if mention is not None:
                 mentions.append(mention)
             else:
@@ -196,11 +227,24 @@ class CollectionService:
             # Order preserved and deduped, so a provider echoing one post twice in a page
             # credits the variant once.
             seen_external_ids=tuple(dict.fromkeys(self._identifiable_ids(page))),
+            earliest_posted_at=self._earliest_posted_at(page),
         )
 
     @staticmethod
     def _identifiable_ids(page: CollectionPage) -> list[str]:
         return [item.external_id for item in page.items if item.external_id is not None]
+
+    @staticmethod
+    def _earliest_posted_at(page: CollectionPage) -> datetime | None:
+        """How far back this page reached, over everything readable on it.
+
+        Not restricted to what was stored. A backfill's second page is mostly posts the
+        title already holds, and those prove the search reached their date exactly as well
+        as a new post would — measuring depth by what was *inserted* would report a
+        successful deep page as no progress and stop the walk one page in.
+        """
+        posted = [as_utc(item.mention.posted_at) for item in page.readable_items if item.mention]
+        return min(posted) if posted else None
 
     async def _known_external_ids(self, title_id: uuid.UUID, page: CollectionPage) -> set[str]:
         """Ids this title already holds as a mention or as a stored payload.
@@ -226,10 +270,13 @@ class CollectionService:
         title_id: uuid.UUID,
         normalized: NormalizedMention | None,
         collected_at: datetime,
+        *,
+        is_backfill: bool,
     ) -> Mention | None:
         if normalized is None:
             return None
         return Mention(
+            is_backfilled=is_backfill,
             title_id=title_id,
             platform=normalized.platform,
             external_id=normalized.external_id,

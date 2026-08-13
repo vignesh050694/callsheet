@@ -285,8 +285,22 @@ async def title_id(api_client: AsyncClient) -> uuid.UUID:
 
 
 def test_collection_source_port_speaks_platform_query_page_and_limit_only() -> None:
+    """`window` was added by E03-S03 and does not weaken this assertion.
+
+    The rule the port defends is that nothing above it names a vendor. A window is two
+    datetimes; the operators that express it — `since:`/`until:` inside a keyword string for
+    tikhub, `start`/`end` body fields for apify — stay inside their adapters, which is what
+    the two tests below check directly.
+    """
     signature = inspect.signature(CollectionSource.fetch)
-    assert list(signature.parameters) == ["self", "platform", "query", "page", "limit"]
+    assert list(signature.parameters) == [
+        "self",
+        "platform",
+        "query",
+        "page",
+        "limit",
+        "window",
+    ]
 
 
 async def test_monid_source_fetch_reads_a_full_tikhub_page_into_normalized_mentions() -> None:
@@ -724,9 +738,7 @@ def test_resolve_route_refuses_an_endpoint_with_no_adapter_mapped_yet() -> None:
     ):
         with pytest.raises(ServiceUnavailableError) as exc_info:
             resolve_route(platform, settings)
-        assert str(exc_info.value) == NO_ADAPTER_MESSAGE.format(
-            key=endpoint_key, platform=platform
-        )
+        assert str(exc_info.value) == NO_ADAPTER_MESSAGE.format(key=endpoint_key, platform=platform)
 
 
 def test_resolve_route_refuses_a_platform_with_no_configured_endpoints_at_all() -> None:
@@ -808,9 +820,7 @@ async def test_unconfigured_monid_transport_refuses_rather_than_returning_a_resp
     assert str(exc_info.value) == COLLECTION_UNAVAILABLE_MESSAGE
 
 
-async def test_unconfigured_collection_source_refuses_rather_than_returning_an_empty_page() -> (
-    None
-):
+async def test_unconfigured_collection_source_refuses_rather_than_returning_an_empty_page() -> None:
     source = UnconfiguredCollectionSource()
 
     with pytest.raises(ServiceUnavailableError) as exc_info:
@@ -1012,11 +1022,7 @@ async def test_collect_page_commits_so_a_second_independent_session_sees_the_wri
 
         async with session_factory() as reader_session:
             mentions = (
-                (
-                    await reader_session.execute(
-                        select(Mention).where(Mention.title_id == title_id)
-                    )
-                )
+                (await reader_session.execute(select(Mention).where(Mention.title_id == title_id)))
                 .scalars()
                 .all()
             )
@@ -1133,8 +1139,7 @@ async def test_an_item_with_no_readable_id_logs_unidentifiable_at_error(
     error_records = [
         record
         for record in caplog.records
-        if record.levelname == "ERROR"
-        and "collection.normalize.unidentifiable" in record.message
+        if record.levelname == "ERROR" and "collection.normalize.unidentifiable" in record.message
     ]
     assert len(error_records) == 1
 
@@ -1151,9 +1156,7 @@ async def test_an_item_with_no_readable_id_logs_unidentifiable_at_error(
 
 def test_longest_text_returns_the_first_candidate_when_it_is_the_longer_one() -> None:
     """Synthetic, mirroring the real (excluded) capture: `text` is the fuller field."""
-    fuller_text_field = (
-        "The full, untruncated post body — much longer than the preview below."
-    )
+    fuller_text_field = "The full, untruncated post body — much longer than the preview below."
     truncated_full_text_field = "Truncated preview... https://t.co/abc123"
     assert len(fuller_text_field) > len(truncated_full_text_field)
 
@@ -1164,17 +1167,13 @@ def test_longest_text_returns_the_second_candidate_when_it_is_the_longer_one() -
     """Synthetic: the more intuitive shape, where `fullText` genuinely is fuller.
     `longest_text` has no preference for either field name — length alone decides."""
     truncated_text_field = "Short preview"
-    fuller_full_text_field = (
-        "This is the fuller field, carrying the whole post body, untruncated."
-    )
+    fuller_full_text_field = "This is the fuller field, carrying the whole post body, untruncated."
     assert len(fuller_full_text_field) > len(truncated_text_field)
 
     assert longest_text(truncated_text_field, fuller_full_text_field) == fuller_full_text_field
 
 
-def test_longest_text_uses_whichever_single_candidate_is_present_when_the_other_is_none() -> (
-    None
-):
+def test_longest_text_uses_whichever_single_candidate_is_present_when_the_other_is_none() -> None:
     assert longest_text(None, "only this one is present") == "only this one is present"
     assert longest_text("only this one is present", None) == "only this one is present"
 

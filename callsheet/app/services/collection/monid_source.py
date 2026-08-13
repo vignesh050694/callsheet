@@ -29,6 +29,7 @@ from app.services.collection.source import (
     CollectedItem,
     CollectionPage,
     CollectionSource,
+    CollectionWindow,
 )
 
 _logger = structlog.get_logger(__name__)
@@ -43,18 +44,14 @@ class MonidTransport(abc.ABC):
     """The only thing in the collection layer that talks to the outside world."""
 
     @abc.abstractmethod
-    async def run(
-        self, endpoint: EndpointDescriptor, request: ProviderRequest
-    ) -> Any:
+    async def run(self, endpoint: EndpointDescriptor, request: ProviderRequest) -> Any:
         """Executes one call and returns the provider's response body, undisturbed."""
 
 
 class UnconfiguredMonidTransport(MonidTransport):
     """No key, no calls. Refuses rather than returning an empty page."""
 
-    async def run(
-        self, endpoint: EndpointDescriptor, request: ProviderRequest
-    ) -> Any:
+    async def run(self, endpoint: EndpointDescriptor, request: ProviderRequest) -> Any:
         _logger.warning(
             "collection.transport.unconfigured",
             endpoint=endpoint.key,
@@ -75,12 +72,13 @@ class MonidCollectionSource(CollectionSource):
         *,
         page: str | None = None,
         limit: int,
+        window: CollectionWindow | None = None,
     ) -> CollectionPage:
         """One page, through whichever endpoint this platform is currently pointed at."""
         route = resolve_route(platform, self._settings)
         self._ensure_cap_is_usable(route, limit)
 
-        response = await self._call(route, query, page=page, limit=limit)
+        response = await self._call(route, query, page=page, limit=limit, window=window)
         items = self._read_items(route, response, limit)
 
         return CollectionPage(
@@ -111,7 +109,13 @@ class MonidCollectionSource(CollectionSource):
             )
 
     async def _call(
-        self, route: CollectionRoute, query: str, *, page: str | None, limit: int
+        self,
+        route: CollectionRoute,
+        query: str,
+        *,
+        page: str | None,
+        limit: int,
+        window: CollectionWindow | None,
     ) -> Any:
         """Runs the call and logs it with timing, the way a request is logged.
 
@@ -119,7 +123,7 @@ class MonidCollectionSource(CollectionSource):
         treatment an inbound request gets from the logging middleware: what was asked,
         which endpoint answered, and how long it took.
         """
-        request = route.adapter.build_request(query, page=page, limit=limit)
+        request = route.adapter.build_request(query, page=page, limit=limit, window=window)
         started_at = time.perf_counter()
         try:
             response = await self._transport.run(route.endpoint, request)
@@ -141,6 +145,9 @@ class MonidCollectionSource(CollectionSource):
             provider=route.endpoint.provider,
             price_model=str(route.endpoint.price_model),
             paged=page is not None,
+            # A historical call and a live one bill identically and read very differently on
+            # an invoice, so the window is on the line that records the spend.
+            windowed=window is not None,
             duration_ms=round((time.perf_counter() - started_at) * 1000, 1),
         )
         return response

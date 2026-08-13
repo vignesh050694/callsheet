@@ -31,6 +31,7 @@ from app.services.collection.payload_values import (
     read_hashtag_texts,
     require_string,
 )
+from app.services.collection.source import CollectionWindow
 
 _TWEET_ITEM_TYPE = "tweet"
 _SORT_LATEST = "Latest"
@@ -41,20 +42,35 @@ class ApifyXTweetScraperAdapter(EndpointAdapter):
     platform: ClassVar[Platform] = Platform.X
     version: ClassVar[str] = "2026-08-11"
 
-    def build_request(self, query: str, *, page: str | None, limit: int) -> ProviderRequest:
+    def build_request(
+        self,
+        query: str,
+        *,
+        page: str | None,
+        limit: int,
+        window: CollectionWindow | None = None,
+    ) -> ProviderRequest:
         """`maxItems` is the cap, and on a PER_RESULT endpoint it is also the price.
 
         This actor has no cursor. `page` is accepted to satisfy the port and ignored,
         because asking it for "the next page" would mean asking for a larger result set
         and paying for the first page again — which is not what the caller means.
+
+        A window becomes `start`/`end`, two body fields rather than the search operators the
+        primary endpoint needs (E03-S03). The actor documents both as calendar days, and it
+        treats `end` as exclusive exactly as X's `until:` does, so the same rounding rule
+        applies and is applied in the same direction: over-ask by a fraction of a day rather
+        than lose the day a range ends on.
         """
-        return ProviderRequest(
-            body={
-                "searchTerms": [query],
-                "maxItems": limit,
-                "sort": _SORT_LATEST,
-            }
-        )
+        body: dict[str, Any] = {
+            "searchTerms": [query],
+            "maxItems": limit,
+            "sort": _SORT_LATEST,
+        }
+        if window is not None:
+            body["start"] = window.start_day.isoformat()
+            body["end"] = window.exclusive_end_day.isoformat()
+        return ProviderRequest(body=body)
 
     def read_items(self, response: Any) -> Sequence[Mapping[str, Any]]:
         """The response is a bare list of records, not an envelope."""

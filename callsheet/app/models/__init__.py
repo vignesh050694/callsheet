@@ -1,6 +1,7 @@
 """Model package. Import every model here so Alembic autogenerate sees the full metadata."""
 
 from app.models.base import Base
+from app.models.collection_backfill import CollectionBackfill, CollectionBackfillStatus
 from app.models.collection_run import (
     CollectionRun,
     CollectionRunStatus,
@@ -17,6 +18,8 @@ from app.models.user import User
 
 __all__ = [
     "Base",
+    "CollectionBackfill",
+    "CollectionBackfillStatus",
     "CollectionRun",
     "CollectionRunStatus",
     "CollectionRunTrigger",

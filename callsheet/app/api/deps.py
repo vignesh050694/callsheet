@@ -32,6 +32,8 @@ from app.services.collection.monid_source import (
 from app.services.collection.source import CollectionSource
 from app.services.collection.spend_policy import SpendPolicy, UnrestrictedSpendPolicy
 from app.services.collection.volume import MentionVolumeReader
+from app.services.collection_backfill_runner import CollectionBackfillRunner
+from app.services.collection_backfill_service import CollectionBackfillService
 from app.services.collection_run_service import CollectionRunService
 from app.services.collection_schedule_service import CollectionScheduleService
 from app.services.collection_service import CollectionService
@@ -148,9 +150,7 @@ def get_preview_search() -> PreviewSearch:
 PreviewSearchDep = Annotated[PreviewSearch, Depends(get_preview_search)]
 
 
-def get_title_preview_service(
-    session: DbSession, search: PreviewSearchDep
-) -> TitlePreviewService:
+def get_title_preview_service(session: DbSession, search: PreviewSearchDep) -> TitlePreviewService:
     return TitlePreviewService(session, search)
 
 
@@ -170,18 +170,14 @@ def get_monid_transport() -> MonidTransport:
 MonidTransportDep = Annotated[MonidTransport, Depends(get_monid_transport)]
 
 
-def get_collection_source(
-    transport: MonidTransportDep, settings: AppSettings
-) -> CollectionSource:
+def get_collection_source(transport: MonidTransportDep, settings: AppSettings) -> CollectionSource:
     return MonidCollectionSource(transport, settings)
 
 
 CollectionSourceDep = Annotated[CollectionSource, Depends(get_collection_source)]
 
 
-def get_collection_service(
-    session: DbSession, source: CollectionSourceDep
-) -> CollectionService:
+def get_collection_service(session: DbSession, source: CollectionSourceDep) -> CollectionService:
     return CollectionService(session, source)
 
 
@@ -215,6 +211,38 @@ def get_collection_run_service(
 CollectionRunServiceDep = Annotated[CollectionRunService, Depends(get_collection_run_service)]
 
 
+def get_collection_backfill_service(
+    session: DbSession, settings: AppSettings
+) -> CollectionBackfillService:
+    """Deliberately assembled without a collection source.
+
+    The request side of a backfill quotes and queues; it never polls. Not handing it
+    anything that can call a provider is the same structural guarantee `get_reprocess_service`
+    makes, and for the same reason — it survives people who have not read why.
+    """
+    return CollectionBackfillService(session, settings)
+
+
+CollectionBackfillServiceDep = Annotated[
+    CollectionBackfillService, Depends(get_collection_backfill_service)
+]
+
+
+def get_collection_backfill_runner(
+    session: DbSession,
+    collection_service: CollectionServiceDep,
+    spend_policy: SpendPolicyDep,
+    settings: AppSettings,
+) -> CollectionBackfillRunner:
+    """The worker side. No route depends on this — a backfill runs on a tick, not a request."""
+    return CollectionBackfillRunner(session, collection_service, spend_policy, settings)
+
+
+CollectionBackfillRunnerDep = Annotated[
+    CollectionBackfillRunner, Depends(get_collection_backfill_runner)
+]
+
+
 def get_collection_status_service(
     session: DbSession, cadence: CadencePolicyDep
 ) -> CollectionStatusService:
@@ -234,9 +262,7 @@ def get_mention_analyzer() -> MentionAnalyzer:
 MentionAnalyzerDep = Annotated[MentionAnalyzer, Depends(get_mention_analyzer)]
 
 
-def get_reprocess_service(
-    session: DbSession, analyzer: MentionAnalyzerDep
-) -> ReprocessService:
+def get_reprocess_service(session: DbSession, analyzer: MentionAnalyzerDep) -> ReprocessService:
     """Deliberately assembled without a collection source.
 
     A reprocess re-derives from stored payloads and must never be able to spend. Not

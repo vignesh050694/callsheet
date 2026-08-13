@@ -110,7 +110,12 @@ from app.services.collection.cadence import (
 )
 from app.services.collection.cadence_cost import project_campaign_cost
 from app.services.collection.mention_shape import NormalizedMention
-from app.services.collection.source import CollectedItem, CollectionPage, CollectionSource
+from app.services.collection.source import (
+    CollectedItem,
+    CollectionPage,
+    CollectionSource,
+    CollectionWindow,
+)
 from app.services.collection.volume import MentionVolumeReader
 from app.services.collection_schedule_service import CollectionScheduleService
 from app.services.collection_service import CollectionService
@@ -264,7 +269,13 @@ class _FixedPageSource(CollectionSource):
         self._page = page
 
     async def fetch(
-        self, platform: Platform, query: str, *, page: str | None = None, limit: int
+        self,
+        platform: Platform,
+        query: str,
+        *,
+        page: str | None = None,
+        limit: int,
+        window: CollectionWindow | None = None,
     ) -> CollectionPage:
         return self._page
 
@@ -368,11 +379,7 @@ async def test_a_rival_insert_between_the_known_ids_read_and_the_commit_is_not_l
 
         async with session_factory() as reader_session:
             mentions = (
-                (
-                    await reader_session.execute(
-                        select(Mention).where(Mention.title_id == title_id)
-                    )
-                )
+                (await reader_session.execute(select(Mention).where(Mention.title_id == title_id)))
                 .scalars()
                 .all()
             )
@@ -452,34 +459,20 @@ def test_phase_for_day_boundaries_are_inclusive_on_both_sides_of_every_window() 
 
     # Surge window: [release - 2, release + 4], inclusive both ends.
     assert (
-        phase_for_day(release_date - timedelta(days=2), release_date)
-        is CadencePhase.RELEASE_SURGE
+        phase_for_day(release_date - timedelta(days=2), release_date) is CadencePhase.RELEASE_SURGE
     )
+    assert phase_for_day(release_date - timedelta(days=3), release_date) is CadencePhase.CAMPAIGN
     assert (
-        phase_for_day(release_date - timedelta(days=3), release_date) is CadencePhase.CAMPAIGN
+        phase_for_day(release_date + timedelta(days=4), release_date) is CadencePhase.RELEASE_SURGE
     )
-    assert (
-        phase_for_day(release_date + timedelta(days=4), release_date)
-        is CadencePhase.RELEASE_SURGE
-    )
-    assert (
-        phase_for_day(release_date + timedelta(days=5), release_date) is CadencePhase.CAMPAIGN
-    )
+    assert phase_for_day(release_date + timedelta(days=5), release_date) is CadencePhase.CAMPAIGN
     assert phase_for_day(release_date, release_date) is CadencePhase.RELEASE_SURGE
 
     # Campaign window: [release - 30, release + 28], inclusive both ends.
-    assert (
-        phase_for_day(release_date - timedelta(days=30), release_date) is CadencePhase.CAMPAIGN
-    )
-    assert (
-        phase_for_day(release_date - timedelta(days=31), release_date) is CadencePhase.DORMANT
-    )
-    assert (
-        phase_for_day(release_date + timedelta(days=28), release_date) is CadencePhase.CAMPAIGN
-    )
-    assert (
-        phase_for_day(release_date + timedelta(days=29), release_date) is CadencePhase.DORMANT
-    )
+    assert phase_for_day(release_date - timedelta(days=30), release_date) is CadencePhase.CAMPAIGN
+    assert phase_for_day(release_date - timedelta(days=31), release_date) is CadencePhase.DORMANT
+    assert phase_for_day(release_date + timedelta(days=28), release_date) is CadencePhase.CAMPAIGN
+    assert phase_for_day(release_date + timedelta(days=29), release_date) is CadencePhase.DORMANT
 
 
 # ---------------------------------------------------------------------------
@@ -569,9 +562,7 @@ async def test_reconcile_pending_cadence_is_idempotent_and_never_pushes_a_run_la
 
     # One-directional: a policy that would now schedule this title less often than its
     # already-stamped rate must not touch it at all.
-    stable_advanced = await stable_schedule_service.reconcile_pending_cadence(
-        now=now, limit=10
-    )
+    stable_advanced = await stable_schedule_service.reconcile_pending_cadence(now=now, limit=10)
     assert stable_advanced == 0
     await db_session.refresh(stable_run)
     # SQLite hands the stored timestamp back naive; `as_utc` is the same normalisation
@@ -581,9 +572,7 @@ async def test_reconcile_pending_cadence_is_idempotent_and_never_pushes_a_run_la
 
     # First reconciliation of the escalating run: it should be pulled forward, following
     # the same anchor arithmetic the docstring describes.
-    first_advanced = await escalating_schedule_service.reconcile_pending_cadence(
-        now=now, limit=10
-    )
+    first_advanced = await escalating_schedule_service.reconcile_pending_cadence(now=now, limit=10)
     assert first_advanced == 1
     await db_session.refresh(escalating_run)
     anchor = initial_scheduled_for - interval_for_rate(2)

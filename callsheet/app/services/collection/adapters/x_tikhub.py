@@ -21,6 +21,7 @@ from app.services.collection.payload_values import (
     read_hashtag_texts,
     require_string,
 )
+from app.services.collection.source import CollectionWindow
 
 # The timeline carries more than posts — the discriminator is what keeps promoted slots and
 # user cards out of a corpus that is supposed to be conversation.
@@ -31,13 +32,43 @@ _TWEET_ITEM_TYPE = "tweet"
 # large trade accounts that account-type segmentation exists to separate out (E04-S03).
 _SEARCH_TYPE_LATEST = "Latest"
 
+# X's own date operators, which this endpoint passes through in the keyword string.
+_SINCE_OPERATOR = "since"
+_UNTIL_OPERATOR = "until"
+
+
+def _with_date_operators(query: str, window: CollectionWindow | None) -> str:
+    """The query, bounded by X's own `since:`/`until:` operators (E03-S03).
+
+    This endpoint forwards the keyword to X's search, so the date bound goes *inside* the
+    query text rather than beside it. That is the vendor detail the port exists to hide, and
+    it is why a caller cannot build a windowed request and stay provider-agnostic: the same
+    bound is two body fields on this platform's other provider.
+
+    `since:` includes its day and `until:` excludes it, which is the window's own half-open
+    convention — so the rounding lives on `CollectionWindow` and both X adapters share it.
+    """
+    if window is None:
+        return query
+    return (
+        f"{query} {_SINCE_OPERATOR}:{window.start_day.isoformat()} "
+        f"{_UNTIL_OPERATOR}:{window.exclusive_end_day.isoformat()}"
+    )
+
 
 class TikhubXSearchAdapter(EndpointAdapter):
     key: ClassVar[str] = "x.tikhub_search_timeline"
     platform: ClassVar[Platform] = Platform.X
     version: ClassVar[str] = "2026-08-11"
 
-    def build_request(self, query: str, *, page: str | None, limit: int) -> ProviderRequest:
+    def build_request(
+        self,
+        query: str,
+        *,
+        page: str | None,
+        limit: int,
+        window: CollectionWindow | None = None,
+    ) -> ProviderRequest:
         """PER_CALL, so `limit` is not a cost lever here and the endpoint takes no size.
 
         The page size is whatever one call returns — 20 in the capture. Passing `limit`
@@ -45,7 +76,7 @@ class TikhubXSearchAdapter(EndpointAdapter):
         list instead, which is the only place the cap can actually be enforced.
         """
         query_params: dict[str, Any] = {
-            "keyword": query,
+            "keyword": _with_date_operators(query, window),
             "search_type": _SEARCH_TYPE_LATEST,
         }
         if page:

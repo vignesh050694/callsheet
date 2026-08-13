@@ -150,11 +150,29 @@ class Settings(BaseSettings):
     # is the multiplier in every projection E09 shows.
     collection_cost_per_poll_usd: float = Field(default=0.225, gt=0)
 
+    # **The hard page cap on a backfill** (E03-S03, concept note §7 rule 2).
+    #
+    # The single number that makes a historical range priceable. On a PER_CALL endpoint depth
+    # *is* the cost, so an uncapped walk is an uncapped bill — and unlike a poll, a backfill
+    # is asked for by someone who has been quoted a figure, which cannot be quoted at all
+    # without this. Five pages is one hundred posts per query at the live capture's page
+    # size, which for a five-variant title is a ceiling of 25 calls at $0.0015 — under four
+    # cents, against a title budget of $273.
+    #
+    # Raising it raises the quote every studio sees before confirming, which is the intended
+    # relationship: deeper history has a visible price rather than a silent one.
+    collection_backfill_max_pages: int = Field(default=5, ge=1, le=50)
+
     # How many due cycles one worker tick claims, how long it waits between ticks, and how
     # many queued cycles it re-checks against the current cadence per tick (E03-S02).
     collection_worker_batch_size: int = 5
     collection_worker_interval_seconds: int = 60
     collection_cadence_reconcile_batch_size: int = Field(default=50, ge=0)
+
+    # How many backfills one tick claims (E03-S03). One, because a backfill is the most
+    # expensive single action in the product and a tick that took five would hold a worker
+    # through five walks while every scheduled cycle behind them waited.
+    collection_backfill_worker_batch_size: int = Field(default=1, ge=1)
 
     @field_validator("cors_origins", mode="before")
     @classmethod
