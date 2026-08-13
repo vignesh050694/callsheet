@@ -38,8 +38,8 @@ bleed), which is why exclusion terms are a first-class setup control, not a supp
 | E02-S03 | Preview live sample results before committing setup | 1 | done | dcca668 |
 | E02-S04 | Review and approve discovered alias suggestions | 1 | done | 109dd56 |
 | E02-S05 | Exclude a contaminating term from a title's results | 1 | done | 8924e6e |
-| E02-S06 | Reject invisible characters as anchor terms | 1 | done | — |
-| E02-S07 | Measure title length by grapheme, not code point | 1 | todo | — |
+| E02-S06 | Reject invisible characters as anchor terms | 1 | done | 2fde760 |
+| E02-S07 | Measure title length by grapheme, not code point | 1 | in-progress | — |
 
 ## Dependencies
 
@@ -214,7 +214,7 @@ the organizations and memberships that epic delivered)
   in corpus size on a screen a studio opens repeatedly; and an exclusion applies to one title
   only — account-level exclusion is E04-S03 and was deliberately not built.
 
-- **E02-S06** — done · 22 cases in 5 tests · 569 backend tests · `make check` + `npm run check` green.
+- **E02-S06** — done · `2fde760` · 22 cases in 5 tests · 569 backend tests · `make check` + `npm run check` green.
   **One review round, passed first time** — the only story in this epic that has.
   The story asked for a fix that asks "does this render anything" rather than one that adds
   `Mn` to a category list, and that is what landed: `_renders_on_its_own` answers False for
