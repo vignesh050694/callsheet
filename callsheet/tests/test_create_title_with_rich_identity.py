@@ -1116,27 +1116,36 @@ async def test_ideographic_space_only_name_is_refused_via_the_existing_category_
     "value,expected",
     [
         ("DC", 2),
-        ("D́̂̃", 1),  # one letter + 3 combining accents, one glyph
-        ("\U0001f468‍\U0001f469‍\U0001f467", 3),  # family emoji, ZWJ-joined
+        ("D́̂̃", 1),  # one letter + 3 combining accents, one grapheme cluster
+        # Family emoji, ZWJ-joined: three emoji fused by ZWJ into one cluster (E02-S07).
+        # Superseded Fix B's number of 3 — Mc/Mn no longer matters here at all, since
+        # what collapses this to one is the ZWJ binding, not mark-category membership.
+        ("\U0001f468‍\U0001f469‍\U0001f467", 1),
         ("Aaru", 4),
-        # Mc (spacing) marks now count — a Tamil vowel sign occupies its own rendered
-        # width, unlike Mn (non-spacing) marks, which still don't. "தமி" is த (Lo) +
-        # ம (Lo) + ி (Mc vowel sign) = 3 visible characters, not 2.
-        ("தமி", 3),
-        # "வாரணம்" is 6 code points: வ ா ர ண ம ் — ா is Mc and now counts; the
-        # trailing ் (virama) is Mn and still does not. 5 visible characters.
-        ("வாரணம்", 5),
-        ("राधे", 3),  # Hindi "Radhe": ர counts, similar Mc vowel signs count
-        ("మజిలీ", 3),  # Telugu "Majili": contains only Mn vowel signs, no Mc at all
+        # Grapheme clustering (E02-S07): every mark, spacing (Mc) or not (Mn/Me), folds
+        # into the base character before it, because it is visible *as part of that
+        # character's cluster*, not as a glyph of its own. "தமி" is த (Lo) + ம+ி
+        # (Lo base with its Mc vowel sign folded in) = 2 clusters, not 3 — Fix B's count
+        # before this story counted the vowel sign separately and got 3.
+        ("தமி", 2),
+        # "வாரணம்" is 6 code points: வ ா ர ண ம ். Grapheme clustering folds ா (Mc) into
+        # வ, and ் (Mn, virama) into ம், giving 4 clusters: வா, ர, ண, ம். Fix B's
+        # spacing-marks-count-separately rule had this at 5.
+        ("வாரணம்", 4),
+        # Hindi "Radhe" is र ा ध े: र+ा (RA + its Mc vowel sign) is one cluster/syllable,
+        # and ध+े (DHA + its Mn vowel sign) is another — 2 clusters, not the 4 code
+        # points. Fix B's count (spacing marks count separately) was 3.
+        ("राधे", 2),
+        ("మజిలీ", 3),  # Telugu "Majili": Mn-only vowel signs, unaffected by this story
     ],
     ids=[
         "dc_two_plain_letters",
         "one_letter_three_combining_accents",
-        "family_emoji_zwj_sequence",
+        "family_emoji_zwj_sequence_one_cluster",
         "aaru_four_letters",
-        "tamil_three_visible_with_mc_vowel_sign",
-        "tamil_six_code_points_five_visible_with_mc_vowel_sign",
-        "hindi_radhe_three_visible",
+        "tamil_two_grapheme_clusters",
+        "tamil_six_code_points_four_grapheme_clusters",
+        "hindi_radhe_two_grapheme_clusters",
         "telugu_majili_three_visible_mn_only",
     ],
 )
@@ -1181,13 +1190,14 @@ async def test_name_padded_with_combining_marks_to_four_code_points_is_still_blo
 async def test_family_emoji_name_with_five_code_points_one_glyph_is_still_blocked(
     api_client: AsyncClient,
 ) -> None:
-    """The family emoji is 5 code points (`len() == 5`, past the old threshold) but
-    one glyph and 3 visible characters — still under the anchor threshold, and still
-    must be blocked without an anchor term."""
+    """The family emoji is 5 code points (`len() == 5`, past the old threshold) but one
+    glyph and, under grapheme clustering (E02-S07), one visible character — the ZWJs
+    fuse all three emoji into a single cluster. Still well under the anchor threshold,
+    and still must be blocked without an anchor term."""
     organization_id = await _create_organization(api_client)
     family_emoji_name = "\U0001f468‍\U0001f469‍\U0001f467"
     assert len(family_emoji_name) == 5
-    assert visible_length(family_emoji_name) == 3
+    assert visible_length(family_emoji_name) == 1
 
     response = await api_client.post(
         _titles_url(organization_id), json=_create_payload(name=family_emoji_name)
@@ -1290,16 +1300,19 @@ async def test_real_short_tamil_title_is_accepted_with_no_anchor_term(
     api_client: AsyncClient,
 ) -> None:
     """CRITICAL: the visible-length fix must not make legitimate short Indic titles
-    impossible to add without an anchor. "வாரணம்" is 6 code points and, after Fix B
-    (Mc vowel signs now count), 5 visible characters — at or past
-    `MIN_UNANCHORED_NAME_LENGTH`, so it must be accepted on the name alone, exactly
-    like a 4-or-more-letter English title would be. (Fix B moved this title's measured
-    count from 4 to 5; the outcome — accepted bare — was and remains unchanged, since
-    both numbers clear the threshold.)"""
+    impossible to add without an anchor. "வாரணம்" is 6 code points and, under grapheme
+    clustering (E02-S07: வா, ர, ண, ம் — one cluster per base with its marks folded in),
+    4 visible characters — exactly at `MIN_UNANCHORED_NAME_LENGTH`, so it must still be
+    accepted on the name alone. (Fix B, the review round before this story, had this
+    title at 5 by counting the Mc vowel sign as its own character; E02-S07's grapheme
+    counting moved it to 4. The outcome — accepted bare — is unchanged either way,
+    since both 4 and 5 clear the threshold, but 4 is now exactly on the boundary rather
+    than one past it — see test_measure_title_length_by_grapheme.py for a title that
+    sits just under it.)"""
     organization_id = await _create_organization(api_client)
     tamil_title = "வாரணம்"
     assert len(tamil_title) == 6
-    assert visible_length(tamil_title) == 5
+    assert visible_length(tamil_title) == 4
 
     response = await api_client.post(
         _titles_url(organization_id), json=_create_payload(name=tamil_title)
@@ -1412,14 +1425,13 @@ async def test_more_than_max_terms_per_field_is_still_rejected(api_client: Async
 
 
 async def test_hindi_radhe_still_requires_an_anchor_term_bare(api_client: AsyncClient) -> None:
-    """ "राधे" (Radhe) has `visible_length` 3 — by akshara, what a reader actually
-    perceives, it is a genuinely short name, on the same footing as bare "DC". Fix B
-    made Mc-category vowel signs count, but a title that is still short after they are
-    counted must still be treated as short: refusing it without an anchor is the
-    intended behaviour of the rule, not an oversight the Mc fix left behind."""
+    """ "राधे" (Radhe) has `visible_length` 2 under grapheme clustering (E02-S07) — by
+    akshara, what a reader actually perceives, it is a genuinely short name, on the
+    same footing as bare "DC". Refusing it without an anchor is the intended behaviour
+    of the rule."""
     organization_id = await _create_organization(api_client)
     hindi_title = "राधे"
-    assert visible_length(hindi_title) == 3
+    assert visible_length(hindi_title) == 2
 
     response = await api_client.post(
         _titles_url(organization_id), json=_create_payload(name=hindi_title)

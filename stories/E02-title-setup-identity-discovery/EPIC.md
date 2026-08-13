@@ -39,7 +39,7 @@ bleed), which is why exclusion terms are a first-class setup control, not a supp
 | E02-S04 | Review and approve discovered alias suggestions | 1 | done | 109dd56 |
 | E02-S05 | Exclude a contaminating term from a title's results | 1 | done | 8924e6e |
 | E02-S06 | Reject invisible characters as anchor terms | 1 | done | 2fde760 |
-| E02-S07 | Measure title length by grapheme, not code point | 1 | in-progress | — |
+| E02-S07 | Measure title length by grapheme, not code point | 1 | done | — |
 
 ## Dependencies
 
@@ -237,3 +237,38 @@ the organizations and memberships that epic delivered)
   characters — JS `\p{C}` spans `Co/Cs/Cn` while the server checks `Cc/Cf/Zl/Zp/Zs`, so
   `U+E000` blocks the form's submit button on a value the server would accept. Confirmed by the
   reviewer, unchanged by this story, and left alone rather than widened into it.
+
+- **E02-S07** — done · 13 tests · 582 backend tests · `make check` + `npm run check` + build green.
+  **Three review rounds — one more than the pipeline allows, taken deliberately and recorded
+  here rather than presented as a clean run.** Each round found a smaller defect in the same
+  isolated function, the fix was verified directly against all twelve scripts, and the two
+  implementations were diffed over 30 inputs. Stopping at the cap would have shipped a known
+  wrong answer; the deviation is the honest trade.
+  `visible_length` now counts grapheme clusters — one per character that renders on its own,
+  marks folded into the cluster before them. It reuses E02-S06's predicate exactly, which is
+  the point: counting what a reader sees and deciding what renders are the same question, and
+  they had been answered by two different rules that disagreed about spacing marks. `राधे`,
+  `सीता`, `काका` are all 2 now; `మజిలీ` is 3.
+  **The behaviour change is the story, not a side effect.** `सीता` was accepted with no cast or
+  crew term and now requires one. Seven of E02-S01's tests asserted the old numbers; every one
+  was an invalidated expectation rather than a regression — no accept/refuse outcome moved.
+  **Joiner handling was the implementer's own addition beyond the story's stated fix, and it
+  was wrong three times.** Round 1: it fused unconditionally, so two stray joiners took a real
+  Tamil title from five clusters to three. Round 2: fixing that read the character *literally*
+  before the joiner, but a skin tone or variation selector sits exactly there in real emoji, so
+  a two-person emoji measured 4 and a couple-with-heart 5 — the dangerous direction, a one-glyph
+  name clearing the threshold and shipping uncollectable. Round 2 also found `_VIRAMAS` missing
+  two of Malayalam's three viramas and Sinhala's entirely. Round 3: after a virama it fused onto
+  any *letter*, including Latin, which no font stacks — now the letter must share the virama's
+  script block, checked arithmetically because the client cannot query a Unicode script at all.
+  A fourth defect was self-caught mid-fix: **U+0D3A MALAYALAM LETTER TTTA — a letter — had been
+  pasted into the virama set by hand**, where it would have fused two ordinary letters into one
+  cluster. The set is now `\uXXXX` escapes and a test asserts every member has combining class
+  9. Invisible characters cannot be reviewed by eye, and that is the argument for the escapes.
+  **Carried, by decision:** the fix closes the same-script inconsistency the story targeted but
+  not the Latin-versus-Indic one. `பேட்டா` (Petta) is 3 clusters and needs an anchor while its
+  transliteration "Petta" is 5 and does not; `పుష్ప` (Pushpa) the same. The story puts the
+  four-character threshold and the choice of heuristic explicitly out of scope, so this is a
+  product conversation rather than a correction — but it is the next thing worth having.
+  Also carried: a chain of joiners between emoji that no font ligates (🍎ZWJ🚗ZWJ🏠) counts 1
+  rather than 3. Over-refusal, the safe direction, and pre-existing.
