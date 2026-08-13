@@ -39,7 +39,7 @@ bleed), which is why exclusion terms are a first-class setup control, not a supp
 | E02-S04 | Review and approve discovered alias suggestions | 1 | done | 109dd56 |
 | E02-S05 | Exclude a contaminating term from a title's results | 1 | done | 8924e6e |
 | E02-S06 | Reject invisible characters as anchor terms | 1 | done | 2fde760 |
-| E02-S07 | Measure title length by grapheme, not code point | 1 | done | — |
+| E02-S07 | Measure title length by grapheme, not code point | 1 | done | 7a099a7 |
 
 ## Dependencies
 
@@ -238,7 +238,7 @@ the organizations and memberships that epic delivered)
   `U+E000` blocks the form's submit button on a value the server would accept. Confirmed by the
   reviewer, unchanged by this story, and left alone rather than widened into it.
 
-- **E02-S07** — done · 13 tests · 582 backend tests · `make check` + `npm run check` + build green.
+- **E02-S07** — done · `7a099a7` · 13 tests · 582 backend tests · `make check` + `npm run check` + build green.
   **Three review rounds — one more than the pipeline allows, taken deliberately and recorded
   here rather than presented as a clean run.** Each round found a smaller defect in the same
   isolated function, the fix was verified directly against all twelve scripts, and the two
@@ -272,3 +272,56 @@ the organizations and memberships that epic delivered)
   product conversation rather than a correction — but it is the next thing worth having.
   Also carried: a chain of joiners between emoji that no font ligates (🍎ZWJ🚗ZWJ🏠) counts 1
   rather than 3. Over-refusal, the safe direction, and pre-existing.
+
+## Epic rollup
+
+**All seven stories are `done`.** Branch `epic/E02-title-setup-identity-discovery`, verified on
+the branch tip: `make check` green (**582 backend tests**, ruff and mypy clean) and
+`npm run check` + `npm run build` green.
+
+**The gate — entity-match precision ≥ 0.85 on an anchored query — is still the concept note's
+provisional 1.00, and this epic did not re-measure it.** Nothing here could: measuring precision
+means judging collected posts against a title, and the corpus only started existing in E03.
+E02-S05 built the first screen a human could grade a sample on, which is the piece a real
+measurement needs, but the measurement itself is E09's.
+
+**The hypothesis is now testable and half-answered.** It predicted a title's approved alias set
+would contain at least one term the production house never entered at setup, and that precision
+would not drop once it was added. E02-S04 delivers the mechanism end to end — mining, approval,
+and retroactive credit — but no pilot title has run long enough to produce a real approval, so
+the first half is unproven rather than shown. The second half needs the gate above.
+
+**What this epic learned, worth carrying into E04 and E05:**
+
+- **The recurring defect is not a bug type, it is a question type.** Six of the eleven defects
+  found across S01–S07 were the same question asked wrongly: *what does this text actually look
+  like to a reader*. Invisible characters passing as terms, `\w` truncating Tamil, code points
+  standing in for graphemes, joiners fusing what no font fuses. Each was found by a different
+  reviewer, in a different story, and each fix named one more Unicode category until S06 stopped
+  and asked the question directly. Any future code that measures, truncates, or compares this
+  corpus's text should start from `identity_terms.py` rather than from `str`.
+- **The predicate belongs in one place and the rule belongs in one place.** S06 and S07 together
+  collapsed two rules that disagreed about spacing marks into one, and closed two bugs on three
+  surfaces by changing one function. The three separate copies of "who may read this title" that
+  E01-S05 had to consolidate were the same lesson from the other direction.
+- **Client mirrors of a server rule diverge silently.** Two stories here had to fix the same rule
+  in `title-identity.ts` and `identity_terms.py` together, and one carried limitation is a live
+  disagreement (private-use characters). Every mirror needs a parity check, and neither project
+  has an automated one — the checks in S06 and S07 were run by hand.
+
+**Carried limitations, all deliberate and each recorded in its story's log above:**
+
+- No frontend test runner exists, so every screen this epic shipped — the setup preview panel,
+  the alias suggestion list, the mentions feed and its exclusion dialog — is verified only by
+  `tsc`, `oxlint`, and reading. This is the single largest untested surface in the project.
+- The alias suggestion read scans the 2,000 most recent mentions; past that, its counts describe
+  a window rather than a campaign (stated in the response and on screen).
+- The exclusion impact scan and sweep walk the corpus in Python, which is correct — "does this
+  term appear as a whole word" is not a `LIKE` — but linear in corpus size on a screen a studio
+  opens repeatedly.
+- The artist-scoped mentions view is refused with an explanation rather than built (E06).
+- E02-S03's `joiner_folded` is still over-broad on emoji ZWJ sequences, and the setup panel can
+  still carry an exclusion term with no visible origin.
+- The anchor rule now treats scripts consistently *within* a script but not across: `பேட்டா`
+  needs an anchor where "Petta" does not. Changing that is a product decision, not a correction.
+- The private-use client/server disagreement in the anchor rule's mirror.
