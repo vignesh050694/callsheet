@@ -36,7 +36,7 @@ raw corpus** — because analysis (E04) is the real budget risk and it must neve
 | E03-S01 | Start collecting automatically on title creation, counting each post once | 1 | done | fa67410 |
 | E03-S02 | Shift polling cadence with the campaign phase | 1 | done | 14c15b0 |
 | E03-S03 | Backfill the conversation from before I signed up | 1 | done | 3e47d7a |
-| E03-S05 | See per-platform collection health and coverage gaps | 1 | in-progress | — |
+| E03-S05 | See per-platform collection health and coverage gaps | 1 | done | — |
 
 **S06 was merged into S01** and its file deleted; its content lives on as S01's second scenario.
 S01 already required a poll that spans every configured query variant, which is the exact condition
@@ -75,6 +75,13 @@ follows, then S01.
 
 - Posting, replying, or any write action on any platform (explicitly out of scope for v1, §5).
 - Platforms beyond X, Reddit, YouTube, and Instagram (Phase 4).
+
+**Epic status:** complete — 6/6 stories on `epic/E03-agentic-collection-layer`, awaiting merge.
+The branch is not on `main` and neither is its parent, `epic/E02-title-setup-identity-discovery`.
+Gate (collection cost per title per day within the §7 model) is **projected, not measured**:
+`cadence_cost.py` computes $271.80 from the cadence windows E03-S02 derived, and asserts it in a
+test, but that is arithmetic over list prices. Measuring it against a provider invoice on a real
+title is E09's, and has not been run.
 
 ## Delivery log
 
@@ -453,3 +460,85 @@ needs the title identity set that epic delivered)
     posts as historical that are not.
   - `charged_cost_usd` is derived from the catalogue's list prices, not from a provider
     invoice. Reconciling the two is E09's.
+
+- **E03-S05** — done · `—` · 18 tests · 499 backend tests · `make check` + `npm run check` +
+  build green. **Three review rounds**, each one finding a defect in the alerting path and no
+  other.
+
+  What landed: `collection_platform_results`, one row per platform per cycle. Until this table a
+  cycle recorded a single outcome for all four platforms at once, which answers "is this title
+  collecting" and cannot answer the question the story asks — a cycle where three platforms
+  worked and one did not is a success by every counter on `collection_runs`, and that is the
+  exact shape of the failure the story is about. A log rather than a current-state row per
+  platform, because *repeated* failure is the alerting signal the Notes ask for and telling a
+  blip from an outage needs the history. Beside it `app/core/collection_health.py` holds the
+  staleness arithmetic as pure functions, on the same reasoning as `cadence_cost`: the rule the
+  dashboard renders, the interval alerting counts against, and the tests all read one fact.
+
+  **Staleness is relative to the title's current cadence phase, and that is what makes it mean
+  anything.** Eight hours of silence on a dormant title polled twice a day is a title behaving
+  normally; the same eight hours in release surge is an outage that has run most of an opening
+  weekend. One absolute threshold would either scream through every quiet campaign or stay
+  silent through exactly the window the story is written about. The tolerance is **two**
+  intervals, not one: after one interval a poll is merely *due*, and a worker tick landing late
+  is not a coverage gap. Anything tighter turns the indicator into a flapping light people learn
+  to ignore, which is worse than no light, because this one only works if being lit is believed.
+
+  **`data_as_of` is the oldest success among the *reporting* platforms**, and each half is
+  load-bearing. Oldest rather than newest, because an "as of" is a claim about everything on the
+  screen and quoting the most recent success lets one platform that polled a minute ago speak
+  for three that did not. Reporting-only because the story says so — but that is only honest if
+  the excluded platforms are named where their data appears, which is why `StalePlatformWarning`
+  is exported separately from `PlatformCoverage`: a warning each chart writes for itself is a
+  warning some chart will forget. E05's charts mount it and declare which platforms they cover.
+
+  **"Never succeeded" splits on whether anything was ever tried**, which is the whole difference
+  between a new title and a broken one. Never attempted is `pending` — greeting every freshly
+  created title with a warning is the fastest way to teach people to ignore it. Attempted and
+  never once successful is `stale` immediately, without waiting an interval, because that is
+  what a misconfigured platform looks like and silence is the wrong first thing to say about it.
+
+  **All three review rounds landed on the same forty lines, and the third fix was needed because
+  of the second.** Round 1: the alert fired on *every* cycle past the threshold, so at surge
+  cadence a known outage would page data ops 48 times a day — the fatigue the alerter's own
+  docstring argues against. Fixed by comparing the count to the threshold for **equality**, so a
+  platform alerts on the crossing and then goes quiet while it stays broken. Round 2 found that
+  fix correct and found what it had made dangerous: the `try/except` guarding the alerter wrapped
+  the *whole* loop, so if one platform's alerter raised, every later platform that crossed on the
+  same cycle was skipped — and under equality gating a skipped crossing is never retried, so the
+  alert is **lost rather than delayed**, on precisely the shared-upstream outage that most needs
+  paging. Under the old `>=` behaviour the same skip was harmless. The reviewer reproduced it with
+  four platforms failing together and an alerter raising on one. Isolation is now per iteration.
+  Round 2 also flagged, non-blocking, that `window < threshold` caps the count below a threshold
+  it can never equal — alerting silently switches itself off while every dashboard keeps reporting
+  staleness correctly, which is the worst shape this bug could take: fully instrumented, pages
+  nobody. Refused at startup now, with `0` kept as the deliberate way to turn alerting off.
+  Round 1 also found `status_for_title` deciding cadence twice per title — `PhaseCadencePolicy.decide`
+  issues a volume query on dormant titles, so a list rendering one status per row doubled it.
+  The decision is handed to `CollectionHealthService` instead, which also guarantees the rate a
+  studio is shown and the interval their staleness was judged against are one decision.
+  Round 3 passed, verifying both fixes by reintroducing each bug and watching the specific test
+  fail. Migration/model agreement confirmed with `alembic check` after running all eleven
+  migrations from base into a scratch Postgres ("No new upgrade operations detected").
+
+  Known limits, recorded rather than hidden:
+  - The stale warning is greyscale with an icon and an explicit sentence, not red. This is the
+    case where invariant D costs something and is still right: a stale platform is the most
+    alarming thing on the screen, but sentiment owns saturated colour and a red meaning "broken"
+    would compete with the red meaning "negative" on the same screen.
+  - `recent_for_platform` is one query per **non-reporting** platform rather than one batched
+    read. Bounded by the platform count and free on the healthy path. Batching means a
+    top-N-per-group query that neither Postgres nor SQLite express portably, and the
+    fetch-a-slice-and-group-in-Python version can drop a quiet platform's rows when a noisy one
+    dominates the slice — a coverage screen that under-reports a gap is the one bug this story
+    cannot ship.
+  - Alerting reaches data ops as a structured `error` log line. `CollectionHealthAlerter` is the
+    seam; something that actually pages is **E08's**, and until it is bound nobody is woken up.
+  - `recent_for_platform` breaks ties on a random UUID, so two attempts for the same title and
+    platform sharing a `finished_at` to the microsecond would order arbitrarily. Not reachable —
+    one title's cycles are serialised by `uq_collection_run_one_pending_per_title`.
+  - Only X has adapters, so three of the four configured platforms report `pending` until they
+    are first attempted and `stale` from their first attempt onward. That is the intended
+    reading: they are configured and not collecting.
+  - The screen is still the titles list, not the Title Dashboard the story names. That dashboard
+    is E05.

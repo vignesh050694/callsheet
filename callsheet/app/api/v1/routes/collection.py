@@ -10,7 +10,7 @@ import uuid
 from fastapi import APIRouter
 
 from app.api.deps import CollectionStatusServiceDep, CurrentUser
-from app.schemas.collection import TitleCollectionStatusRead
+from app.schemas.collection import PlatformHealthRead, TitleCollectionStatusRead
 from app.services.collection_status_service import CollectionStatus
 
 router = APIRouter(tags=["collection"])
@@ -31,6 +31,17 @@ def _to_status_read(status: CollectionStatus) -> TitleCollectionStatusRead:
         latest_mention_posted_at=status.latest_mention_posted_at,
         is_awaiting_first_results=status.is_awaiting_first_results,
         is_stalled=status.is_stalled,
+        platforms=[
+            PlatformHealthRead(
+                platform=health.platform,
+                state=health.state,
+                last_successful_at=health.last_successful_at,
+                last_failure_reason=health.last_failure_reason,
+                consecutive_failures=health.consecutive_failures,
+            )
+            for health in status.platforms
+        ],
+        data_as_of=status.data_as_of,
     )
 
 

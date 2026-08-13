@@ -2,6 +2,10 @@
 
 from app.models.base import Base
 from app.models.collection_backfill import CollectionBackfill, CollectionBackfillStatus
+from app.models.collection_platform_result import (
+    CollectionPlatformResult,
+    PlatformCollectionStatus,
+)
 from app.models.collection_run import (
     CollectionRun,
     CollectionRunStatus,
@@ -20,6 +24,7 @@ __all__ = [
     "Base",
     "CollectionBackfill",
     "CollectionBackfillStatus",
+    "CollectionPlatformResult",
     "CollectionRun",
     "CollectionRunStatus",
     "CollectionRunTrigger",
@@ -33,6 +38,7 @@ __all__ = [
     "MentionRawPayload",
     "Organization",
     "OrganizationType",
+    "PlatformCollectionStatus",
     "Title",
     "TitleMilestone",
     "TitleTerm",

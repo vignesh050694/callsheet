@@ -28,15 +28,29 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import Settings
 from app.core.exceptions import ServiceUnavailableError
 from app.core.platforms import Platform
+from app.models.collection_platform_result import (
+    FAILURE_REASON_MAX_LENGTH as PLATFORM_FAILURE_REASON_MAX_LENGTH,
+)
+from app.models.collection_platform_result import (
+    CollectionPlatformResult,
+    PlatformCollectionStatus,
+)
 from app.models.collection_run import (
     FAILURE_REASON_MAX_LENGTH,
     CollectionRun,
     CollectionRunStatus,
 )
 from app.models.title import Title
+from app.repositories.collection_platform_result_repository import (
+    CollectionPlatformResultRepository,
+)
 from app.repositories.collection_run_repository import CollectionRunRepository
 from app.repositories.title_repository import TitleRepository
 from app.services.collection.attribution import MentionAttributionWriter
+from app.services.collection.health_alerter import (
+    CollectionHealthAlerter,
+    LoggingCollectionHealthAlerter,
+)
 from app.services.collection.query_plan import QueryVariant, build_query_variants
 from app.services.collection.spend_policy import SpendPolicy
 from app.services.collection_schedule_service import CollectionScheduleService
@@ -61,6 +75,28 @@ class _CycleTotals:
     variants_attributed: int = 0
     platforms_collected: set[Platform] = field(default_factory=set)
     platforms_skipped: dict[Platform, str] = field(default_factory=dict)
+    # The same cycle broken out per platform (E03-S05). The totals above are a title's; a
+    # coverage gap happens on this axis, and a cycle where three platforms worked and one
+    # did not is a success by every number above it.
+    platform_outcomes: dict[Platform, "_PlatformOutcome"] = field(default_factory=dict)
+
+
+@dataclass
+class _PlatformOutcome:
+    """One platform's share of one cycle (E03-S05).
+
+    **Defaults to `FAILED`**, and every other status is set explicitly on a path that
+    reached a conclusion. An outcome is created the moment a platform is first attempted, so
+    a cycle that dies mid-poll leaves the platform it was in the middle of recorded as
+    failed rather than as whatever it was optimistically initialised to. Defaulting to
+    success would mean an exception in the one place nobody predicted is the one place a
+    broken platform reports itself healthy.
+    """
+
+    status: PlatformCollectionStatus = PlatformCollectionStatus.FAILED
+    pages_fetched: int = 0
+    mentions_stored: int = 0
+    failure_reason: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -93,15 +129,21 @@ class CollectionRunService:
         schedule_service: CollectionScheduleService,
         spend_policy: SpendPolicy,
         settings: Settings,
+        alerter: CollectionHealthAlerter | None = None,
     ) -> None:
         self._session = session
         self._run_repository = CollectionRunRepository(session)
         self._title_repository = TitleRepository(session)
+        self._platform_result_repository = CollectionPlatformResultRepository(session)
         self._attribution = MentionAttributionWriter(session)
         self._collection_service = collection_service
         self._schedule_service = schedule_service
         self._spend_policy = spend_policy
         self._settings = settings
+        # Defaulted rather than required, unlike the collaborators above. Those change what a
+        # cycle *does*; this one only reports on it, and a caller that forgets it should get
+        # the logging alerter rather than a cycle that cannot run.
+        self._alerter = alerter or LoggingCollectionHealthAlerter()
 
     async def run_due_cycles(
         self, *, now: datetime | None = None, limit: int | None = None
@@ -228,9 +270,14 @@ class CollectionRunService:
                 title_id=str(title_id),
                 error_type=type(error).__name__,
             )
+            # The platform that was mid-poll already holds a `FAILED` outcome by default;
+            # this is what puts the cause on it, so collection health can say *why* rather
+            # than only that it stopped (E03-S05).
+            self._record_interrupted_platform(totals, reason)
             await self._recover_session(run, title)
 
         result = await self._finish(run, status, reason, totals, title=title)
+        await self._alert_on_repeated_failures(title_id, totals)
 
         _logger.info(
             "collection.cycle.completed",
@@ -333,12 +380,19 @@ class CollectionRunService:
         nothing for the privilege. It is recorded once and the platform is dropped for this
         cycle only; the next cycle tries again, because the fix is a configuration change
         somebody may have made in the meantime.
+
+        Whatever happens, this platform gets an outcome row (E03-S05). A platform that is
+        silently absent from the record is indistinguishable from one that is working, which
+        is the exact confusion collection health exists to remove.
         """
+        outcome = totals.platform_outcomes.setdefault(platform, _PlatformOutcome())
         for variant in variants:
             try:
-                await self._collect_variant(title, platform, variant, totals)
+                await self._collect_variant(title, platform, variant, totals, outcome)
             except ServiceUnavailableError as error:
                 totals.platforms_skipped[platform] = error.message
+                outcome.status = PlatformCollectionStatus.UNAVAILABLE
+                outcome.failure_reason = error.message
                 _logger.warning(
                     "collection.cycle.platform_unavailable",
                     title_id=str(title.id),
@@ -348,6 +402,7 @@ class CollectionRunService:
                 )
                 return
         totals.platforms_collected.add(platform)
+        outcome.status = PlatformCollectionStatus.SUCCEEDED
 
     async def _collect_variant(
         self,
@@ -355,6 +410,7 @@ class CollectionRunService:
         platform: Platform,
         variant: QueryVariant,
         totals: _CycleTotals,
+        outcome: _PlatformOutcome,
     ) -> None:
         """One page for one query, stored and then credited to the variant that found it."""
         result = await self._collection_service.collect_page(
@@ -367,10 +423,110 @@ class CollectionRunService:
         totals.mentions_stored += result.stored
         totals.mentions_already_known += result.already_known
         totals.unreadable += result.unreadable
+        outcome.pages_fetched += 1
+        outcome.mentions_stored += result.stored
 
         totals.variants_attributed += await self._attribution.credit(
             title.id, platform, variant, result.seen_external_ids
         )
+
+    def _record_platform_outcomes(
+        self, run: CollectionRun, totals: _CycleTotals, finished_at: datetime
+    ) -> None:
+        """One row per platform this cycle attempted."""
+        self._platform_result_repository.add_all(
+            [
+                CollectionPlatformResult(
+                    collection_run_id=run.id,
+                    title_id=run.title_id,
+                    platform=platform,
+                    status=outcome.status,
+                    pages_fetched=outcome.pages_fetched,
+                    mentions_stored=outcome.mentions_stored,
+                    failure_reason=(
+                        outcome.failure_reason[:PLATFORM_FAILURE_REASON_MAX_LENGTH]
+                        if outcome.failure_reason
+                        else None
+                    ),
+                    finished_at=finished_at,
+                )
+                for platform, outcome in totals.platform_outcomes.items()
+            ]
+        )
+
+    @staticmethod
+    def _record_interrupted_platform(totals: _CycleTotals, reason: str) -> None:
+        """Puts the cycle's failure reason on whichever platform had not concluded."""
+        for outcome in totals.platform_outcomes.values():
+            if outcome.status is PlatformCollectionStatus.FAILED and not outcome.failure_reason:
+                outcome.failure_reason = reason[:PLATFORM_FAILURE_REASON_MAX_LENGTH]
+
+    async def _alert_on_repeated_failures(
+        self, title_id: uuid.UUID, totals: _CycleTotals
+    ) -> None:
+        """Tells data ops when a platform has just become repeatedly broken.
+
+        The story's Notes ask for this to reach data ops *before the customer notices*, so it
+        fires from the cycle that crossed the threshold rather than from anyone opening a
+        dashboard — a screen nobody is looking at raises no alerts.
+
+        **On the crossing only, not on every failure past it.** The count is compared for
+        equality with the threshold, so a platform alerts on its third consecutive failure
+        and then goes quiet while it stays broken. Alerting on `>=` instead is the obvious
+        version and it defeats the purpose: `consecutive_failures` only grows while a
+        platform is down, so at release-surge cadence a known outage would page data ops 48
+        times a day — and an on-call rotation that learns to filter this alert is in exactly
+        the state the threshold exists to prevent. One failure is a blip, three in a row is
+        an incident, and the hundred after that are the same incident.
+
+        A platform that recovers and breaks again crosses the threshold afresh, which is a
+        genuinely new incident and does alert.
+
+        Isolated from the rest of the cycle. Alerting is a side effect on the way out: the
+        run is already closed and committed, the successor is queued, and a paging
+        integration that is down must not turn a successful poll into a failed one. Logged
+        at error rather than swallowed, because an alerter that has silently stopped alerting
+        is the same failure this story is about, one level up.
+
+        **Each platform is attempted independently**, and that matters more here than it
+        looks. A shared upstream outage takes several platforms down on the same cycle, so
+        several crossings land together — and because the alert is one-shot, a platform
+        skipped because a *different* platform's alert raised would never get another
+        chance: its count keeps climbing past the threshold it needed to equal. Wrapping the
+        whole loop in one handler would therefore lose alerts permanently rather than
+        delaying them, on exactly the multi-platform outage that most needs paging.
+        """
+        threshold = self._settings.collection_platform_failure_alert_threshold
+        failing = [
+            platform
+            for platform, outcome in totals.platform_outcomes.items()
+            if not outcome.status.is_reporting
+        ]
+        if not failing or threshold <= 0:
+            return
+
+        for platform in failing:
+            try:
+                consecutive = await self._platform_result_repository.consecutive_failures(
+                    title_id, platform, window=self._settings.collection_platform_failure_window
+                )
+                # Equality, deliberately — see the docstring. The count includes the row this
+                # cycle just wrote and grows by exactly one per cycle, so this is true on the
+                # cycle that crosses the threshold and on no other.
+                if consecutive != threshold:
+                    continue
+                await self._alerter.platform_repeatedly_failing(
+                    title_id=title_id,
+                    platform=platform,
+                    consecutive_failures=consecutive,
+                    reason=totals.platform_outcomes[platform].failure_reason,
+                )
+            except Exception:
+                _logger.exception(
+                    "collection.health.alerting_failed",
+                    title_id=str(title_id),
+                    platform=str(platform),
+                )
 
     @staticmethod
     def _verdict(totals: _CycleTotals) -> tuple[CollectionRunStatus, str | None]:
@@ -421,6 +577,11 @@ class CollectionRunService:
             run.mentions_stored = totals.mentions_stored
             run.mentions_already_known = totals.mentions_already_known
             run.unreadable = totals.unreadable
+            # Written in the same transaction that closes the run (E03-S05). A per-platform
+            # row that lands without its cycle, or a cycle that closes without its rows,
+            # would leave collection health reading a history with holes in it that mean
+            # nothing — and a hole in *this* table renders as a coverage gap.
+            self._record_platform_outcomes(run, totals, finished_at)
         await self._session.commit()
 
         # Snapshotted here, while the instance is certainly loaded, and never read again

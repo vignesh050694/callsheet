@@ -3,7 +3,7 @@
 from functools import lru_cache
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 from app.core.platforms import Platform
@@ -169,6 +169,24 @@ class Settings(BaseSettings):
     collection_worker_interval_seconds: int = 60
     collection_cadence_reconcile_batch_size: int = Field(default=50, ge=0)
 
+    # **When a platform counts as stale** (E03-S05), as a multiple of the interval implied by
+    # the title's current cadence phase. Relative rather than absolute because the same
+    # silence means different things at 2/day and 48/day — one absolute threshold would
+    # scream through every quiet campaign or stay silent through an opening weekend.
+    #
+    # Two, not one. After one interval a poll is merely *due*, and a worker tick landing a
+    # minute late is not a coverage gap. After two, a poll that should have happened has not.
+    # Tighter than this and the indicator flaps, which is worse than having none — it only
+    # works if being lit is believed.
+    collection_staleness_interval_tolerance: float = Field(default=2.0, gt=1.0)
+
+    # How many attempts back to look when counting a platform's consecutive failures, and how
+    # many in a row raise an internal alert to data ops (E03-S05). Three, because one failed
+    # poll is a blip and paging on it teaches an on-call rotation to filter the alert out.
+    # Zero disables alerting without disabling the staleness reporting it sits beside.
+    collection_platform_failure_window: int = Field(default=20, ge=1)
+    collection_platform_failure_alert_threshold: int = Field(default=3, ge=0)
+
     # How many backfills one tick claims (E03-S03). One, because a backfill is the most
     # expensive single action in the product and a tick that took five would hold a worker
     # through five walks while every scheduled cycle behind them waited.
@@ -189,6 +207,31 @@ class Settings(BaseSettings):
         if isinstance(raw_value, str) and not raw_value.strip().startswith("["):
             return [name.strip() for name in raw_value.split(",") if name.strip()]
         return raw_value
+
+    @model_validator(mode="after")
+    def ensure_failure_window_can_reach_the_alert_threshold(self) -> "Settings":
+        """A window shorter than the threshold can never alert, so it fails at startup.
+
+        `consecutive_failures` reads at most `window` rows, so its value is capped there. Set
+        a window of 2 against a threshold of 3 and the count can never equal the threshold —
+        alerting silently switches itself off while every dashboard keeps reporting staleness
+        correctly, which is the worst possible shape for this particular bug: the deployment
+        looks fully instrumented and pages nobody.
+
+        Refused here rather than defended at the call site, because the call site cannot tell
+        a deliberate "alerting off" from a typo. Zero is the deliberate way off, and it is
+        allowed.
+        """
+        threshold = self.collection_platform_failure_alert_threshold
+        if threshold and self.collection_platform_failure_window < threshold:
+            raise ValueError(
+                "COLLECTION_PLATFORM_FAILURE_WINDOW "
+                f"({self.collection_platform_failure_window}) must be at least "
+                f"COLLECTION_PLATFORM_FAILURE_ALERT_THRESHOLD ({threshold}), or the "
+                "failure count can never reach the threshold and no alert can ever fire. "
+                "Set the threshold to 0 to turn alerting off deliberately."
+            )
+        return self
 
     @property
     def is_production(self) -> bool:

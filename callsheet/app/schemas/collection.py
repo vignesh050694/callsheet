@@ -1,4 +1,9 @@
-"""Response shapes for collection status (E03-S01, cadence phase added by E03-S02)."""
+"""Response shapes for collection status.
+
+E03-S01 shipped the title-level view, E03-S02 added the cadence phase, and E03-S05 added the
+per-platform coverage the title-level view cannot express — a cycle where three platforms
+worked and one did not is a success by every field above `platforms`.
+"""
 
 import uuid
 from datetime import datetime
@@ -6,7 +11,27 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 from app.core.cadence_phase import CadencePhase
+from app.core.collection_health import PlatformHealthState
 from app.models.collection_run import CollectionRunStatus
+
+
+class PlatformHealthRead(BaseModel):
+    """One platform's collection health for one title (E03-S05).
+
+    The dashboard header's per-platform line. `state` is the field to branch on; the two
+    beside it exist so a stale platform can say when it last worked and what went wrong,
+    rather than only that something did.
+    """
+
+    platform: str
+    state: PlatformHealthState
+    last_successful_at: datetime | None = Field(
+        description="Last successful collection for this platform, or null if never."
+    )
+    last_failure_reason: str | None
+    consecutive_failures: int = Field(
+        description="Attempts failed in a row. Only counted while the platform is not reporting."
+    )
 
 
 class TitleCollectionStatusRead(BaseModel):
@@ -47,3 +72,16 @@ class TitleCollectionStatusRead(BaseModel):
     # dashboard means.
     is_awaiting_first_results: bool
     is_stalled: bool
+
+    # Per-platform coverage (E03-S05).
+    platforms: list[PlatformHealthRead]
+    data_as_of: datetime | None = Field(
+        default=None,
+        description=(
+            "How current the data is, over the platforms that are actually reporting — the "
+            "oldest of their last successful collections, never the newest. Null when "
+            "nothing is reporting, which must render as 'no current data' rather than as an "
+            "invented timestamp. Any platform listed as stale is excluded from this claim "
+            "and must be named separately wherever its data appears."
+        ),
+    )

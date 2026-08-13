@@ -155,6 +155,37 @@ export interface TitleCollectionStatus {
   is_awaiting_first_results: boolean
   /** Nothing is queued. This title will never collect again without intervention. */
   is_stalled: boolean
+  /** Per-platform coverage (E03-S05). One entry per platform this deployment collects from. */
+  platforms: PlatformHealth[]
+  /**
+   * How current the data is, over the platforms **actually reporting** — the oldest of
+   * their last successful collections, never the newest. Null when nothing is reporting,
+   * which must render as "no current data" rather than as an invented timestamp.
+   *
+   * Stale platforms are excluded from this claim by construction, which is only honest if
+   * they are named separately wherever their data appears. Anything rendering this must
+   * also render `stalePlatforms(status)`.
+   */
+  data_as_of: string | null
+}
+
+/**
+ * What a platform's collection is doing (E03-S05).
+ *
+ * `pending` is not a problem — the title's first cycle has not run. `stale` is: the
+ * platform has been asked and is not answering, so any number that includes its data is a
+ * number with a hole in it.
+ */
+export type PlatformHealthState = 'reporting' | 'stale' | 'pending'
+
+export interface PlatformHealth {
+  platform: string
+  state: PlatformHealthState
+  /** Last successful collection for this platform, or null if it has never succeeded. */
+  last_successful_at: string | null
+  last_failure_reason: string | null
+  /** Attempts failed in a row. Only counted while the platform is not reporting. */
+  consecutive_failures: number
 }
 
 export type CollectionBackfillStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'skipped'

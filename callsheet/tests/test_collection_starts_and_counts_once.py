@@ -141,6 +141,7 @@ from app.services.collection.source import (
     CollectionWindow,
 )
 from app.services.collection.spend_policy import SpendDecision, SpendPolicy, UnrestrictedSpendPolicy
+from app.services.collection_health_service import CollectionHealthService
 from app.services.collection_run_service import (
     ABANDONED_REASON,
     CollectionCycleResult,
@@ -1693,9 +1694,16 @@ async def test_a_cycle_whose_successor_cannot_be_queued_still_leaves_the_run_clo
     # equivalent of that inside a single shared session, not a workaround for a bug in
     # the service under test.
     await db_session.refresh(pilot_user)
-    status = await CollectionStatusService(db_session, FixedCadencePolicy(12)).status_for_title(
-        broken_title_id, pilot_user
+    cadence = FixedCadencePolicy(12)
+    status_service = CollectionStatusService(
+        db_session,
+        cadence,
+        # Required rather than optional since E03-S05: a status with no per-platform
+        # coverage renders as a title whose platforms are all fine, which is the one answer
+        # collection health exists to stop the product giving.
+        CollectionHealthService(db_session, cadence, Settings(collection_platforms=[Platform.X])),
     )
+    status = await status_service.status_for_title(broken_title_id, pilot_user)
     assert status.is_stalled is True
 
 

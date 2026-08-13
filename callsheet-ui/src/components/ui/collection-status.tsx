@@ -31,36 +31,10 @@
  * asked while looking at the number.
  */
 
+import { PlatformCoverage, StalePlatformWarning } from '@/components/ui/platform-coverage'
 import { describeCadencePhase, describePollingRate } from '@/lib/cadence-phase'
+import { describeElapsed, describeUpcoming } from '@/lib/collection-freshness'
 import type { TitleCollectionStatus } from '@/types/api'
-
-const MILLISECONDS_PER_MINUTE = 60_000
-const MINUTES_PER_HOUR = 60
-const HOURS_PER_DAY = 24
-
-/**
- * A rough, always-past relative time. Deliberately coarse: to the minute is precise enough
- * to answer "is this thing running", and anything finer would rerender constantly to show
- * a number nobody is reading that closely.
- */
-function describeElapsed(instant: string, now: number): string {
-  const minutes = Math.floor((now - Date.parse(instant)) / MILLISECONDS_PER_MINUTE)
-  if (!Number.isFinite(minutes)) return 'recently'
-  if (minutes < 1) return 'just now'
-  if (minutes < MINUTES_PER_HOUR) return `${minutes}m ago`
-  const hours = Math.floor(minutes / MINUTES_PER_HOUR)
-  if (hours < HOURS_PER_DAY) return `${hours}h ago`
-  return `${Math.floor(hours / HOURS_PER_DAY)}d ago`
-}
-
-function describeUpcoming(instant: string, now: number): string {
-  const minutes = Math.ceil((Date.parse(instant) - now) / MILLISECONDS_PER_MINUTE)
-  if (!Number.isFinite(minutes)) return 'soon'
-  if (minutes <= 0) return 'due now'
-  if (minutes < MINUTES_PER_HOUR) return `in ${minutes}m`
-  const hours = Math.round(minutes / MINUTES_PER_HOUR)
-  return hours < HOURS_PER_DAY ? `in ${hours}h` : `in ${Math.round(hours / HOURS_PER_DAY)}d`
-}
 
 /** A quiet dot rather than a colour chip — see invariant D above. */
 function StatusDot({ isLive }: { isLive: boolean }) {
@@ -138,6 +112,30 @@ export function CollectionStatusLine({
 }
 
 /**
+ * The collection line plus its per-platform coverage (E03-S05).
+ *
+ * The warning sits directly under the mention count it qualifies and above the coverage
+ * detail, because the count *is* an aggregate containing the stale platform's data — the
+ * story's "every chart containing Instagram data carries a visible warning" applies to it as
+ * much as to a chart, and this is the only such figure the product renders today.
+ */
+function CollectionStatusWithCoverage({
+  status,
+  now,
+}: {
+  status: TitleCollectionStatus
+  now: number
+}) {
+  return (
+    <>
+      <CollectionStatusLine status={status} now={now} />
+      <StalePlatformWarning status={status} />
+      <PlatformCoverage status={status} now={now} />
+    </>
+  )
+}
+
+/**
  * The phase, the rate it implies, and — only when it applies — what raised it.
  *
  * The escalation note is written out rather than shown as a badge because it is the one
@@ -174,5 +172,5 @@ export function TitleCollectionStatusLine({
   isPending: boolean
 }) {
   if (isPending || !status) return null
-  return <CollectionStatusLine status={status} />
+  return <CollectionStatusWithCoverage status={status} now={Date.now()} />
 }

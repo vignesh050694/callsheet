@@ -28,6 +28,7 @@ import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.cadence_phase import CadencePhase
+from app.core.collection_health import PlatformHealth
 from app.core.exceptions import ResourceNotFoundError
 from app.models.collection_run import CollectionRun, CollectionRunStatus
 from app.models.title import Title
@@ -37,6 +38,7 @@ from app.repositories.membership_repository import MembershipRepository
 from app.repositories.mention_repository import MentionRepository
 from app.repositories.title_repository import TitleRepository
 from app.services.collection.cadence import CadenceDecision, CadencePolicy
+from app.services.collection_health_service import CollectionHealthService
 
 _logger = structlog.get_logger(__name__)
 
@@ -60,6 +62,19 @@ class CollectionStatus:
     cadence_phase: CadencePhase
     is_volume_escalated: bool
     latest_mention_posted_at: datetime | None
+    # Per-platform coverage (E03-S05). `data_as_of` is the freshness claim the reporting
+    # platforms permit — never the newest of them, and never one that quietly speaks for a
+    # platform that has stopped.
+    platforms: tuple[PlatformHealth, ...] = ()
+    data_as_of: datetime | None = None
+
+    @property
+    def stale_platforms(self) -> tuple[PlatformHealth, ...]:
+        return tuple(health for health in self.platforms if health.is_stale)
+
+    @property
+    def has_stale_platform(self) -> bool:
+        return bool(self.stale_platforms)
 
     @property
     def has_ever_run(self) -> bool:
@@ -89,13 +104,19 @@ class CollectionStatus:
 
 
 class CollectionStatusService:
-    def __init__(self, session: AsyncSession, cadence: CadencePolicy) -> None:
+    def __init__(
+        self,
+        session: AsyncSession,
+        cadence: CadencePolicy,
+        health_service: CollectionHealthService,
+    ) -> None:
         self._session = session
         self._title_repository = TitleRepository(session)
         self._membership_repository = MembershipRepository(session)
         self._run_repository = CollectionRunRepository(session)
         self._mention_repository = MentionRepository(session)
         self._cadence = cadence
+        self._health_service = health_service
 
     async def status_for_title(self, title_id: uuid.UUID, caller: User) -> CollectionStatus:
         """Visible to any member of the owning organization, as the title itself is."""
@@ -119,6 +140,11 @@ class CollectionStatusService:
         pending = await self._run_repository.next_pending_for_title(title_id)
         latest = await self._run_repository.latest_finished_for_title(title_id)
         cadence = await self._current_cadence(title)
+        # The same decision, handed on rather than asked for again. Deciding twice would run
+        # the volume-escalation query a second time per title on a list that renders one of
+        # these per row, and would let the rate on screen disagree with the interval the
+        # staleness beside it was judged against.
+        health = await self._health_service.health_for_title(title, cadence=cadence)
 
         return CollectionStatus(
             title_id=title_id,
@@ -134,6 +160,8 @@ class CollectionStatusService:
             latest_mention_posted_at=(
                 await self._mention_repository.latest_posted_at_for_title(title_id)
             ),
+            platforms=health.platforms,
+            data_as_of=health.data_as_of,
         )
 
     async def _current_cadence(self, title: Title) -> CadenceDecision:

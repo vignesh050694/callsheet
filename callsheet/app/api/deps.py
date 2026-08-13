@@ -24,6 +24,10 @@ from app.services.collection.cadence import (
     PhaseCadencePolicy,
     VolumeEscalationRule,
 )
+from app.services.collection.health_alerter import (
+    CollectionHealthAlerter,
+    LoggingCollectionHealthAlerter,
+)
 from app.services.collection.monid_source import (
     MonidCollectionSource,
     MonidTransport,
@@ -34,6 +38,7 @@ from app.services.collection.spend_policy import SpendPolicy, UnrestrictedSpendP
 from app.services.collection.volume import MentionVolumeReader
 from app.services.collection_backfill_runner import CollectionBackfillRunner
 from app.services.collection_backfill_service import CollectionBackfillService
+from app.services.collection_health_service import CollectionHealthService
 from app.services.collection_run_service import CollectionRunService
 from app.services.collection_schedule_service import CollectionScheduleService
 from app.services.collection_service import CollectionService
@@ -196,15 +201,31 @@ def get_spend_policy() -> SpendPolicy:
 SpendPolicyDep = Annotated[SpendPolicy, Depends(get_spend_policy)]
 
 
+def get_collection_health_alerter() -> CollectionHealthAlerter:
+    """Where "this platform has failed repeatedly" goes (E03-S05).
+
+    A structured error line by default, which is what data ops watch today. E08 replaces the
+    binding with something that pages; the seam exists now because a failure path with no way
+    to raise an alert can never be made to raise one.
+    """
+    return LoggingCollectionHealthAlerter()
+
+
+CollectionHealthAlerterDep = Annotated[
+    CollectionHealthAlerter, Depends(get_collection_health_alerter)
+]
+
+
 def get_collection_run_service(
     session: DbSession,
     collection_service: CollectionServiceDep,
     schedule_service: CollectionScheduleServiceDep,
     spend_policy: SpendPolicyDep,
     settings: AppSettings,
+    alerter: CollectionHealthAlerterDep,
 ) -> CollectionRunService:
     return CollectionRunService(
-        session, collection_service, schedule_service, spend_policy, settings
+        session, collection_service, schedule_service, spend_policy, settings, alerter
     )
 
 
@@ -243,10 +264,22 @@ CollectionBackfillRunnerDep = Annotated[
 ]
 
 
+def get_collection_health_service(
+    session: DbSession, cadence: CadencePolicyDep, settings: AppSettings
+) -> CollectionHealthService:
+    """Per-platform coverage. Takes the cadence policy because staleness is relative to it."""
+    return CollectionHealthService(session, cadence, settings)
+
+
+CollectionHealthServiceDep = Annotated[
+    CollectionHealthService, Depends(get_collection_health_service)
+]
+
+
 def get_collection_status_service(
-    session: DbSession, cadence: CadencePolicyDep
+    session: DbSession, cadence: CadencePolicyDep, health_service: CollectionHealthServiceDep
 ) -> CollectionStatusService:
-    return CollectionStatusService(session, cadence)
+    return CollectionStatusService(session, cadence, health_service)
 
 
 CollectionStatusServiceDep = Annotated[
