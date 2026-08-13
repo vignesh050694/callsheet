@@ -33,8 +33,57 @@ import structlog
 from app.core.identity_terms import has_meaningful_content, normalize_term
 from app.core.preview_query import build_anchored_query
 from app.models.title import Title, TitleTerm, TitleTermType, identity_term_sort_key
+from app.services.identity_rules import is_name_collectable
 
 _logger = structlog.get_logger(__name__)
+
+
+# Crew before cast, and only for choosing an anchor. A director or music director is
+# credited on this production and a handful of others, so their name beside a title's is
+# close to unique. A lead actor is credited on dozens, and a supporting one is rarely named
+# in a post about the film at all — live search bears this out: `"Mr Bhaarath" Niranjan`
+# (director) returned 5 relevant posts where `"Mr Bhaarath" Adithya Kathir` (the
+# alphabetically first cast member, and the anchor the old ordering picked) returned none.
+#
+# Deliberately NOT folded into `identity_term_sort_key`. That order is also what the studio
+# reads on screen, where cast-first is the right answer — the billing order a film is sold
+# on. Only the query cares which name is the rarer word.
+_ANCHOR_TYPE_PRECEDENCE = {
+    TitleTermType.DIRECTOR: 0,
+    TitleTermType.MUSIC_DIRECTOR: 1,
+    TitleTermType.CAST: 2,
+}
+
+
+def anchors_by_discriminating_power(terms: Sequence[TitleTerm]) -> list[str]:
+    """The title's anchor terms, most discriminating first.
+
+    Ties inside a type keep the canonical alphabetical order, so the choice stays
+    deterministic — the same identity set must anchor on the same person every cycle, or a
+    term's matching history is orphaned the moment two people swap places.
+    """
+    anchor_terms = [term for term in terms if term.term_type.is_anchor]
+    return [
+        term.value
+        for term in sorted(
+            anchor_terms,
+            key=lambda term: (
+                _ANCHOR_TYPE_PRECEDENCE[term.term_type],
+                term.normalized_value,
+            ),
+        )
+    ]
+
+
+def _stands_alone(name: str) -> bool:
+    """Whether a name is distinctive enough to be searched without an anchor beside it.
+
+    Deliberately the same rule the setup form enforces (E02-S01): a name that may be saved
+    with no cast or crew term is a name that can be collected with no cast or crew term. If
+    these two ever diverged, a studio would be told its name was specific enough to track
+    and then have it tracked as something else.
+    """
+    return is_name_collectable(name, has_anchor_term=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -69,7 +118,7 @@ def build_query_variants(title: Title, *, limit: int) -> list[QueryVariant]:
         return []
 
     positive_terms = ordered_identity_terms(title)
-    anchors = [term.value for term in positive_terms if term.term_type.is_anchor]
+    anchors = anchors_by_discriminating_power(positive_terms)
 
     variants = _deduplicate(_candidate_variants(title.name, positive_terms, anchors))
     capped = variants[:limit]
@@ -118,11 +167,15 @@ def _candidate_variants(
     name: str, positive_terms: Sequence[TitleTerm], anchors: Sequence[str]
 ) -> Iterable[QueryVariant]:
     """Every query worth running, generated in descending order of precision."""
-    # 1. The measured shape. One anchor beside the title's name is the query the live run
-    #    scored 20/20 on, so it runs first and is the one variant a title always has.
+    # 1. The title's own name, anchored only if it cannot stand alone. This runs first and is
+    #    the one variant a title always has, so it is also the variant whose recall matters
+    #    most: anchoring a distinctive name narrows it to posts that also name one specific
+    #    cast member, which is a small and arbitrary slice of the conversation.
     yield QueryVariant(
         key="name",
-        query=build_anchored_query(name, anchors),
+        query=build_anchored_query(
+            name, anchors, name_is_self_sufficient=_stands_alone(name)
+        ),
         source_term=name,
     )
 
@@ -142,13 +195,18 @@ def _candidate_variants(
     # 4. The remaining people, each paired with the title name. Last because they are the
     #    broadest: a director is attached to several films at once, so these bring in the
     #    most contamination per post found and are the first thing the cap should drop.
+    #
+    #    The leading anchor is skipped only when variant 1 actually spent it. A title whose
+    #    name stands alone never put a person in its query, so skipping one here would drop
+    #    that person's variant in favour of a query nobody ran — silently losing the
+    #    director of every title with a distinctive name.
     yield from _variants_for_types(
         positive_terms,
         anchors,
         name,
         (TitleTermType.CAST, TitleTermType.DIRECTOR, TitleTermType.MUSIC_DIRECTOR),
         style=_QueryStyle.PERSON_WITH_TITLE,
-        skip_first_anchor=True,
+        skip_first_anchor=not _stands_alone(name),
     )
 
 
@@ -211,9 +269,15 @@ def _query_for_term(
         case _QueryStyle.BARE:
             return term.value
         case _QueryStyle.ANCHORED_TITLE:
-            return build_anchored_query(term.value, anchors)
+            # An alias is judged on its own merits: "96" needs an anchor, "Vaaranam Aayiram"
+            # does not, and which one this is has nothing to do with the primary name.
+            return build_anchored_query(
+                term.value, anchors, name_is_self_sufficient=_stands_alone(term.value)
+            )
         case _QueryStyle.PERSON_WITH_TITLE:
-            return build_anchored_query(name, (term.value,))
+            # Pairing a person with the title *is* this variant — it exists to find the posts
+            # that name both — so it anchors whether or not the name could stand alone.
+            return build_anchored_query(name, (term.value,), name_is_self_sufficient=False)
 
 
 def _deduplicate(variants: Iterable[QueryVariant]) -> list[QueryVariant]:

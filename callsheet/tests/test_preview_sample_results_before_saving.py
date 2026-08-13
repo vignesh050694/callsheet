@@ -271,12 +271,12 @@ async def test_preview_endpoint_returns_200_with_the_sample(
     assert len(body["posts"]) == 1
 
 
-async def test_preview_query_is_the_single_anchored_phrase(
+async def test_preview_query_is_reported_back_and_matches_what_collection_would_ask(
     preview_client: AsyncClient, fake_search: FakeSearch
 ) -> None:
-    """The query the preview actually ran is reported back, so the studio can see what
-    was searched — and it is the anchored form (`build_anchored_query`), the shape the
-    live run measured, not the bare name."""
+    """The query the preview actually ran is reported back, so the studio can see what was
+    searched. "Vaaranam" stands on its own under the E02-S01 rule, so it is searched on its
+    own — quoted, because an unquoted multi-word name matches each word separately."""
     organization_id = await _create_organization(preview_client)
     fake_search.posts = []
 
@@ -284,7 +284,23 @@ async def test_preview_query_is_the_single_anchored_phrase(
         preview_client, organization_id, name="Vaaranam", lead_cast=["Suriya"], hashtags=[]
     )
 
-    assert body["query"] == '"Suriya Vaaranam"'
+    assert body["query"] == '"Vaaranam"'
+
+
+async def test_preview_anchors_a_name_that_cannot_stand_alone(
+    preview_client: AsyncClient, fake_search: FakeSearch
+) -> None:
+    """The case the anchor rule exists for: a name too short to be saved without a cast or
+    crew term is also searched with one beside it — outside the quotes, so the two names are
+    both required rather than demanded as one contiguous phrase."""
+    organization_id = await _create_organization(preview_client)
+    fake_search.posts = []
+
+    body = await _preview_ok(
+        preview_client, organization_id, name="DC", lead_cast=["Suriya"], hashtags=[]
+    )
+
+    assert body["query"] == '"DC" Suriya'
 
 
 # ---------------------------------------------------------------------------

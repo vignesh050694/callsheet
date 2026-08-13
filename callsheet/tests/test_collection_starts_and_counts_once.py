@@ -209,6 +209,15 @@ async def title_id(api_client: AsyncClient) -> uuid.UUID:
 # story's second scenario names: "name", "hashtag:nova", "alias:star fall",
 # "director:sam ito", "music_director:cy fox" — verified directly against the real
 # function, not asserted from a guess at its behaviour (see Section 6).
+#
+# The identity set that yields these five lost its lead cast member when the `name` variant
+# stopped being anchored (Section 6b). It used to carry one: `name` was `"Rea Lin Nova"`,
+# the `cast:rea lin` variant built that same string, and dedup dropped it as a repeated
+# query — so the cast term was paying for nothing and the cap still reached the music
+# director. Now `name` is `"Nova"` and `cast:rea lin` would be `"Nova" Rea Lin`, a genuinely
+# different question that survives dedup and pushes the music director past the cap. The
+# scenario needs a title with exactly five variants, not a title with a cast member, so the
+# term comes out rather than the expected keys changing under the tests built on them.
 FIVE_VARIANT_KEYS = (
     "name",
     "hashtag:nova",
@@ -227,7 +236,6 @@ async def five_variant_title_id(api_client: AsyncClient) -> uuid.UUID:
         _title_payload(
             aliases=["Star Fall"],
             hashtags=["#Nova"],
-            lead_cast=["Rea Lin"],
             directors=["Sam Ito"],
             music_directors=["Cy Fox"],
         ),
@@ -796,11 +804,10 @@ async def test_the_shared_posts_one_mention_and_three_matches_survive_in_an_inde
                     value="#Nova",
                     normalized_value=normalize_term("#Nova"),
                 ),
-                TitleTerm(
-                    term_type=TitleTermType.CAST,
-                    value="Rea Lin",
-                    normalized_value=normalize_term("Rea Lin"),
-                ),
+                # No cast term, matching the `five_variant_title_id` fixture: this title has
+                # to produce exactly the five variants `_five_variant_cycle_responses` is
+                # scripted against, and a cast member would now claim the fifth slot from the
+                # music director (see the FIVE_VARIANT_KEYS note).
                 TitleTerm(
                     term_type=TitleTermType.DIRECTOR,
                     value="Sam Ito",
@@ -992,7 +999,6 @@ def test_five_variant_title_produces_exactly_the_expected_variant_keys_in_order(
         name="Nova",
         hashtags=["#Nova"],
         aliases=["Star Fall"],
-        cast=["Rea Lin"],
         directors=["Sam Ito"],
         music_directors=["Cy Fox"],
     )
@@ -1030,33 +1036,70 @@ def test_raising_the_cap_only_adds_trailing_variants_without_reordering_the_rest
     keys_at_eight = [variant.key for variant in build_query_variants(title, limit=8)]
 
     assert keys_at_six[:5] == keys_at_five
-    # Only 6 candidates exist for this identity set, so raising the cap past that adds
-    # nothing further rather than inventing variants.
-    assert keys_at_eight == keys_at_six
+    assert keys_at_eight[:6] == keys_at_six
+    # Only 7 candidates exist for this identity set, so raising the cap past that adds
+    # nothing further rather than inventing variants. It was 6 while the `name` variant
+    # consumed the leading anchor and band 4 skipped that person; "Nova" stands alone, so
+    # nothing is spent there and every person now gets a variant of their own.
+    assert len(keys_at_eight) == 7
+    assert keys_at_eight[6:] == ["music_director:cy fox"]
 
 
 # ---------------------------------------------------------------------------
-# Section 6b — Regression: an alias must be anchored by the title's leading anchor
-# person exactly the way the `name` variant is, never left bare. A bare alias like
-# "Drug Cartel" collects posts about actual drug cartels — the same namesake problem the
-# anchor rule exists to prevent, and entity-match precision is this epic's own measured
-# gate, not merely a documented preference. The bug was a query style *inferred* from
-# the term's type, which let the alias band silently skip the anchor its own comment
-# promised it. The fix (`app/services/collection/query_plan.py`) replaces the inference
-# with an explicit `_QueryStyle` chosen per band. These tests pin both the fixed literal
-# output (so the specific regression cannot return unnoticed) and the band-to-style
-# mapping itself (so a *different* band cannot silently lose its style the same way).
+# Section 6b — Query shape per band: which term anchors, where the anchor sits, and when
+# there is no anchor at all.
+#
+# This section originally pinned the opposite rule — that an alias must ALWAYS be anchored
+# by the title's leading anchor person, never left bare, because a bare "Drug Cartel"
+# collects posts about actual drug cartels. That reasoning is still sound and the risk is
+# real; what changed is that the rule was measured against live search instead of argued,
+# and it was costing far more recall than it was buying precision:
+#
+#     "Adithya Kathir Mr Bhaarath"   (anchor inside the quotes)      ->  0 results
+#     "Mr Bhaarath" Adithya Kathir   (anchor outside, leading cast)  ->  0 results
+#     "Mr Bhaarath" Niranjan         (anchor outside, director)      ->  5 results
+#     "Mr Bhaarath"                  (no anchor)                     -> 20 results, all relevant
+#
+# Three corrections followed, and this section now pins all three:
+#
+#   1. An anchor belongs OUTSIDE the quotes. Inside them it is not an anchor, it is a
+#      demand that both names appear as one contiguous phrase — which is why the first
+#      form above matches nothing a human would ever write.
+#   2. Crew anchors before cast. `identity_term_sort_key` puts CAST first (billing order,
+#      correct on screen) and then sorts alphabetically, so the anchor was whichever cast
+#      member happened to sort first. `anchors_by_discriminating_power` reorders for the
+#      query only.
+#   3. A term that passes the E02-S01 self-sufficiency rule is searched unanchored. If a
+#      name is specific enough to be SAVED without a cast or crew term, it is specific
+#      enough to be SEARCHED without one; the two rules cannot disagree.
+#
+# The known cost of (3), accepted deliberately: a long-but-generic alias like "Drug Cartel"
+# is now searched bare and will collect its namesakes. Length is a crude proxy for
+# ambiguity and always was — E02-S01 already accepts exactly this risk at setup, where such
+# a name may be saved with no anchor at all. Exclusion terms (E02-S05) are the mitigation
+# for contamination that actually shows up in the collected corpus.
 # ---------------------------------------------------------------------------
 
 
-def test_alias_is_anchored_by_the_leading_anchor_person_when_the_title_has_one() -> None:
-    """The specific regression, pinned on the literal query string: `alias:drug cartel`
-    must not be a bare `"Drug Cartel"` when the title has a director to anchor it."""
+def test_a_short_alias_is_anchored_by_the_titles_leading_anchor_person() -> None:
+    """An alias too short to stand on its own still gets an anchor, and the anchor sits
+    outside the quotes so it reads as a second required term rather than a phrase."""
+    title = _build_title(name="DC", directors=["Lokesh Kanagaraj"], aliases=["DC2"])
+
+    variants = {variant.key: variant.query for variant in build_query_variants(title, limit=10)}
+
+    assert variants["alias:dc2"] == '"DC2" Lokesh Kanagaraj'
+
+
+def test_a_self_sufficient_alias_is_searched_without_an_anchor() -> None:
+    """The behaviour this section used to forbid, now deliberate: an alias long enough to
+    be saved unanchored is searched unanchored. Anchoring it costs the recall measured in
+    the table above, and the setup form already accepts the same namesake risk."""
     title = _build_title(name="DC", directors=["Lokesh Kanagaraj"], aliases=["Drug Cartel"])
 
     variants = {variant.key: variant.query for variant in build_query_variants(title, limit=10)}
 
-    assert variants["alias:drug cartel"] == '"Lokesh Kanagaraj Drug Cartel"'
+    assert variants["alias:drug cartel"] == '"Drug Cartel"'
 
 
 def test_alias_with_no_anchor_term_falls_back_to_the_same_bare_shape_the_name_gets() -> None:
@@ -1086,8 +1129,14 @@ def test_each_bands_query_style_matches_its_documented_shape_end_to_end() -> Non
     variants = {variant.key: variant.query for variant in build_query_variants(title, limit=10)}
 
     assert variants["hashtag:dcfdfs"] == "#DCFDFS"  # BARE
-    assert variants["alias:drug cartel"] == '"Rukmini Drug Cartel"'  # ANCHORED_TITLE
-    assert variants["director:lokesh kanagaraj"] == '"Lokesh Kanagaraj DC"'  # PERSON_WITH_TITLE
+    assert variants["alias:drug cartel"] == '"Drug Cartel"'  # ANCHORED_TITLE, self-sufficient
+    # "DC" is two characters, so the name is anchored — on the DIRECTOR, not on the
+    # alphabetically-leading cast member "Rukmini", and with the anchor outside the quotes.
+    assert variants["name"] == '"DC" Lokesh Kanagaraj'
+    # That query is the director's own variant, so band 4 does not repeat it; the remaining
+    # person still gets one. PERSON_WITH_TITLE anchors whatever the name would have done.
+    assert "director:lokesh kanagaraj" not in variants
+    assert variants["cast:rukmini"] == '"DC" Rukmini'  # PERSON_WITH_TITLE
 
 
 def test_query_style_bare_asks_for_the_terms_own_value_with_no_anchor() -> None:
@@ -1098,22 +1147,36 @@ def test_query_style_bare_asks_for_the_terms_own_value_with_no_anchor() -> None:
     assert query == "#DCFDFS"
 
 
-def test_query_style_anchored_title_anchors_the_terms_own_value_not_the_titles_name() -> None:
+def test_query_style_anchored_title_judges_the_terms_own_value_not_the_titles_name() -> None:
+    """The style asks whether the TERM stands alone, not whether the title does. "DC" is
+    the title here and could not stand alone, but the alias is what is being searched."""
     term = TitleTerm(
         term_type=TitleTermType.ALIAS, value="Drug Cartel", normalized_value="drug cartel"
     )
 
     query = _query_for_term(term, "DC", ["Lokesh Kanagaraj"], _QueryStyle.ANCHORED_TITLE)
 
-    assert query == '"Lokesh Kanagaraj Drug Cartel"'
+    assert query == '"Drug Cartel"'
+
+
+def test_query_style_anchored_title_anchors_a_term_that_cannot_stand_alone() -> None:
+    term = TitleTerm(term_type=TitleTermType.ALIAS, value="DC2", normalized_value="dc2")
+
+    query = _query_for_term(term, "DC", ["Lokesh Kanagaraj"], _QueryStyle.ANCHORED_TITLE)
+
+    assert query == '"DC2" Lokesh Kanagaraj'
 
 
 def test_query_style_person_with_title_pairs_the_terms_own_value_with_the_titles_name() -> None:
+    """This style anchors unconditionally — finding posts that name both IS its purpose —
+    so it holds even when the title name would otherwise be searched bare."""
     term = TitleTerm(term_type=TitleTermType.CAST, value="Rukmini", normalized_value="rukmini")
 
-    query = _query_for_term(term, "DC", ["Lokesh Kanagaraj"], _QueryStyle.PERSON_WITH_TITLE)
+    query = _query_for_term(
+        term, "Vaaranam Aayiram", ["Lokesh Kanagaraj"], _QueryStyle.PERSON_WITH_TITLE
+    )
 
-    assert query == '"Rukmini DC"'
+    assert query == '"Vaaranam Aayiram" Rukmini'
 
 
 # ---------------------------------------------------------------------------

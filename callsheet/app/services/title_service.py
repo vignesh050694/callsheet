@@ -15,6 +15,7 @@ import structlog
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.db_errors import is_unique_violation
 from app.core.exceptions import (
     PermissionDeniedError,
     ResourceConflictError,
@@ -106,12 +107,17 @@ class TitleService:
             # neither does.
             await self._schedule_service.queue_first_run(title)
             await self._session.commit()
-        except IntegrityError:
+        except IntegrityError as error:
             # `_build_identity_terms` and `_build_milestones` already dedupe, so neither
             # unique constraint should fire. They are the backstop for a dedupe bug: a
             # 409 is a survivable answer, a 500 is not. Nothing here reads an ORM
             # attribute — rollback expires them.
             await self._session.rollback()
+            # Only a collision is a 409. Any other constraint means the schema and the code
+            # disagree, and calling that a duplicate hides the defect behind a plausible
+            # sentence — let it surface as the 500 it is.
+            if not is_unique_violation(error):
+                raise
             _logger.warning(
                 "title.create.duplicate_entry",
                 organization_id=str(organization_id),
@@ -157,10 +163,15 @@ class TitleService:
         release_date = payload.release_date
         try:
             await self._session.commit()
-        except IntegrityError:
+        except IntegrityError as error:
             # Read nothing off `title` after this — rollback expires every attribute, and
             # touching one here would raise inside the handler instead of returning a 409.
             await self._session.rollback()
+            # `_apply_milestones` diffs against what is stored, so the only way to reach
+            # `uq_title_milestone_name_date` is a bug in that diff. Anything else reaching
+            # here is not a duplicate and must not be described as one.
+            if not is_unique_violation(error):
+                raise
             _logger.warning("title.schedule.duplicate_milestone", title_id=str(title_id))
             raise ResourceConflictError(DUPLICATE_ENTRY_MESSAGE) from None
 

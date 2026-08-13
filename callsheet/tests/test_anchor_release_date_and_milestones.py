@@ -83,8 +83,10 @@ from pathlib import Path
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.db_errors import is_unique_violation
 from app.core.release_phase import ReleasePhase, phase_for, phase_for_date
 from app.models import Title, TitleMilestone, User
 from app.models.title import MILESTONE_NAME_MAX_LENGTH, TITLE_NAME_MAX_LENGTH, TITLE_TERM_MAX_LENGTH
@@ -1479,3 +1481,103 @@ async def test_known_defect_variation_selector_milestone_name_is_still_accepted(
     import unicodedata
 
     assert unicodedata.category(stored_name) == "Mn"
+
+
+# ---------------------------------------------------------------------------
+# Section 14 — Regression: an integrity failure that is NOT a uniqueness collision must
+# not be reported as a duplicate.
+#
+# Found testing E02-S02 against Postgres. `title_milestones.created_at` had lost its
+# `now()` server default, and since `TimestampMixin` relies on the database to fill it,
+# every milestone insert failed with a not-null violation. Both `TitleService` handlers
+# caught `IntegrityError` wholesale and answered 409 "This title already contains that
+# identity term or campaign milestone" -- on a title with zero milestones. The message
+# named the one thing that was definitely not wrong, and the real defect (schema drift,
+# repaired by migration c07e5a9b2f14) stayed invisible behind it.
+#
+# The mapping, not the drift, is what is pinned here: only a uniqueness collision may
+# become a 409. `is_unique_violation` is the seam that decides, so it is tested directly
+# against the driver shapes it has to tell apart -- asyncpg/psycopg expose a SQLSTATE,
+# SQLite exposes only a message.
+# ---------------------------------------------------------------------------
+
+
+def _integrity_error(original: BaseException) -> IntegrityError:
+    """An `IntegrityError` shaped the way SQLAlchemy hands one to a service."""
+    return IntegrityError("INSERT INTO title_milestones ...", {}, original)
+
+
+class _AsyncpgStyleError(Exception):
+    """asyncpg surfaces the Postgres SQLSTATE as `sqlstate`."""
+
+    def __init__(self, sqlstate: str, message: str) -> None:
+        super().__init__(message)
+        self.sqlstate = sqlstate
+
+
+class _PsycopgStyleError(Exception):
+    """psycopg surfaces the same code as `pgcode`."""
+
+    def __init__(self, pgcode: str, message: str) -> None:
+        super().__init__(message)
+        self.pgcode = pgcode
+
+
+def test_unique_violation_is_recognised_across_driver_shapes() -> None:
+    asyncpg_unique = _AsyncpgStyleError(
+        "23505", 'duplicate key value violates unique constraint "uq_title_milestone_name_date"'
+    )
+    psycopg_unique = _PsycopgStyleError("23505", "duplicate key value violates unique constraint")
+    sqlite_unique = Exception(
+        "UNIQUE constraint failed: title_milestones.title_id, title_milestones.occurs_on"
+    )
+
+    assert is_unique_violation(_integrity_error(asyncpg_unique)) is True
+    assert is_unique_violation(_integrity_error(psycopg_unique)) is True
+    assert is_unique_violation(_integrity_error(sqlite_unique)) is True
+
+
+def test_not_null_violation_is_not_mistaken_for_a_duplicate() -> None:
+    """The exact failure that produced the wrong 409: SQLSTATE 23502, not 23505."""
+    not_null = _AsyncpgStyleError(
+        "23502", 'null value in column "created_at" of relation "title_milestones"'
+    )
+    foreign_key = _AsyncpgStyleError("23503", "insert or update violates foreign key constraint")
+    check = _AsyncpgStyleError("23514", "new row violates check constraint")
+    sqlite_not_null = Exception("NOT NULL constraint failed: title_milestones.created_at")
+
+    assert is_unique_violation(_integrity_error(not_null)) is False
+    assert is_unique_violation(_integrity_error(foreign_key)) is False
+    assert is_unique_violation(_integrity_error(check)) is False
+    assert is_unique_violation(_integrity_error(sqlite_not_null)) is False
+
+
+async def test_milestone_insert_failing_on_a_non_unique_constraint_is_not_a_409(
+    api_client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """End to end: when the commit fails for a reason that is not a collision, the caller
+    must not be told it sent a duplicate. Before the fix this returned 409 with the
+    duplicate message; it now surfaces as an unhandled integrity failure."""
+    organization_id = await _create_organization(api_client)
+    create_response = await api_client.post(_titles_url(organization_id), json=_create_payload())
+    assert create_response.status_code == 201, create_response.text
+    title_id = create_response.json()["id"]
+
+    not_null = _AsyncpgStyleError(
+        "23502", 'null value in column "created_at" of relation "title_milestones"'
+    )
+
+    async def _fail_with_not_null(*_args: object, **_kwargs: object) -> None:
+        raise _integrity_error(not_null)
+
+    monkeypatch.setattr(AsyncSession, "commit", _fail_with_not_null)
+
+    with pytest.raises(IntegrityError):
+        await api_client.put(
+            f"/api/v1/titles/{title_id}/schedule",
+            json={
+                "release_date": "2026-10-01",
+                "milestones": [{"name": "Trailer launch", "occurs_on": "2026-09-01"}],
+            },
+        )

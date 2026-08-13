@@ -37,7 +37,11 @@ from app.models.title import TITLE_NAME_MAX_LENGTH, TITLE_TERM_MAX_LENGTH
 from app.models.user import User
 from app.repositories.membership_repository import MembershipRepository
 from app.schemas.title_preview import TitlePreviewRequest
-from app.services.identity_rules import ensure_fits, ensure_name_is_collectable
+from app.services.identity_rules import (
+    ensure_fits,
+    ensure_name_is_collectable,
+    is_name_collectable,
+)
 from app.services.preview_search import (
     PREVIEW_PLATFORM,
     PREVIEW_POST_LIMIT,
@@ -114,7 +118,14 @@ class TitlePreviewService:
         # save for a reason the sample had already made obvious.
         ensure_name_is_collectable(draft.name, has_anchor_term=draft.has_anchor_term)
 
-        query = build_anchored_query(draft.name, draft.anchor_values)
+        # Anchored on the same terms as the rule just applied: a name that needed a cast or
+        # crew term to be saved needs one to be searched. The preview has to ask the question
+        # collection will ask, or the sample it shows is not a sample of what gets collected.
+        query = build_anchored_query(
+            draft.name,
+            draft.anchor_values,
+            name_is_self_sufficient=is_name_collectable(draft.name, has_anchor_term=False),
+        )
         posts = await self._search_once(query, organization_id, caller)
 
         return TitlePreview(
