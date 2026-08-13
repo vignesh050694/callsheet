@@ -11,6 +11,7 @@ page is fetched once, stored once, and never silently discarded.
 
 import time
 import uuid
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
@@ -19,6 +20,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.platforms import Platform
+from app.core.post_matching import term_occurs_in
 from app.models.mention import Mention, MentionRawPayload
 from app.repositories.mention_repository import MentionRepository
 from app.services.collection.mention_shape import NormalizedMention
@@ -63,13 +65,21 @@ class CollectionService:
         *,
         limit: int,
         page: str | None = None,
+        excluded_terms: Sequence[str] = (),
     ) -> CollectionResult:
-        """Fetches one page for this title and stores what is new in it."""
+        """Fetches one page for this title and stores what is new in it.
+
+        `excluded_terms` are the title's normalised exclusion rules (E02-S05). A post they
+        disqualify is still stored — the payload was paid for and the judgement is
+        reversible — but it is marked on the way in, so it never reaches a count. Applying
+        the rule here rather than at read time is what makes "future collection stops
+        matching them" and "historic mentions included" one mechanism instead of two.
+        """
         started_at = time.perf_counter()
         fetched_page = await self._source.fetch(platform, query, page=page, limit=limit)
         collected_at = datetime.now(UTC)
 
-        result = await self._store_and_commit(title_id, fetched_page, collected_at)
+        result = await self._store_and_commit(title_id, fetched_page, collected_at, excluded_terms)
 
         _logger.info(
             "collection.page.completed",
@@ -90,6 +100,7 @@ class CollectionService:
         title_id: uuid.UUID,
         page: CollectionPage,
         collected_at: datetime,
+        excluded_terms: Sequence[str],
     ) -> CollectionResult:
         """Writes the page, retrying once if another poll stored some of it first.
 
@@ -113,7 +124,7 @@ class CollectionService:
         # `expire_on_commit=False` is set on the session factory, so `result` stays
         # readable after the commit below.
         try:
-            result = await self._store(title_id, page, collected_at)
+            result = await self._store(title_id, page, collected_at, excluded_terms)
             # The service owns the transaction boundary here as everywhere else in this
             # codebase — `get_db_session` rolls back and never commits on its behalf.
             # Without this the whole page, including payloads that have already been paid
@@ -129,7 +140,7 @@ class CollectionService:
                 endpoint=page.endpoint.key,
             )
 
-        result = await self._store(title_id, page, collected_at)
+        result = await self._store(title_id, page, collected_at, excluded_terms)
         await self._session.commit()
         _logger.info(
             "collection.page.write_conflict_resolved",
@@ -145,6 +156,7 @@ class CollectionService:
         title_id: uuid.UUID,
         page: CollectionPage,
         collected_at: datetime,
+        excluded_terms: Sequence[str],
     ) -> CollectionResult:
         """Writes the page's new items, skipping what this title already holds.
 
@@ -174,6 +186,7 @@ class CollectionService:
 
             mention = self._build_mention(title_id, item.mention, collected_at)
             if mention is not None:
+                self._apply_exclusions(mention, excluded_terms, collected_at)
                 mentions.append(mention)
             else:
                 unreadable += 1
@@ -197,6 +210,31 @@ class CollectionService:
             # credits the variant once.
             seen_external_ids=tuple(dict.fromkeys(self._identifiable_ids(page))),
         )
+
+    @staticmethod
+    def _apply_exclusions(
+        mention: Mention, excluded_terms: Sequence[str], collected_at: datetime
+    ) -> None:
+        """Marks a post the title has already disowned, at the moment it arrives.
+
+        First matching rule wins and is recorded by name. A post can carry two disowned
+        franchises, and which one is credited matters only for explaining the number — but
+        it has to be one of them rather than a bare flag, or "why is this post not counted"
+        has no answer.
+        """
+        haystacks = [mention.text, " ".join(mention.hashtags or [])]
+        for term in excluded_terms:
+            if not term_occurs_in(haystacks, term):
+                continue
+            mention.excluded_by_term = term
+            mention.excluded_at = collected_at
+            _logger.debug(
+                "collection.page.excluded_on_arrival",
+                title_id=str(mention.title_id),
+                external_id=mention.external_id,
+                term=term,
+            )
+            return
 
     @staticmethod
     def _identifiable_ids(page: CollectionPage) -> list[str]:

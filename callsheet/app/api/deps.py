@@ -41,9 +41,11 @@ from app.services.collection_service import CollectionService
 from app.services.collection_status_service import CollectionStatusService
 from app.services.invitation_notifier import InvitationNotifier
 from app.services.invitation_service import InvitationService
+from app.services.mention_feed_service import MentionFeedService
 from app.services.organization_service import OrganizationService
 from app.services.preview_search import PreviewSearch, UnconfiguredPreviewSearch
 from app.services.reprocess_service import ReprocessService
+from app.services.title_exclusion_service import TitleExclusionService
 from app.services.title_invitation_service import TitleInvitationService
 from app.services.title_membership_service import TitleMembershipService
 from app.services.title_preview_service import TitlePreviewService
@@ -123,6 +125,26 @@ def get_alias_discovery_service(session: DbSession) -> AliasDiscoveryService:
 
 
 AliasDiscoveryServiceDep = Annotated[AliasDiscoveryService, Depends(get_alias_discovery_service)]
+
+
+def get_title_exclusion_service(session: DbSession) -> TitleExclusionService:
+    """Assembled without a collection source, for the same reason the alias service is.
+
+    Excluding a term re-reads posts already stored and marks them; lifting the rule gives
+    them back. Neither may cost anything, and the absence of a dependency that could spend
+    is a stronger guarantee than a rule inside the service.
+    """
+    return TitleExclusionService(session)
+
+
+TitleExclusionServiceDep = Annotated[TitleExclusionService, Depends(get_title_exclusion_service)]
+
+
+def get_mention_feed_service(session: DbSession) -> MentionFeedService:
+    return MentionFeedService(session)
+
+
+MentionFeedServiceDep = Annotated[MentionFeedService, Depends(get_mention_feed_service)]
 
 
 def get_app_settings() -> Settings:

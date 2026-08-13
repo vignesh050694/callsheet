@@ -80,9 +80,7 @@ class MentionRepository:
         if payloads:
             self._session.add_all(payloads)
             await self._session.flush()
-        _logger.debug(
-            "mention.query.add_all", mentions=len(mentions), payloads=len(payloads)
-        )
+        _logger.debug("mention.query.add_all", mentions=len(mentions), payloads=len(payloads))
 
     async def list_for_title(
         self,
@@ -90,14 +88,47 @@ class MentionRepository:
         *,
         limit: int,
         offset: int = 0,
+        include_excluded: bool = False,
     ) -> list[Mention]:
-        """Newest first, and never filtered by provider — there is no provider to filter on."""
+        """Newest first, and never filtered by provider — there is no provider to filter on.
+
+        Excluded posts are left out by default (E02-S05). The default is the safe
+        direction: a caller that forgets this parameter under-counts a title rather than
+        silently folding contamination the studio explicitly disowned back into a number.
+        `include_excluded=True` is for the one screen that has to show what a rule removed.
+        """
+        statement = select(Mention).where(Mention.title_id == title_id)
+        if not include_excluded:
+            statement = statement.where(Mention.excluded_by_term.is_(None))
         result = await self._session.execute(
-            select(Mention)
-            .where(Mention.title_id == title_id)
-            .order_by(Mention.posted_at.desc(), Mention.external_id)
+            statement.order_by(Mention.posted_at.desc(), Mention.external_id)
             .limit(limit)
             .offset(offset)
+        )
+        return list(result.scalars().all())
+
+    async def count_for_title_including_excluded(self, title_id: uuid.UUID) -> int:
+        """Every post this title holds, disowned ones included — the corpus, not the count.
+
+        Separate from `count_for_title` rather than a flag on it, because the two answer
+        different questions and only one of them belongs on a chart. This one exists so a
+        screen can say "2,000 of 2,140 collected posts", which is a statement about
+        coverage; `count_for_title` is a statement about the film.
+        """
+        result = await self._session.execute(
+            select(func.count()).select_from(Mention).where(Mention.title_id == title_id)
+        )
+        return int(result.scalar_one())
+
+    async def list_excluded_by_term(
+        self, title_id: uuid.UUID, excluded_by_term: str
+    ) -> list[Mention]:
+        """Everything one rule removed, for lifting that rule again (E02-S05)."""
+        result = await self._session.execute(
+            select(Mention).where(
+                Mention.title_id == title_id,
+                Mention.excluded_by_term == excluded_by_term,
+            )
         )
         return list(result.scalars().all())
 
@@ -110,8 +141,17 @@ class MentionRepository:
         limit: int,
         after_collected_at: datetime | None = None,
         after_id: uuid.UUID | None = None,
+        include_excluded: bool = True,
     ) -> list[Mention]:
         """A page of one title's corpus within a date window, paged by arrival order.
+
+        `include_excluded` defaults to **True** here and to False on `list_for_title`, and
+        the difference is deliberate. This walk serves the corpus-maintenance paths — a
+        reprocess re-derives every stored post from its payload, and it would be wrong for
+        a repair to skip the rows a studio disowned, since lifting the exclusion later must
+        not hand back a stale mention. `list_for_title` serves screens and counts, where
+        the disowned rows must never appear. Each default is the safe one for its callers,
+        so neither can be got wrong by omission.
 
         Keyset-paged rather than OFFSET-paged, because a reprocess walks a six-week
         corpus in batches while collection keeps inserting into it, and an OFFSET walk
@@ -148,6 +188,8 @@ class MentionRepository:
         arrival in the first.
         """
         statement = select(Mention).where(Mention.title_id == title_id)
+        if not include_excluded:
+            statement = statement.where(Mention.excluded_by_term.is_(None))
         if posted_from is not None:
             statement = statement.where(Mention.posted_at >= posted_from)
         if posted_until is not None:
@@ -195,21 +237,33 @@ class MentionRepository:
         return {external_id: mention_id for external_id, mention_id in result.all()}
 
     async def count_for_title(self, title_id: uuid.UUID) -> int:
-        """How many posts this title holds. Unsegmented — account typing is E04-S03."""
+        """How many posts count towards this title. Unsegmented — account typing is E04-S03.
+
+        Excluded posts are not counted. That is the whole of E02-S05's "removed from all
+        counts and charts, historic mentions included": the rule is applied where the
+        number is produced, so it applies retroactively without anything being deleted.
+        """
         result = await self._session.execute(
-            select(func.count()).select_from(Mention).where(Mention.title_id == title_id)
+            select(func.count())
+            .select_from(Mention)
+            .where(Mention.title_id == title_id, Mention.excluded_by_term.is_(None))
         )
         return int(result.scalar_one())
 
     async def latest_posted_at_for_title(self, title_id: uuid.UUID) -> datetime | None:
+        """Freshness, over what counts. A disowned post must not make a title look alive."""
         result = await self._session.execute(
-            select(func.max(Mention.posted_at)).where(Mention.title_id == title_id)
+            select(func.max(Mention.posted_at)).where(
+                Mention.title_id == title_id, Mention.excluded_by_term.is_(None)
+            )
         )
         return result.scalar_one_or_none()
 
     async def earliest_posted_at_for_title(self, title_id: uuid.UUID) -> datetime | None:
         result = await self._session.execute(
-            select(func.min(Mention.posted_at)).where(Mention.title_id == title_id)
+            select(func.min(Mention.posted_at)).where(
+                Mention.title_id == title_id, Mention.excluded_by_term.is_(None)
+            )
         )
         return result.scalar_one_or_none()
 
@@ -229,6 +283,9 @@ class MentionRepository:
                 Mention.title_id == title_id,
                 Mention.posted_at >= start,
                 Mention.posted_at < end,
+                # Cadence is driven by how much the film is being talked about. A
+                # franchise collision the studio disowned must not buy surge polling.
+                Mention.excluded_by_term.is_(None),
             )
         )
         return int(result.scalar_one())

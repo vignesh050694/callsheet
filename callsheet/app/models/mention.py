@@ -38,7 +38,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.platforms import Platform
 from app.models.base import Base, TimestampMixin, UuidPrimaryKeyMixin
-from app.models.title import Title
+from app.models.title import TITLE_TERM_MAX_LENGTH, Title
 
 EXTERNAL_ID_MAX_LENGTH = 128
 HANDLE_MAX_LENGTH = 255
@@ -66,6 +66,10 @@ class Mention(Base, UuidPrimaryKeyMixin, TimestampMixin):
         # Every read of this table is "this title, this window" — a time series is the
         # only shape the product displays.
         Index("ix_mention_title_posted_at", "title_id", "posted_at"),
+        # "Everything this one rule removed", which is what undoing an exclusion walks
+        # (E02-S05). Without it, lifting a rule scans the whole corpus to find the handful
+        # of rows it touched.
+        Index("ix_mention_title_excluded_by_term", "title_id", "excluded_by_term"),
     )
 
     title_id: Mapped[uuid.UUID] = mapped_column(
@@ -110,7 +114,27 @@ class Mention(Base, UuidPrimaryKeyMixin, TimestampMixin):
 
     collected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
+    # Which exclusion term disqualified this post from the title (E02-S05). Null is the
+    # normal state and means "counted".
+    #
+    # A flag rather than a delete, and stored rather than evaluated on read, for three
+    # separate reasons. The row is what was paid for, and an exclusion is a judgement about
+    # relevance that a studio can change their mind about — deleting would make undoing it
+    # cost another collection. Every read of this table is an aggregate, and an aggregate
+    # that had to re-run text matching over the corpus to know what to count would put the
+    # whole identity rule on the dashboard's critical path. And the *reason* is worth
+    # keeping: "removed by #DareDevil" is a number somebody can audit, where a bare boolean
+    # is a number they have to trust.
+    excluded_by_term: Mapped[str | None] = mapped_column(
+        String(TITLE_TERM_MAX_LENGTH), nullable=True
+    )
+    excluded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     title: Mapped[Title] = relationship(lazy="raise")
+
+    @property
+    def is_excluded(self) -> bool:
+        return self.excluded_by_term is not None
 
     def __repr__(self) -> str:
         return f"<Mention {self.platform}:{self.external_id} @{self.author_handle}>"
@@ -155,16 +179,12 @@ class MentionRawPayload(Base, UuidPrimaryKeyMixin, TimestampMixin):
         nullable=False,
     )
     # Null only when the payload was so unreadable that no id came out of it.
-    external_id: Mapped[str | None] = mapped_column(
-        String(EXTERNAL_ID_MAX_LENGTH), nullable=True
-    )
+    external_id: Mapped[str | None] = mapped_column(String(EXTERNAL_ID_MAX_LENGTH), nullable=True)
 
     # The provenance the normalised row refuses to carry.
     provider: Mapped[str] = mapped_column(String(PROVIDER_MAX_LENGTH), nullable=False)
     endpoint_key: Mapped[str] = mapped_column(String(ENDPOINT_KEY_MAX_LENGTH), nullable=False)
-    adapter_version: Mapped[str] = mapped_column(
-        String(ADAPTER_VERSION_MAX_LENGTH), nullable=False
-    )
+    adapter_version: Mapped[str] = mapped_column(String(ADAPTER_VERSION_MAX_LENGTH), nullable=False)
 
     payload: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     normalization_error: Mapped[str | None] = mapped_column(

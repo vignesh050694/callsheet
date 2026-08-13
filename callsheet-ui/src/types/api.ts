@@ -428,3 +428,65 @@ export interface AliasApproval {
   /** Always zero. Re-matching reads stored posts and cannot spend. */
   collection_calls: number
 }
+
+/** A collected post as the mentions feed reports it (E02-S05). */
+export interface Mention {
+  id: string
+  platform: string
+  author_handle: string
+  author_display_name: string
+  text: string
+  posted_at: string
+  permalink: string | null
+  /** The platform's own claim, unverified — never used to filter. */
+  platform_reported_language: string | null
+  hashtags: string[]
+  /** Identity terms found in this post — why it was collected for this title. */
+  matched_terms: string[]
+  /** Hashtags the identity set does not claim. One of these dragged the post in. */
+  candidate_exclusion_terms: string[]
+  excluded_by_term: string | null
+  excluded_at: string | null
+}
+
+export interface MentionFeed {
+  items: Mention[]
+  /** Posts that count. Unsegmented — account typing is E04-S03. */
+  counted_total: number
+  /** Every post collected. The gap from `counted_total` is what exclusions removed. */
+  collected_total: number
+  limit: number
+  offset: number
+}
+
+export interface ExclusionInput {
+  value: string
+}
+
+export interface ExclusionImpact {
+  value: string
+  normalized_value: string
+  /** Already-collected posts this rule would remove, measured over the whole corpus. */
+  would_remove: number
+  counted_now: number
+  /** True when the rule would empty the title — almost always a mis-click. */
+  removes_everything: boolean
+  is_already_excluded: boolean
+  samples: Mention[]
+}
+
+export interface Exclusion {
+  id: string
+  value: string
+  normalized_value: string
+}
+
+export interface ExclusionCreated {
+  term: TitleTerm
+  removed_mentions: number
+}
+
+export interface ExclusionRemoved {
+  value: string
+  restored_mentions: number
+}

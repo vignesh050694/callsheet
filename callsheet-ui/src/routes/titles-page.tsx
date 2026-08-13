@@ -118,6 +118,12 @@ function TitleRow({ title, isOwner }: { title: Title; isOwner: boolean }) {
         >
           Cast access
         </Link>
+        <Link
+          to={`/titles/${title.id}/mentions`}
+          className="text-ink-400 hover:text-ink-900 underline underline-offset-2"
+        >
+          Mentions
+        </Link>
         {/* Owners only: everything on that screen is a decision about what the title
             collects, and the server refuses it to a read-only grant anyway. */}
         {isOwner && (

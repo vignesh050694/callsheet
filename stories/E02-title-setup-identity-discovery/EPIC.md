@@ -37,7 +37,7 @@ bleed), which is why exclusion terms are a first-class setup control, not a supp
 | E02-S02 | Anchor the title to a release date and campaign milestones | 1 | done | 1b91add |
 | E02-S03 | Preview live sample results before committing setup | 1 | done | dcca668 |
 | E02-S04 | Review and approve discovered alias suggestions | 1 | done | 109dd56 |
-| E02-S05 | Exclude a contaminating term from a title's results | 1 | in-progress | — |
+| E02-S05 | Exclude a contaminating term from a title's results | 1 | done | — |
 | E02-S06 | Reject invisible characters as anchor terms | 1 | todo | — |
 | E02-S07 | Measure title length by grapheme, not code point | 1 | todo | — |
 
@@ -175,3 +175,41 @@ the organizations and memberships that epic delivered)
   (its `ReprocessService` sibling is). And an undo for rejections was built though the story does
   not ask for one: "never re-suggested" is permanent, decided from one screenful of evidence in
   week one, and the alternative to a button is a support ticket.
+
+- **E02-S05** — done · 9 tests · 547 backend tests · `make check` + `npm run check` + build green.
+  Two review rounds. What landed: `TitleExclusionService` (measure, apply, lift), a narrow
+  mentions feed to decide from, and the `excluded_by_term` marker on `mentions`.
+  **The confirmation is on a number, not a string.** `#DC` and `#DareDevil` are
+  indistinguishable as text and remove wildly different shares of a corpus, so the impact is
+  measured over the *whole* corpus before the rule exists, quoted with sample posts, and
+  flagged when it would remove everything. That is the story's "show the removal count before
+  confirming", and it is the only thing separating a good rule from one that silently empties
+  a title.
+  **Marked, never deleted.** The row was paid for and the judgement is reversible, so the rule
+  sets `excluded_by_term` and lifting it flips the flag back — no re-collection. Every
+  aggregate in `MentionRepository` now filters marked rows, the cadence baseline included, so
+  a franchise collision the studio disowned cannot buy surge polling. The two that deliberately
+  do not filter are `count_for_title_including_excluded` (a statement about coverage, not the
+  film) and `ids_by_external_id` (a query genuinely did return the post). Lifting one of two
+  rules re-credits the post to the survivor rather than handing it back.
+  **A mentions feed had to be built.** The story's Givens require one — "every post in the feed
+  has a 'Not my title' action" — and E05's dashboard does not exist. What landed is the narrow
+  version: posts, why each matched, and what could exclude it. Segmentation, language detection
+  and sentiment stay E04/E05's.
+  Round 1 found the access gate on that feed was wrong, and the justification written into its
+  docstring was wrong with it. It used `require_owning_organization` on the reasoning that both
+  shared roles have narrower views. False for the agency: E01-S05's scope line is "reads and
+  exports this title only" — the owner's view narrowed to one title, not narrowed in content —
+  so an agency clicking the Mentions link got a 404 on a title they can demonstrably see. Now
+  `require_readable`, plus an explicit refusal for the one role whose promise really is
+  narrower: a tagged artist sees "only mentions that also mention them", that filtered view
+  needs E06's artist terms, and all three alternatives were bad — the whole feed over-shares, a
+  404 denies a title they accepted an invitation to, and only a 403 naming the limit is true.
+  Round 2 confirmed the fix and established that an artist who is *also* in an agency holding a
+  grant resolves to their artist role structurally, not by luck: the check constraints stop
+  either lookup returning the other's rows.
+  Known limitations, shipped by decision: the artist-scoped feed is refused rather than built
+  (E06); the impact scan and the sweep both walk the whole corpus in Python rather than SQL,
+  because "does this term appear as a whole word" is not a `LIKE`, which is right but is linear
+  in corpus size on a screen a studio opens repeatedly; and an exclusion applies to one title
+  only — account-level exclusion is E04-S03 and was deliberately not built.

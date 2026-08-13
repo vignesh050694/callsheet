@@ -98,5 +98,7 @@ export const apiClient = {
     request<TResponse>(path, { method: 'PUT', body }),
   patch: <TResponse>(path: string, body: unknown) =>
     request<TResponse>(path, { method: 'PATCH', body }),
-  delete: (path: string) => request<void>(path, { method: 'DELETE' }),
+  // Generic, defaulting to void: most deletes answer 204, but lifting an exclusion
+  // (E02-S05) returns how many posts came back, which is the point of the action.
+  delete: <TResponse = void>(path: string) => request<TResponse>(path, { method: 'DELETE' }),
 }

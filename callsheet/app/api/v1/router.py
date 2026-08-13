@@ -8,6 +8,7 @@ from app.api.v1.routes import (
     health,
     invitations,
     me,
+    mentions,
     organizations,
     title_invitations,
     title_memberships,
@@ -25,4 +26,5 @@ api_v1_router.include_router(title_memberships.router)
 api_v1_router.include_router(title_invitations.router)
 api_v1_router.include_router(title_previews.router)
 api_v1_router.include_router(alias_suggestions.router)
+api_v1_router.include_router(mentions.router)
 api_v1_router.include_router(collection.router)

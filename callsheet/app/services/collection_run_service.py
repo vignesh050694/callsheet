@@ -43,6 +43,7 @@ from app.services.collection.query_plan import QueryVariant, build_query_variant
 from app.services.collection.spend_policy import SpendPolicy
 from app.services.collection_schedule_service import CollectionScheduleService
 from app.services.collection_service import CollectionService
+from app.services.title_service import TitleService
 
 _logger = structlog.get_logger(__name__)
 
@@ -311,9 +312,7 @@ class CollectionRunService:
             )
             return CollectionRunStatus.SKIPPED, decision.reason
 
-        variants = build_query_variants(
-            title, limit=self._settings.collection_variants_per_title
-        )
+        variants = build_query_variants(title, limit=self._settings.collection_variants_per_title)
         totals.variants_planned = len(variants)
         if not variants:
             return CollectionRunStatus.SKIPPED, NO_VARIANTS_REASON
@@ -367,6 +366,12 @@ class CollectionRunService:
             platform,
             variant.query,
             limit=self._settings.collection_page_size,
+            # The title's exclusion rules travel with the page (E02-S05). A post the
+            # studio has already disowned is still stored — it was paid for, and the
+            # judgement is reversible — but it is marked on arrival so it never reaches a
+            # count. The alternative, sweeping after the fact, leaves a window where the
+            # dashboard reports a number the studio was told would not happen again.
+            excluded_terms=TitleService.excluded_terms_for(title),
         )
         totals.pages_fetched += 1
         totals.mentions_stored += result.stored
@@ -505,6 +510,4 @@ class CollectionRunService:
         if title is None:
             return closed
         next_run = await self._queue_successor(title, finished_at)
-        return replace(
-            closed, next_run_at=next_run.scheduled_for if next_run is not None else None
-        )
+        return replace(closed, next_run_at=next_run.scheduled_for if next_run is not None else None)
