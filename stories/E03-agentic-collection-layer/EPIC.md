@@ -35,8 +35,8 @@ raw corpus** — because analysis (E04) is the real budget risk and it must neve
 | E03-S04 | Store raw payloads verbatim and reprocess without re-paying | 1 | done | 475ff34 |
 | E03-S01 | Start collecting automatically on title creation, counting each post once | 1 | done | fa67410 |
 | E03-S02 | Shift polling cadence with the campaign phase | 1 | done | 14c15b0 |
-| E03-S03 | Backfill the conversation from before I signed up | 1 | done | e7aaefd |
-| E03-S05 | See per-platform collection health and coverage gaps | 1 | todo | — |
+| E03-S03 | Backfill the conversation from before I signed up | 1 | done | 3e47d7a |
+| E03-S05 | See per-platform collection health and coverage gaps | 1 | in-progress | — |
 
 **S06 was merged into S01** and its file deleted; its content lives on as S01's second scenario.
 S01 already required a poll that spans every configured query variant, which is the exact condition
@@ -383,7 +383,7 @@ needs the title identity set that epic delivered)
   - Per-platform cadences, customer-editable cadence and staleness detection are all out of
     scope and none were built.
 
-- **E03-S03** — done · `e7aaefd` · 11 tests · 481 backend tests · `make check` + `npm run check` +
+- **E03-S03** — done · `3e47d7a` · 11 tests · 481 backend tests · `make check` + `npm run check` +
   build green. **One review round, passed.**
 
   What landed: a `CollectionWindow` on the collection port — two instants, and deliberately
